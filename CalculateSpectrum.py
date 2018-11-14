@@ -327,7 +327,9 @@ class HarmonicApproxSpectrum(object):
             dipoleMoments[den] = np.dot(dips[den],eckVecs[den])
             #dipoleMoments2[b] = np.dot(eckVecs[b],dips[b]) #This probably isn't right
         print 'dipole moment - after eckart rotation: ', dipoleMoments[0]
+        print 'dipole moment - after eckart rotation: ', dipoleMoments[6]
 
+        #stop
         #print 'getting eckarted dipole moments. . .'
         #dipoleMoments = self.wfn.molecule.rotateDipoleToFrame(coords,dips)
         #print dipoleMoments

@@ -953,7 +953,11 @@ class molecule (object):
         ycomp = (disp*yaxis).sum(axis=1)
         zcomp = o4[:,-1]
         #return disp[:,0],disp[:,1],disp[:,2]
+        #print xcomp[0],ycomp[0],zcomp[0]
+        #print xcomp[6],ycomp[6],zcomp[6]
+        #stop
         return xcomp,ycomp,zcomp
+
 
     def oldPlanarXYZ(self,xx):
         O2 = xx[:,2-1,:] #(0,0,0)
@@ -1321,11 +1325,13 @@ class molecule (object):
         myF = np.zeros((len(ShiftedMolecules),3,3))
         st=time.time()
         asdf = np.sum(ShiftedMolecules[:,:,:,np.newaxis]*self.refPos[np.newaxis,:,np.newaxis,:]*mass[np.newaxis,:,np.newaxis,np.newaxis],axis=1)
+
         myF = np.transpose(asdf,(0,2,1))
         myFF = np.matmul(myF,asdf)
-        bigEvals,bigEvecs=la.eig(myFF)
-        bigEvals=np.sort(bigEvals,axis=1)
-        bigEvecs=bigEvecs[:,:,(2,1,0)]
+        bigEvals,bigEvecs=la.eigh(myFF)
+        #bigEvals=np.sort(bigEvals,axis=1)
+        bvec = copy.deepcopy(bigEvecs)
+        #bigEvecs=bigEvecs[:,:,(2,1,0)]
         bigEvecsT=np.transpose(bigEvecs,(0,2,1))
 
         msk=np.where(bigEvals[:,0]==0.0)
@@ -1333,7 +1339,7 @@ class molecule (object):
             invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
         else:
             invRootDiagF2 = np.zeros(bigEvals.shape)
-            invRootDiagF2[:,1:2]=1.0 / np.sqrt(bigEvals[:,1:2])
+            invRootDiagF2[:,1:]=1.0 / np.sqrt(bigEvals[:,1:])
 
         invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
         print myF
@@ -1347,7 +1353,7 @@ class molecule (object):
         print mas
         if len(mas[0])!=0:
             killList2=mas
-            eckVecs2[mas] = np.negative(eckVecs2[mas])
+            #eckVecs2[mas] = np.negative(eckVecs2[mas])
             minus = len(mas[0])
 
         else:
@@ -1377,7 +1383,7 @@ class molecule (object):
             if len(np.where(sortEigValsF<=0)[0])!=0:
                 #sortEigVecFT=np.abs(sortEigVecFT)                                                            
                 sortEigValsF=np.abs(sortEigValsF)
-                invRootDiagF=sortEigValsF
+                invRootDiagF=copy.deepcopy(sortEigValsF)
                 for e,element in enumerate(sortEigValsF):
                     if element>0:
                         invRootDiagF[e]=1.0/np.sqrt(element)
@@ -1386,6 +1392,7 @@ class molecule (object):
                 invRootDiagF=1.0/np.sqrt(sortEigValsF)
             # F^{-1/2}
             invRootF=np.dot(invRootDiagF[np.newaxis,:]*-sortEigVecF,sortEigVecFT)
+
             #invRootF = np.dot(invRootDiagF[np.newaxis, :] * sortEigVecF, sortEigVecFT)
         
             #3.4C? ryan
@@ -1393,7 +1400,8 @@ class molecule (object):
 
             allEckVecs[moli] = eckVecs
 
-
+            if moli==6:
+                print 'asdf'
             if not justO:
                 #newCoordRD[moli] = np.dot(eckVecs, molecule.T).T wrong!
                 newCoord[moli] = np.dot(molecule, eckVecs)
@@ -1418,21 +1426,22 @@ class molecule (object):
                 print '   molecule number:',moli,'\n   sortEigValsF: \n', sortEigValsF,'\n   molecule: \n', molecule,
                 print '\n   eckVecs \n', eckVecs
                 octopus
-        print 'Lindsey: ',time.time()-start
+        #print 'Lindsey: ',time.time()-start
         
         print "Whew ! Done with eckart."
         print 'plus',plus
         print 'minus',minus
-        print 'first allEckVecs', allEckVecs[0]
-
+        #print 'first allEckVecs', allEckVecs[0]
+        #print allEckVecs
         #ff = open('allHTesting/eckartRotatedMolecule',"w+")
         #elf.printCoordsToFile(newCoord,ff)
         #ff.close()
         #print 'recorded new eckart coordinates'
+        print np.array_equal(np.around(allEckVecs,5),np.around(eckVecs2,5))
         if self.name in ProtonatedWaterTrimer or self.name in ProtonatedWaterTetramer:
             return com,allEckVecs,killList
         else:
-            return newCoord #"""
+            return newCoord """
 
 
     def getInitialCoordinates(self):
