@@ -217,6 +217,8 @@ if iwantToPlotStuff:
     plotStuff()
 else:
     HOASpectrum=CalculateSpectrum.HarmonicApproxSpectrum(Wfn,symEckRotCoords,symDw,path,testName)
+    HOASpectrum.overlapMatrix(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill)
+
     if 'Eck' in GfileName:
         coordinateSet=coordinateSet+'refGmat'
     fundamentalEnergies,fundamentalIntensities, combinationBandEnergies,combinationBandIntensities=HOASpectrum.calculateSpectrum(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill)
