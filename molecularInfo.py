@@ -852,12 +852,16 @@ class molecule (object):
         # zaxis
         dummy = center.copy()
         dummy[:, -1] = 0.0
-        OA = center - oW
-        BA = center - dummy
+        #OA = center - oW
+        #BA = center - dummy
+        OA = oW-center
+        BA = dummy-center
+
         un = OA / la.norm(OA, axis=1)[:, None]  # unit vector pointing along OO axis
         # print la.norm(un,axis=1)
-        OB = dummy - oW
-        #OC = np.zeros((len(oW), 3))
+        #OB = dummy - oW
+        OB = oW-dummy
+
         s = (un*OB).sum(axis=1)
         OC = s[:,None]*un
         #for i in range(len(oW)):
@@ -1052,6 +1056,8 @@ class molecule (object):
         print 'time it took to get xyzs: ',str(time.time()-start)
         second = time.time()
         thphixi1 = self.H9eulerH2O__V2(x,6,5,1)
+        print 'thphixi1',thphixi1
+        stop
         thphixi2 = self.H9eulerH2O__V2(x, 10, 3, 9)
         thphixi3 = self.H9eulerH2O__V2(x, 7, 2, 8)
         print 'done euler angles'
