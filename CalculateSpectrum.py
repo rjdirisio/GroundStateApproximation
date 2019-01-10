@@ -171,29 +171,30 @@ class HarmonicApproxSpectrum(object):
         gc.collect()
         mh = np.memmap('mmap', dtype='float64', mode='r', shape=(int(walkerSize), int(self.nVibs)))
         sh = np.memmap('smap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs),int(self.nVibs)))
-        chunkSize=1000000
+
+        if walkerSize > 1000000:
+            chunkSize=1000000
+        else:
+            chunkSize=10
         cycle = np.arange(0,walkerSize,chunkSize)
-        ind=0
         last=False
-        for stt in cycle[1:]:
+        for stt in cycle:
+            k=stt+chunkSize
+            if k > walkerSize-chunkSize:
+                last=True
             if not last:
-                sh[ind:stt,:,:]=mh[ind:stt,:,np.newaxis]*mh[ind:stt,np.newaxis,:]
+                sh[stt:k,:,:]=mh[stt:k,:,np.newaxis]*mh[stt:k,np.newaxis,:]
             else:
-                sh[ind:,:,:]=mh[ind:,:,np.newaxis]*mh[ind:,np.newaxis,:]
-            ind+=stt
-            print stt
-            if ind >= walkerSize-stt:
-              #print walkerSize
-              #print stt
-              #print walkerSize-stt
-                  last = True
-              #print last
+                sh[stt:,:,:]=mh[stt:,:,np.newaxis]*mh[stt:,np.newaxis,:]
+
+        sh.flush()
         del sh
         del mh
         print 'returning moments...'
         return moments
 
     def overlapMatrix(self,q,dw,pe):
+        pe *= au2wn
         #q=np.load("q.npy")
         walkerSize = len(dw)
         if walkerSize < 10000:
@@ -204,10 +205,11 @@ class HarmonicApproxSpectrum(object):
         sumDw = np.sum(dw)
         walkerSize=len(dw)
         print 'loaded q and q2'
-        a = np.average((q)*(q)*(q) / np.average((q)*(q)),axis=0,weights=dw) * (1/np.average((q)*(q),axis=0,weights=dw))
+        a = np.average((q*q*q) / np.average(q*q),axis=0,weights=dw) * (1/np.average((q)*(q),axis=0,weights=dw))
         b = -1 / np.average(q*q, axis=0, weights=dw)
         #Construct Overlap Matrix
         print 'Construct Overlap Matrix'
+        #avq2 = np.average(q*q,axis=0,weights=dw)
         #Construct diagonal elements
         print 'Construct Diagonal Elements'
         #peCM = potentialEnergy*au2wn #- V_0*au2wn
@@ -228,7 +230,7 @@ class HarmonicApproxSpectrum(object):
         print 'time for on diag combos'
         ########combos for overlap 2
         for (x,y) in itertools.combinations(q.T,2):
-            a2p=np.average(x*y,weights=dw)
+            a2p=np.average(x*x*y*y,weights=dw)
             dgnl2.append(a2p)
         #np.savetxt("dgnl2",dgnl2)
 
@@ -249,7 +251,7 @@ class HarmonicApproxSpectrum(object):
         del b
         gc.collect()
         print 'Construct Off-Diagonal Elements'
-        print 'Funds & overs w ground'
+        print 'Funds w ground'
         overlap2[0,1:self.nVibs+1]=np.average(q,axis=0,weights=dw)
         ham2[0, 1:self.nVibs + 1] = np.average(q*pe[:,np.newaxis], axis=0, weights=dw)
         overlap2[0,self.nVibs+1:self.nVibs*2+1] = np.average(bq2aq1, axis=0, weights=dw)
@@ -258,7 +260,6 @@ class HarmonicApproxSpectrum(object):
         print 'Combinations with ground'
         nvibs2 = self.nVibs*2
         vbo=np.flip(np.arange(self.nVibs+1))
-        #print vbo
         curI = nvibs2+1
         nxtI = curI+self.nVibs-1
         for combo in range(self.nVibs):
@@ -281,6 +282,7 @@ class HarmonicApproxSpectrum(object):
         print "Ovs with Ovs"
         for combo in range(self.nVibs):
             print 'hi,combo', combo
+            asdf=np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
             overlap2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
             ham2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis]*bq2aq1[:, (combo + 1):]*pe[:,np.newaxis], axis=0, weights=dw)
             print 'jj'
@@ -321,22 +323,16 @@ class HarmonicApproxSpectrum(object):
             print prev
             print prev + self.nVibs - combo - 1
             last=False
-            ind=0
-            for asd in cycle[1:]:
+            for asd in cycle:
+                k=asd+chunkSize2
                 if not last:
-                    lmap[ind:asd,prev:prev + self.nVibs - combo - 1]=qh[ind:asd, combo, np.newaxis] * qh[ind:asd, (combo + 1):]
+                    lmap[asd:k,prev:prev + self.nVibs - combo - 1]=qh[asd:k, combo, np.newaxis] * qh[asd:k, (combo + 1):]
                 else:
-                    lmap[ind:,prev:prev + self.nVibs - combo - 1]=qh[ind:, combo, np.newaxis] * qh[ind:, (combo + 1):]
-                ind+=asd
-                if ind >=walkerSize-asd:
-                    last=True
-            #ln[:, prev:prev + self.nVibs - combo - 1] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
+                    lmap[asd:,prev:prev + self.nVibs - combo - 1]=qh[asd:, combo, np.newaxis] * qh[asd:, (combo + 1):]
             prev += self.nVibs-1-combo
 
-        print 'memmap ln'
-        #lmap = np.memmap('lmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(lnsize)))
-        #lmap[:] = ln[:]
-        #lmap.flush()
+        print 'memmaped ln'
+        lmap.flush()
         del lmap
         #del ln
 
@@ -352,31 +348,29 @@ class HarmonicApproxSpectrum(object):
         ###/MEMMAPS
         print "Begin the reign of memmaps - Funds with overtones"
         cycle = np.arange(0, walkerSize, chunkSize2)
-        ind = 0
         last = False
         hav=np.zeros((self.nVibs,self.nVibs))
         hamhav=np.zeros((self.nVibs,self.nVibs))
         for var, obj in locals().items():
                 print var, sys.getsizeof(obj)
-        for ttt in cycle[1:]:
-            # print ttt
+
+        for ttt in cycle:
             ttt = int(ttt)
-            # print lnh.shape
+            k=ttt+chunkSize2
+            if k > walkerSize - chunkSize2:
+                last=True
             if last:
-                hav += np.sum((qh[ind:, :, np.newaxis] * bh[ind:, np.newaxis, :]) * dwh[ind:, np.newaxis, np.newaxis], axis=0)
-                hamhav += np.sum((qh[ind:, :, np.newaxis] * bh[ind:, np.newaxis, :]) *peh[ind:,np.newaxis,np.newaxis]* dwh[ind:, np.newaxis, np.newaxis], axis=0)
+                hav += np.sum((qh[ttt:, :, np.newaxis] * bh[ttt:, np.newaxis, :]) * dwh[ttt:, np.newaxis, np.newaxis], axis=0)
+                hamhav += np.sum((qh[ttt:, :, np.newaxis] * bh[ttt:, np.newaxis, :]) *peh[ttt:,np.newaxis,np.newaxis]* dwh[ttt:, np.newaxis, np.newaxis], axis=0)
 
             else:
-                hamhav+=np.sum((qh[ind:ttt, :, np.newaxis] * bh[ind:ttt, np.newaxis, :])*peh[ind:ttt,np.newaxis,np.newaxis]* dwh[ind:ttt, np.newaxis, np.newaxis],
+                hamhav+=np.sum((qh[ttt:k, :, np.newaxis] * bh[ttt:k, np.newaxis, :])*peh[ttt:k,np.newaxis,np.newaxis]* dwh[ttt:k, np.newaxis, np.newaxis],
                               axis=0)
-                hav += np.sum((qh[ind:ttt, :, np.newaxis] * bh[ind:ttt, np.newaxis, :]) * dwh[ind:ttt, np.newaxis, np.newaxis],
+                hav += np.sum((qh[ttt:k, :, np.newaxis] * bh[ttt:k, np.newaxis, :]) * dwh[ttt:k, np.newaxis, np.newaxis],
                               axis=0)
-            ind += ttt
-            # print 'time', time.time()-teststart
-            if ind >= walkerSize - ttt:
-                last = True
+
         overlap2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav / sumDw
-        ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav / sumDw
+        ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav / sumDw
         print 'jj'
         ##Funds with combos - moved to end
         print 'jj'
@@ -392,47 +386,60 @@ class HarmonicApproxSpectrum(object):
         hfuco= np.zeros((self.nVibs,lnsize))
         hovco= np.zeros((self.nVibs,lnsize))
 
-        chunkSize2 = 2000
+        if walkerSize > 2000:
+            chunkSize2 = 2000
+        else:
+            chunkSize2 = 10
         cycle = np.arange(0,walkerSize,chunkSize2)
         print len(cycle)
-        ind=0
         last=False
-        for ttt in cycle[1:]:
-            #print ttt
+        # for j in cycle:
+        #     k = j + chunkSize
+        #     if k > walkerSize - chunkSize:
+        #         last = True
+        #     if not last:
+        #         mu2AveR += np.sum(sh[j:k] * dh[j:k, np.newaxis, np.newaxis], axis=0)
+        #     else:
+        #         mu2AveR += np.sum(sh[j:] * dh[j:, np.newaxis, np.newaxis], axis=0)
+
+        for ttt in cycle:
             ttt = int(ttt)
-            #print lnh.shape
+            k = ttt + chunkSize2
+            if k > walkerSize - chunkSize2:
+                last = True
             if last:
-                fuco += np.sum((qh[ind:, :, np.newaxis] * lnh[ind:, np.newaxis, :]) * dwh[ind:, np.newaxis, np.newaxis], axis=0)
-                ovco += np.sum((bh[ind:, :, np.newaxis] * lnh[ind:, np.newaxis, :]) * dwh[ind:, np.newaxis, np.newaxis], axis=0)
-                coco+=np.sum((lnh[ind:,:,np.newaxis]*lnh[ind:,np.newaxis,:])*dwh[ind:,np.newaxis,np.newaxis],axis=0)
-                hfuco += np.sum((qh[ind:, :, np.newaxis] * lnh[ind:, np.newaxis, :]) *peh[ind:, np.newaxis, np.newaxis]* dwh[ind:, np.newaxis, np.newaxis],axis=0)
-                hovco += np.sum((bh[ind:, :, np.newaxis] * lnh[ind:, np.newaxis, :]) *peh[ind:, np.newaxis, np.newaxis]* dwh[ind:, np.newaxis, np.newaxis],axis=0)
-                hcoco += np.sum((lnh[ind:, :, np.newaxis] * lnh[ind:, np.newaxis, :]) *peh[ind:, np.newaxis, np.newaxis]*dwh[ind:, np.newaxis, np.newaxis], axis=0)
+                fuco += np.sum((qh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) * dwh[ttt:, np.newaxis, np.newaxis], axis=0)
+                ovco += np.sum((bh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) * dwh[ttt:, np.newaxis, np.newaxis], axis=0)
+                coco+=np.sum((lnh[ttt:,:,np.newaxis]*lnh[ttt:,np.newaxis,:])*dwh[ttt:,np.newaxis,np.newaxis],axis=0)
+                hfuco += np.sum((qh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) *peh[ttt:, np.newaxis, np.newaxis]* dwh[ttt:, np.newaxis, np.newaxis],axis=0)
+                hovco += np.sum((bh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) *peh[ttt:, np.newaxis, np.newaxis]* dwh[ttt:, np.newaxis, np.newaxis],axis=0)
+                hcoco += np.sum((lnh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) *peh[ttt:, np.newaxis, np.newaxis]*dwh[ttt:, np.newaxis, np.newaxis], axis=0)
             else:
-                fuco+=np.sum((qh[ind:ttt,:,np.newaxis]*lnh[ind:ttt,np.newaxis,:])*dwh[ind:ttt,np.newaxis,np.newaxis],axis=0)
-                ovco+=np.sum((bh[ind:ttt,:,np.newaxis]*lnh[ind:ttt,np.newaxis,:])*dwh[ind:ttt,np.newaxis,np.newaxis],axis=0)
-                coco+=np.sum((lnh[ind:ttt,:,np.newaxis]*lnh[ind:ttt,np.newaxis,:])*dwh[ind:ttt,np.newaxis,np.newaxis],axis=0)
-                hfuco += np.sum((qh[ind:ttt, :, np.newaxis] * lnh[ind:ttt, np.newaxis, :]) *peh[ind:ttt, np.newaxis, np.newaxis]* dwh[ind:ttt, np.newaxis, np.newaxis],axis=0)
-                hovco += np.sum((bh[ind:ttt, :, np.newaxis] * lnh[ind:ttt, np.newaxis, :]) *peh[ind:ttt, np.newaxis, np.newaxis]* dwh[ind:ttt, np.newaxis, np.newaxis],axis=0)
-                hcoco += np.sum((lnh[ind:ttt, :, np.newaxis] * lnh[ind:ttt, np.newaxis, :]) *peh[ind:ttt, np.newaxis, np.newaxis]*dwh[ind:ttt, np.newaxis, np.newaxis], axis=0)
-            ind+=ttt
-            
-            #print 'time', time.time()-teststart
-            if ind >= walkerSize-ttt:
-              last = True
+                fuco+=np.sum((qh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:])*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
+                ovco+=np.sum((bh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:])*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
+                coco+=np.sum((lnh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:])*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
+                hfuco += np.sum((qh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :]) *peh[ttt:k, np.newaxis, np.newaxis]* dwh[ttt:k, np.newaxis, np.newaxis],axis=0)
+                hovco += np.sum((bh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :]) *peh[ttt:k, np.newaxis, np.newaxis]* dwh[ttt:k, np.newaxis, np.newaxis],axis=0)
+                hcoco += np.sum((lnh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :]) *peh[ttt:k, np.newaxis, np.newaxis]*dwh[ttt:k, np.newaxis, np.newaxis], axis=0)
         del dwh
         del qh
         del lnh
         del peh
         gc.collect()
         print 'done',time.time()-teststart
-        overlap2[nvibs2+1:,nvibs2+1:]=np.triu(coco/sumDw)
-        overlap2[1:self.nVibs+1,self.nVibs*2+1:] = np.triu(fuco/sumDw)#FC
-        overlap2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1:] = np.triu(ovco/sumDw)  
+        ovlas= np.triu_indices_from(overlap2[nvibs2+1:,nvibs2+1:],k=1)
+        g=ovlas[0]
+        h=ovlas[1]
+        g += nvibs2+1
+        h += nvibs2+1
+        asco = np.triu_indices_from(coco,k=1)
+        overlap2[tuple((g,h))]=coco[asco]/sumDw
+        overlap2[1:self.nVibs+1,self.nVibs*2+1:] = fuco/sumDw #FC
+        overlap2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1:] =ovco/sumDw
 
-        ham2[nvibs2+1:,nvibs2+1:]=np.triu(hcoco/sumDw)
-        ham2[1:self.nVibs+1,self.nVibs*2+1:] = np.triu(hfuco/sumDw)#FC
-        ham2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1:] = np.triu(hovco/sumDw)  
+        ham2[tuple((g,h))]=hcoco[asco]/sumDw
+        ham2[1:self.nVibs+1,self.nVibs*2+1:] = hfuco/sumDw #FC
+        ham2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1:] = hovco/sumDw
         print 'total time off diags', time.time()-start
         return ham2,overlap2
 
@@ -778,34 +785,31 @@ class HarmonicApproxSpectrum(object):
         mu2AveR = np.zeros((self.nVibs,self.nVibs))
         sh = np.memmap('smap', dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
         dh = np.memmap('dmap', dtype='float64', mode='r', shape=int(walkerSize))
-        chunkSize=1000000
+        if walkerSize > 1000000:
+            chunkSize=1000000
+        else:
+            chunkSize=10
         cycle = np.arange(0,walkerSize,chunkSize)
-        ind=0
         last=False
-        for j in cycle[1:]:
+
+    # for j in cycle:
+    #     k = j + chunkSize
+    #     if k > walkerSize - chunkSize:
+    #         last = True
+    #     if not last:
+    #         mu2AveR += np.sum(sh[j:k] * dh[j:k, np.newaxis, np.newaxis], axis=0)
+    #     else:
+    #         mu2AveR += np.sum(sh[j:] * dh[j:, np.newaxis, np.newaxis], axis=0)
+        for j in cycle:
+            k = j+chunkSize
+            if k > walkerSize-chunkSize:
+                last = True
             if not last:
-                mu2AveR += np.sum(sh[ind:j]*dh[ind:j,np.newaxis,np.newaxis],axis=0)
+                mu2AveR += np.sum(sh[j:k]*dh[j:k,np.newaxis,np.newaxis],axis=0)
             else:
-                mu2AveR += np.sum(sh[ind:]*dh[ind:,np.newaxis,np.newaxis],axis=0)
-            ind+=j
-            print ind
-            if ind >= walkerSize-j:
-                  last = True
-	        
-#	for i in range(100):
-#            sMome = np.load('../mm/secondMoments'+str(i+1)+'.npy')   
-#	    mu2AveR += np.sum(sMome*dwChunks[i][:,np.newaxis,np.newaxis],axis=0)
+                mu2AveR += np.sum(sh[j:]*dh[j:,np.newaxis,np.newaxis],axis=0)
         mu2Ave = np.divide(mu2AveR,np.sum(dw))/2.00000
-        #print mu2Ave
 
-        secondMom=[]
-        #for i in range(100):
-        #    secondMom.append(np.load('../mm/secondMoments' + str(i + 1) + '.npy'))
-        #secondMoments = np.concatenate(secondMom,axis=0)
-
-        #mu2Ave=np.average(secondMoments,axis=0,weights=dw)
-        #mu2Ave=mu2Ave/2.000000000000
-        #print mu2Ave
         GHalfInv=self.diagonalizeRootG(self.G)
         mu2AvePrime=np.dot(GHalfInv,np.dot(mu2Ave,GHalfInv)) # mass weights g^-1/2 . sm . g^-1/2
         eigval,vects=np.linalg.eigh(mu2AvePrime)

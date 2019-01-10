@@ -213,18 +213,18 @@ if os.path.isfile(cds+'.npy'):
     symDw = np.load(cds+'_dw.npy')
 else:
     symCoords, symDw = Wfn.loadCoords(cds)
-    if 'origMin' in cds:
-        symCoords/=(angstr**2)
-    #symCoords=np.concatenate((symCoords,symCoords))/angstr
-    print symCoords
-    print symCoords.shape
-    if 'min' in cds:
-        symDw = [1.,1.]
-        symCoords=Wfn.molecule.rotateBackToFrame(symCoords,2,1,3)
-    # if 'refEck' in cds:
-    #     symDw = [1., 1.]
-    #     symCoords = np.array([Wfn.molecule.pullTetramerRefPos(),Wfn.molecule.pullTetramerRefPos()])*angstr
-    symDw=[1.,1.]
+    # if 'origMin' in cds:
+    #     symCoords/=(angstr**2)
+    # #symCoords=np.concatenate((symCoords,symCoords))/angstr
+    # print symCoords
+    # print symCoords.shape
+    # if 'min' in cds:
+    #     symDw = [1.,1.]
+    #     symCoords=Wfn.molecule.rotateBackToFrame(symCoords,2,1,3)
+    # # if 'refEck' in cds:
+    # #     symDw = [1., 1.]
+    # #     symCoords = np.array([Wfn.molecule.pullTetramerRefPos(),Wfn.molecule.pullTetramerRefPos()])*angstr
+    # symDw=[1.,1.]
     if symCoords.shape[0]==1:
         symCoords = np.concatenate((symCoords, symCoords))*angstr
     symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 2, 1, 3)

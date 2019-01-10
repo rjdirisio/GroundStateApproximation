@@ -1447,6 +1447,8 @@ class molecule (object):
 
 
     def eckartRotate(self,pos,justO=False,specialCond=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+        """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
+        one should """
         nMolecules=pos.shape[0]
         allEckVecs = np.zeros((nMolecules,3, 3))
         if self.name in ProtonatedWaterTrimer:
