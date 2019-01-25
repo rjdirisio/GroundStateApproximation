@@ -40,7 +40,7 @@ class myPlot:
                 print self.xl,self.yl
                 plt.xlabel(self.xl)
                 plt.ylabel(self.yl)
-                plt.plot(self.binCenters1,self.pltdata)
+                plt.plot(self.binCenters1,self.pltdata,'k',linewidth=2)
                 #plt.show()
                 savef = titlemod+self.yl.replace(" ", "")+'vs'+self.xl.replace(" ", "")+self.cfg+'.png'
                 plt.savefig(savef)
@@ -48,7 +48,7 @@ class myPlot:
                 num=1
                 if self.overlay == True: #self.overlay 1dHists
                     for i in self.pltdata:
-                        plt.plot(self.binCenters1,i,label=num)
+                        plt.plot(self.binCenters1,i,lienwidth=2,label=num)
                         num+=1
                     plt.xlabel(self.xl)
                     plt.ylabel(self.yl)

@@ -1102,7 +1102,7 @@ class molecule (object):
         return xxNew[:,4-1,0],xxNew[:,4-1,1],xxNew[:,4-1,2],
 
     def getfinalOOAxes(self,atmnm,xx):
-        print 'fssdf'
+        #print 'fssdf'
         if atmnm == 11:
             outerW = 2
         elif atmnm == 12:
@@ -1112,7 +1112,7 @@ class molecule (object):
         oW = xx[:, outerW - 1, :]  # Coordinates of outer water Oxygen
         center = xx[:, 4 - 1, :]
         mp = (center + oW) / 2 #no decimal
-        print mp
+        #print mp
         sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
         xaxis = np.divide((mp - oW), la.norm(oW - mp, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
         dummy = center.copy()
@@ -1146,24 +1146,19 @@ class molecule (object):
 
     def finalPlaneShareEuler(self,xx):
         #For any geometry, use reference to determine xyz compz
-        xxp=np.copy(xx[:,:4])
-        ocom, eVecs, kill=self.eckartRotate(xxp[:,:3],True)
+        #xxp=np.copy(xx[:,:4])
+        print 'eckarting...'
+        ocom, eVecs, kill=self.eckartRotate(xx[:,:3],True)
         xx-=ocom[:,np.newaxis,:]
-        #xxNew = np.zeros(xx.shape)
-        #asdf = np.copy(xxNew)
-        yy=np.copy(xx)
-        for walker in range(len(yy)):
-            for atm in range(len(yy[walker])):
-                yy[walker,atm]=np.dot(yy[walker,atm],eVecs[walker])
-
-
+        rotM = np.loadtxt("rotM_EckRef")
         for walker in range(len(xx)):
+            #eckart Frame
             xx[walker] = np.dot(xx[walker], eVecs[walker])
-        planarXYZ=np.copy(np.array([xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2]]))
+            #bring them to proper coordinate
+            xx[walker] = np.dot(rotM,xx[walker].T).T
+        #planarXYZ=np.copy(np.array([xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2]]))
         ##########Got O4 - Begin SharedProtons#############
-        #zOfEck4=planarXYZ[-1]
-        #Do normal stuff, but flip z based on sign of eckarted shit
-        ######615930827
+        print xx[0]
         print 'central O computed.  Moving to eulers and shared XYZs'
         atmnm=11
         h1 = 8
@@ -1200,9 +1195,7 @@ class molecule (object):
         zcomp13 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
-
-
-        return planarXYZ[0],planarXYZ[1],planarXYZ[2],xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
+        return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
 
 
     def SymInternalsH9O4plus(self,x):
@@ -1243,9 +1236,9 @@ class molecule (object):
         rO1O2 = self.bL(x,2-1,1-1)
         rO1O3 = self.bL(x,1-1,3-1)
         rO2O3 = self.bL(x,2-1,3-1)
-        fourth = time.time()
+        #fourth = time.time()
         #xyzO4 = self.finalPlanarXyz(x)
-        print 'time for planar stuff', str(time.time() - fourth)
+        print 'time for rOO/rOH', str(time.time() - third)
         print 'Done with all internals'
 
         internal = np.array(
@@ -1427,28 +1420,39 @@ class molecule (object):
                            [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
                            [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
                            [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
-
-        myRefCOM,extra = self.rotateBackToFrame(np.array([myRef2,myRef2]),2,1,3) #rotate reference to OOO plane
-        mass = self.get_mass()
-        com = np.dot(mass[:3], myRefCOM[:3]) / np.sum(mass[:3])
-
+        myRefCOM, extra = self.rotateBackToFrame(np.array([myRef2, myRef2]), 2, 1, 3)  # rotate reference to OOO plane
+        mass=self.get_mass()
+        com = np.dot(mass[:3], myRefCOM[:3]) / np.sum(mass[:3]) #same as overal COM
         myRefCOM-=com
-        #rotateAboutZ
-        x,y,z=myRefCOM[2-1]-com
-        th=np.arctan2(y,x)
-        rz=np.array([[np.cos(th),np.sin(th),0],
-                     [-np.sin(th),np.cos(th),0],
-                     [0,0,1]])
-        b4=np.copy(myRefCOM)
-        for atm in range(len(myRefCOM)):
-            myRefCOM[atm]=rz.dot(myRefCOM[atm])
+        ##get rotation matrix for ref geom to O2 being x axis
+        newX = (myRefCOM[2-1]-myRefCOM[4-1])/la.norm(myRefCOM[2-1]-myRefCOM[4-1])
+        oldX = (myRefCOM[1-1]-myRefCOM[2-1])/la.norm(myRefCOM[1-1]-myRefCOM[2-1])
+        th = np.arccos(np.dot(newX,oldX))
+        rotM = np.array([[np.cos(th),-np.sin(th),0],
+                         [np.sin(th),np.cos(th),0],
+                         [0,0,1]])
+        test = np.dot(rotM,myRefCOM.T).T
+        np.savetxt("rotM_EckRef",rotM)
+        # myRefAxis = np.array([[-2.40677555e+00,  4.16865753e+00, -5.10513310e-16],
+        #                    [ 4.81355108e+00,  1.15299152e-09, -1.41201920e-25],
+        #                    [-2.40677554e+00, -4.16865752e+00,  5.10513309e-16],
+        #                    [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+        #                    [-2.95167234e+00,  5.11244645e+00,  1.46596673e+00],
+        #                    [-2.95167234e+00,  5.11244645e+00, -1.46596673e+00],
+        #                    [ 5.90334467e+00,  3.57239792e-09,  1.46596673e+00],
+        #                    [ 5.90334467e+00,  3.57239756e-09, -1.46596673e+00],
+        #                    [-2.95167234e+00, -5.11244645e+00, -1.46596673e+00],
+        #                    [-2.95167234e+00, -5.11244645e+00,  1.46596673e+00],
+        #                    [ 1.90592922e+00,  2.29657230e-09, -2.81249386e-25],
+        #                    [-9.52964610e-01, -1.65058312e+00,  2.02138133e-16],
+        #                    [-9.52964605e-01,  1.65058311e+00, -2.02138133e-16]])
         return myRefCOM
 
 
 
     def eckartRotate(self,pos,justO=False,specialCond=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
-        one should """
+        one should transpose the matrix, for do eck.dot(___)"""
         nMolecules=pos.shape[0]
         allEckVecs = np.zeros((nMolecules,3, 3))
         if self.name in ProtonatedWaterTrimer:
@@ -1457,13 +1461,11 @@ class molecule (object):
             self.refPos = self.pullTetramerRefPos()
         if len(pos.shape)<3:
             pos=np.array([pos])
-        newCoord=np.zeros(pos.shape)
-        killList = []
         #Center of Mass
         mass=self.get_mass()
         #com=np.dot(mass,pos)/np.sum(mass)
         if justO: #the OOO plane
-            self.refPos=self.refPos [:3]
+            self.refPos=self.refPos[:3]
             com = np.dot(mass[:3],pos[:,:3])/np.sum(mass[:3])
             mass = mass[:3]
             pos = pos[:,:3,:]
@@ -1482,21 +1484,19 @@ class molecule (object):
 
         myF = np.transpose(asdf,(0,2,1))
         myFF = np.matmul(myF,asdf)
+        #If just planar, then we need to do this
+        if justO:
+            myFF[:,-1,-1]=1.0
         bigEvals,bigEvecs=la.eigh(myFF)
         #bigEvals=np.sort(bigEvals,axis=1)
         bvec = copy.deepcopy(bigEvecs)
         #bigEvecs=bigEvecs[:,:,(2,1,0)]
         bigEvecsT=np.transpose(bigEvecs,(0,2,1))
-
-        msk=np.where(bigEvals[:,0]==0.0)
-        if len(msk[0])==0:
-            invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
-        else:
-            invRootDiagF2 = np.zeros(bigEvals.shape)
-            invRootDiagF2[:,1:]=1.0 / np.sqrt(bigEvals[:,1:])
-
+        if np.all(np.around(bigEvals[:,0]==0.0)):
+            stop
+        invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
         invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
-        print myF
+        #print myF
         eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
         eckVecs2[:,-1]=np.cross(eckVecs2[:,0],eckVecs2[:,1])
         #print 'did it work'

@@ -235,7 +235,7 @@ else:
 
 print 'Symcoords shape',symCoords.shape
 print 'Got symCoords!'
-print symCoords
+#print symCoords
 print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
 symEckRotCoords = symCoords
 iwantToPlotStuff=False
