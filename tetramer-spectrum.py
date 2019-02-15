@@ -9,6 +9,7 @@ import Plot
 import CalculateSpectrum
 import sys, os
 angstr = 0.529177
+au2wn=219474.63
 
 def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     theLen, xx = np.histogram(thing, bins=25, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY

@@ -3,8 +3,13 @@ import numpy.linalg as la
 import matplotlib.pyplot as plt
 import sys
 import DMCClusters as dmc
+import subprocess as sub
 angstr = 0.529177
+au2wn=219474.63
+
 coordinateSet = sys.argv[1]
+coordModel = sys.argv[2]
+modeNum = sys.argv[3]
 Wfn=dmc.wavefunction('H9O4+', 1)
 if 'allD' in coordinateSet:
     Wfn.setIsotope('fullyDeuterated')
@@ -15,7 +20,17 @@ if '1Hw' in coordinateSet:
 path='../spectra/'
 gPath = '../Gmats/tetramer/'
 GfileName = gPath+coordinateSet+'.gmat'
-
+numWalkers = 201
+def writeNewWalkers(walkz,title):
+    coordAr = ['O','O','O','O','H','H','H','H','H','H','H','H','H']
+    walkz2 = walkz*angstr
+    writeFile = open(title,"w")
+    for walker in walkz2:
+        writeFile.write("13\n \n")
+        for k,atm in enumerate(walker):
+            writeFile.write("%s %5.12f  %5.12f  %5.12f\n" % (coordAr[k],atm[0],atm[1],atm[2]))
+        writeFile.write("\n")
+    writeFile.close()
 
 def getEqGeom():
     RefGeom =np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
@@ -118,7 +133,7 @@ def eRotateToOOSystem(geoq,outerO,shft):
     theta=np.arctan2(z,x)
     #if theta > np.pi or theta < 0:
     #    theta+=2.*np.pi
-    print 'theta', np.degrees(theta)
+    #print 'theta', np.degrees(theta)
     r1 = np.array([[np.cos(theta), 0, np.sin(theta)],
                    [0, 1, 0],
                    [-np.sin(theta), 0, np.cos(theta)]
@@ -129,7 +144,7 @@ def eRotateToOOSystem(geoq,outerO,shft):
         geop[atm] = r1.dot(geoq[atm])
     x,y=geop[outerO-1,0],geop[outerO-1,1]
     phi = np.arctan2(-y, x)
-    print 'phi',np.degrees(phi)
+    #print 'phi',np.degrees(phi)
     r2=np.array([[np.cos(phi),-np.sin([phi]),0],
                 [np.sin(phi),np.cos(phi),0],
                  [0, 0, 1]
@@ -148,7 +163,7 @@ def eRotateToOOSystem(geoq,outerO,shft):
          #geop[:,-1]=np.negative(geop[:,-1])
     if not (np.round(geop[1-1,-1])<=0. and np.round(geop[2-1,-1])<=0. and np.round(geop[3-1,-1])<=0.):
         #rotate about x axis until whichever one is
-        print 'rotatata'
+        #print 'rotatata'
         th=np.pi+np.pi/2.
         r3=np.array([[1,0,0],
                      [0,np.cos(th),-np.sin(th)],
@@ -156,7 +171,7 @@ def eRotateToOOSystem(geoq,outerO,shft):
                     )
         for atm in range(len(geop)):
             geop[atm]=r3.dot(geop[atm])
-        print 'rotatata'
+        #print 'rotatata'
 
     # if outerO == 2 and k==1:
     #     geop[:,0]=-1*geop[:,0]
@@ -252,10 +267,10 @@ def getOuters(age,outerMomentsR,outerMomentsE):
     theta = outerMomentsE[0]
     phi = outerMomentsE[1]
     chi = outerMomentsE[2]
-    print 'theta,phi,chi'
-    print np.degrees(theta)
-    print np.degrees(phi)
-    print np.degrees(chi)
+    #print 'theta,phi,chi'
+    #print np.degrees(theta)
+    #print np.degrees(phi)
+    #print np.degrees(chi)
     eulermat = getEulerMat(theta, phi, chi)
     r1=outerMomentsR[3]
     r2=outerMomentsR[4]
@@ -265,16 +280,16 @@ def getOuters(age,outerMomentsR,outerMomentsE):
     theta = outerMomentsE[3]
     phi = outerMomentsE[4]
     chi = outerMomentsE[5]
-    print 'theta,phi,chi'
-    print np.degrees(theta)
-    print np.degrees(phi)
-    print np.degrees(chi)
+    #print 'theta,phi,chi'
+    #print np.degrees(theta)
+    #print np.degrees(phi)
+    #print np.degrees(chi)
     eulermat = getEulerMat(theta, phi, chi)
     r1=outerMomentsR[6]
     r2=outerMomentsR[7]
     ang=outerMomentsR[8]
     age = rotateToOOAndPlaceOuters(age, r1, r2, ang, 3, 9, 10, eulermat)
-    print age
+    #print age
     return age
 
 
@@ -287,7 +302,6 @@ def getOuters(age,outerMomentsR,outerMomentsE):
 
 def getTriangle(ge,triMoments,sharedMoments):
     print 'begin getTriangle'
-    print avGeom.shape
     """Gets you the coordinates of All oxygens and Hydrogens in core"""
     """
     27 ('rO1O2', 8.262888698477584), 
@@ -308,8 +322,8 @@ def getTriangle(ge,triMoments,sharedMoments):
     #PLACE O4!############
     gomo[4-1]=triMoments[3:6]
     ######################
-    asdf=Wfn.molecule.rotateBackToFrame(np.array([gomo,gomo]),2,1,3)[0]
-    export(Wfn.molecule.rotateBackToFrame(np.array([gomo,gomo]),2,1,3)[0],'newnewnew')
+    #asdf=Wfn.molecule.rotateBackToFrame(np.array([gomo,gomo]),2,1,3)[0]
+    #export(Wfn.molecule.rotateBackToFrame(np.array([gomo,gomo]),2,1,3)[0],'newnewnew')
     age=np.copy(gomo)
 
     """0[('xH11', -0.5321874975974219), 
@@ -365,7 +379,7 @@ def rotateToOOAndPlaceHs(x,sharedHn,xyzCompz,outerOn):
     orY = np.cross(orZ,orX)/la.norm(np.cross(orZ,orX))
     xax,yax,zax=Wfn.molecule.getfinalOOAxes(sharedHn,np.array([x,x]))
     emat=constructEuler(orX,orY,orZ,xax[0]/la.norm(xax[0]),yax[0]/la.norm(yax[0]),zax[0]/la.norm(zax[0]))
-    print la.det(emat)
+    #print la.det(emat)
     #rotate
     y=np.copy(x)
     newInts = emat.T.dot(xyzCompz)
@@ -436,12 +450,11 @@ def rotateToOOAndPlaceOuters(x, r1, r2, ang, o, hl, hr, ema):
 
 
 def export(gem,extr):
-    if extr=='final' or 'new' in extr:
-        gem*=angstr
+    gem2=gem*angstr
     fl = open('testExtract'+extr+'.xyz','w')
     j=0
     k=0
-    for i in gem:
+    for i in gem2:
         if j != 1:
             if not np.array_equal(i,np.array([0.,0.,0.])):
                 if j<4:
@@ -453,7 +466,7 @@ def export(gem,extr):
         j+=1
     fl.write(str(k)+'\nwut\n')
     j=0
-    for i in gem:
+    for i in gem2:
         if j != 1:
             if not np.array_equal(i,np.array([0.,0.,0.])):
                 if j<4:
@@ -467,27 +480,51 @@ def export(gem,extr):
     fl.close()
                 
 #def outerWaters(lastMoments,coordinates):
+def scanAlongCoordinate(modeNumber,config):
+    tmatr = np.loadtxt(Tmatname)
+    sharedH1vec = tmatr[modeNumber]
+    print 'sharedHvec', la.norm(sharedH1vec)
+    np.savetxt("tn/tnorm_"+config+"Mode_"+str(modeNumber), [la.norm(sharedH1vec)])
+    normedSharedH1 = sharedH1vec / la.norm(sharedH1vec)
+    dx = 0.01
+    scannedGeoms = np.zeros((numWalkers, 13, 3))
+    #export(finalConstructedGeometry, 'testWell')
+    print 'numWalkers/2', numWalkers / 2
+    scannedGeoms[numWalkers / 2] = finalConstructedGeometry  # assign central point.
+
+    for i in range(numWalkers / 2):
+        avGeom = np.zeros(np.shape(eqG))
+        g = (dx * (i + 1)) * normedSharedH1
+        averageMomentChange = averageMoments + g
+        partiallyConstructedGeometry = getTriangle(avGeom, averageMomentChange[27:], averageMomentChange[:9])
+        scannedGeoms[(numWalkers / 2) + 1 + i] = getOuters(partiallyConstructedGeometry, averageMomentChange[18:27],
+                                                           averageMomentChange[9:18])
+    f = -dx * normedSharedH1
+    for j in range(numWalkers / 2):
+        avGeom = np.zeros(np.shape(eqG))
+        averageMomentChange = averageMoments + (j + 1) * f
+        partiallyConstructedGeometry = getTriangle(avGeom, averageMomentChange[27:], averageMomentChange[:9])
+        scannedGeoms[(numWalkers / 2) - 1 - j] = getOuters(partiallyConstructedGeometry, averageMomentChange[18:27],
+                                                           averageMomentChange[9:18])
+    np.save("scan/scanned"+config+"Mode_"+str(modeNumber)+".npy", scannedGeoms)
+    writeNewWalkers(scannedGeoms, "scan/scanned"+config+"Mode_"+str(modeNumber)+".xyz")
+    #print 'start'
+    #sub.call(["sh", "move.sh"])
+    print 'done'
+    #potz = np.loadtxt("../annes_getpot/eng_dip.dat")
+    #np.savetxt("../../RyanDVR/1DDVR/Potentials/eng_dip_"+config+"_Mode"+str(modeNumber),potz)
+    #plt.plot(au2wn * potz[:, 0])
+    #plt.savefig("ScannedPotential"+config+"_Mode"+str(modeNumber)+".png")
+
 
 eqG = getEqGeom()
 eqG,extra = Wfn.molecule.rotateBackToFrame(np.array([eqG,eqG]),2,1,3) #rotate reference to OOO plane
-#ocom,oeck,asdf=Wfn.molecule.eckartRotate(np.array([eqG,eqG]),True)
-#eqG-=ocom[0,np.newaxis,:]
-#export(np.dot(eqG,oeck[0]),'eqRotatedEckart')
 mass = Wfn.molecule.get_mass()
-print 'reference geometry set up'
 #Now, start getting r-<r> by using transformation matrix.
 avGeom = np.zeros(np.shape(eqG)) #Where we will fill in our coordinates
-Tmatname = path+'TransformationMatrix'+coordinateSet+GfileName+'.data'
+Tmatname ='TransformationMatrix'+coordModel+'.data'
 averageMoments = np.loadtxt('averageInternalsWithNewEckart_'+coordinateSet)
-#test=eRotateToOOSystem(eqG,1,eqG[1-1])
-#export(test,'testtt')
-#euler615=getEulerMat(averageMoments[18],averageMoments[19],averageMoments[20])  #  averageMoments[18:27])
-#test[5-1]=euler615.dot(test[5-1])
-#test[6-1]=euler615.dot(test[6-1])
-#export(test-test[2-1],'testPostEuler')
 partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
-export(partiallyConstructedGeometry,'triangle')
-print 'done with triangle'
-print partiallyConstructedGeometry
+averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
 finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
-export(finalConstructedGeometry,'final')
+scanAlongCoordinate(int(modeNum),coordModel)

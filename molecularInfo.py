@@ -569,315 +569,54 @@ class molecule (object):
         mP.plotIt()
 
 
-    def xyzSharedHydrogens(self,atmnm,xx):
-        #X = Outer water - OO Midpoint to outer water. Basically, along O3O1 'bond'
-        #Y =
-        #Z =
-        #Lindsey's index: [walker#,atom#,(x,y,z)]
+    def xyzTrimerSharedHydrogens(self,atmnm,xx):
         if atmnm == 9:
             outerW = 1
         if atmnm == 10:
             outerW = 2
-        #print 'Shape Coordinates: ',np.shape(xx)
-
-        oW = xx[:,outerW-1,:]  # Coordinates of outer water Oxygen
-        center = xx[:,3-1,:]
-        mp = (center + oW )/ 2
-        sharedH = xx[:,atmnm - 1,:]  # Coordinates of shared Hydrogen
-        #print 'mp=',mp
-        a = la.norm(oW-mp,axis=1)
-        xaxis = np.divide((oW - mp), (la.norm((oW - mp),axis=1).reshape(-1,1)))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
-        #print "xaxis", xaxis
-        # print np.shape(xaxis)
-        # print xaxis
-        yaxis = np.zeros((np.shape(xx)[0], 3))
-        xcomp = np.zeros(np.shape(xx)[0])
-        ycomp = np.zeros(np.shape(xx)[0])
-        # print sharedH[0]
-        # print xaxis[0]
-        # print mp[0]
-        mpsharedHxaxis=np.column_stack((mp,sharedH,xaxis))
-        pool = Pool(12)
-        res=pool.map(yaxcyc,(mpsharedHxaxis),chunksize=1000)
-        pool.close()
-        pool.join()
-        nres=np.array(res)
-        xcomp = nres[:,1]
-        ycomp = nres[:,2]
-        #for i in range(len(mp)):
-        #    yaxis[i] = np.cross(xaxis[i], (0, 0, 1))
-        #    xcomp[i] = np.dot(sharedH[i] - mp[i], xaxis[i].T)
-        #    ycomp[i] = np.dot(sharedH[i] - mp[i], yaxis[i].T)
-        # print "yaxis\n",yaxis
-        # print "xcomp\n",xcomp
-        # print "ycomp\n",ycomp
-        #print yaxis[0],xcomp[0],ycomp[0]
-        #stop
-        #print  'np.average(xcomp)',np.average(xcomp)
-            #xcomp*=-1
-
-        zComp = xx[:,atmnm-1,-1].copy()
-        return xcomp, ycomp, zComp
+        mp = (xx[:,3-1]+ xx[:,outerW-1,:])/ 2
+        xaxis = (xx[:,outerW-1,:] - mp)/la.norm((xx[:,outerW-1,:] - mp),axis=1)
+        zaxis = np.cross(xx[:,1-1],xx[:,3-1],axis=0)
+        yaxis = np.cross(zaxis,xaxis,axis=0)
+        #xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
+        xcomp = ((xx[:,atmnm] - mp)*xaxis).sum(axis=1)
+        ycomp = ((xx[:,atmnm] - mp)*yaxis).sum(axis=1)
+        zcomp = ((xx[:,atmnm] - mp)*zaxis).sum(axis=1)
+        return xcomp, ycomp, zcomp
 
     def getBisectingVector(self,left, middle, right):
-        # print np.shape(left)
-        # print np.shape(right)
-        # print np.shape(middle)
-        # print np.shape(la.norm(left-middle,axis=1).reshape(-1,1))
         bisector1 = la.norm(left - middle, axis=1).reshape(-1, 1) * (right - middle)  # |b|*a + |a|*b
         bisector2 = la.norm(right - middle, axis=1).reshape(-1, 1) * (left - middle)
-        # print bisector1.shape()
         normedbisector = la.norm(bisector1 + bisector2, axis=1).reshape(-1, 1)
-        # print normedbisector.shape()
         bisector = (bisector1 + bisector2) / normedbisector
         return bisector
 
     def xyzFreeHydronium(self,xx):
-
         xaxis = self.getBisectingVector(xx[:,1-1,:], xx[:,3 - 1,:],xx[:,2 - 1,:])
-        zcomp = xx[:,8-1,-1].copy()
-        h8 = xx[:,8-1,:].copy()
-        #print 'Shape of H8 coordinates', np.shape(h8)
-        #print 'Len of h8',len(h8)
-        o3 = xx[:,3-1,:].copy()
-        yaxis = np.zeros((len(h8),3))
-        xcomp = np.zeros(len(h8))
-        ycomp = np.zeros(len(h8))
-        #print np.shape(xaxis)
-        #print np.shape(h8-o3)
+        zaxis = np.cross(xx[:,1-1],xx[:,3-1],axis=0)
+        yaxis = np.cross(zaxis,xaxis,axis=0)
+        xcomp = ((xx[:,8-1] - xx[3-1])*xaxis).sum(axis=1)
+        ycomp = ((xx[:,8-1] - xx[3-1])*yaxis).sum(axis=1)
+        zcomp = ((xx[:,8-1] - xx[3-1])*zaxis).sum(axis=1)
 
-        h8o3xaxis = np.column_stack((o3,h8,xaxis))
-        pool = Pool(12)
-        res = pool.map(yaxcyc2, (h8o3xaxis),chunksize=1000) #h8 = sharedH
-        pool.close()
-        pool.join()
-
-        nres = copy.deepcopy(np.array(res))
-        #print type(nres)
-        phiOH = nres[:,0]
-        #print phiOH[0:10]
-        xcomp = nres[:, 1]
-        ycomp = nres[:, 2]
-        #print 'testing phiOH vs phiOH'
-        #print ycomp[0:10]
-
-        #xcomp = xcomp.copy()
-        #xcomp2 = np.empty_like(xcomp)
-        #np.copyto(xcomp2, xcomp)
-        #xcomp = xcomp2
-        #ycomp = np.array(ycomp.tolist())
-        #for i in range(len(zcomp)):
-        #    yaxis[i] = np.cross(xaxis[i], (0, 0, 1))
-        #    xcomp[i] = np.dot(h8[i] - o3[i], xaxis[i].T)
-        #    ycomp[i] = np.dot(h8[i] - o3[i], yaxis[i].T)
-        rOH = np.zeros((len(h8), 3))
-        rOH[:, 0] = xcomp
-        rOH[:, 1] = ycomp
-        rOH[:, 2] = zcomp
-        rdistOH = la.norm(rOH, axis=1)
-        #phiOH2 = np.arctan(ycomp/xcomp)  # To have it peak at 90
+        rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=0)
         thetaOH = np.arccos(zcomp / rdistOH)
-        # thetaOH = np.degrees(np.arccos(zcomp / rdistOH)) #/(la.norm(zcomp)*la.norm(rdistOH)))
-        # phiOH = np.degrees(np.arctan(ycomp/xcomp))  # To have it peak at 90
-
+        phiOH = np.arctan2(ycomp,xcomp)
         return rdistOH, thetaOH, phiOH
 
-    def getOOOEulerAxes(self,Ox, centr):
-        xaxis = np.divide((Ox - centr), la.norm(Ox - centr, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1 #OO vector
-        #print 'xaxis for OOO: ', xaxis[0]
-        yaxis = np.zeros((len(Ox), 3))
-        zaxis = np.array([0, 0, 1])  # in our definition
-        zax = np.tile(zaxis,(len(xaxis),1))
-        #print 'xax',xaxis
-        XZ = np.column_stack((xaxis,zax))
-        #np.cross(xaxis,zax)
-        #print 'XZ!', XZ
-        #print 'xz[0]',XZ[0]
-        #print 'xz[1]',XZ[1]
-        pool = Pool(12)
-        res = pool.map(simpleCross, XZ,chunksize=1000)  #
-        pool.close()
-        pool.join()
-        yaxis = np.array(res)
-        #print yaxis[1]
-        #for i in range(len(Ox)):
-        #    yaxis[i] = np.cross(xaxis[i], (0, 0, 1))
-        #print yaxis[1]
-        #stop
-        #zaxis = np.array([0, 0, 1])  # in our definition
-        return xaxis, yaxis, zaxis
+    def finalTrimerEuler(self,xx,O1, h1, h2):
+        #SharedProtonCoordinateSystem
+        X = (xx[:, O1 - 1, :] - xx[:,3-1]) / la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1)
+        Z = np.cross(xx[:, 1 - 1], xx[:, 3 - 1], axis=0)
+        Y = np.cross(Z, X, axis=0)
 
-    def getHOHEulerAxes(self,o, h1, h2):
-        xax = self.getBisectingVector(h1, o, h2)  # bisector of HOH angle
-        yax = np.zeros((len(h1), 3))
-        zax = np.zeros((len(h1), 3))
-        #print (h1-o).shape
-        #print la.norm(h1-o,axis=1).shape
-        h1on = (h1-o)/ la.norm(h1-o,axis=1).reshape([-1,1])
-        #print h1on
-        h2on = (h2-o)/ la.norm(h2-o,axis=1).reshape([-1,1])
-        h1onh2on = np.column_stack((h1on,h2on))
-        #print h1onh2on
-        pool = Pool(12)
-        res = pool.map(simpleCross,h1onh2on,chunksize=1000)
-        pool.close()
-        pool.join()
-        zax = np.array(res)
-        #print zax
-        zx = np.column_stack((xax,zax))
-        pool = Pool(12)
-        res2 = pool.map(simpleCross, zx,chunksize=1000)
-        pool.close()
-        pool.join()
-        yax = np.array(res2)
-        #print 'compare'
-        #print yax
-        #print yax,zax
-        """WARNING - THIS GIVES A DIFFERENT ANSWER THAN MULTIPROCESSING"""
-        #for i in range(len(h1)):
-        #    zax[i] = np.cross(h1[i] - o[i] / (la.norm(h1[i] - o[i])), h2[i] - o[i] / (
-        #        la.norm(h2[i] - o[i])))  # o and h1 for testing, first instance. normalize this vector, since it's not normed like normal in this treatment.
-        #    yax[i] = np.cross(xax[i], zax[i])
-        #print yax
-        """OLD DEFINITION - END"""
-
-        return xax, yax, zax
-
-    def eulerH2O__V2(self,xx,h1, O1, h2):
-        O = xx[:,O1 - 1,:].copy()
-        center = xx[:,3 - 1,:].copy()
-        hL = xx[:,h1 - 1,:].copy()
-        hR = xx[:,h2 - 1,:].copy()
-        X, Y, Z = self.getOOOEulerAxes(O, center)  # gets X,Y,Z axes based on water
-        x, y, z = self.getHOHEulerAxes(O, hL, hR)  # THESE ARE ALL WRONG
-        # Phi = angle btw x axes
-        # Theta = angle btw Z axes
-        # Chi = angle btw line of node and y axis
-        # or (the same definitions)
-        # Phi = rotation about OOO's Z axis
-        # Theta = rotation about line of nodes
-        # Chi = roataion about H2O's z axis
-        # [x] = [c(ph)c(th)c(ch)-s(ph)s(ch)           . . .                 . . .] [X]
-        # [y] = [        . . .             -s(ph)c(th)s(ch)+c(ph)c(ch)      . . .] [Y]
-        # [z] = [        . . .                        . . .                 c(th)] [Z]
-        # NEW takeaway:
-        # alpha = sin(th)sin(ch)
-        # beta = -sin(th)cos(ch)
-        # tan x = -alpha/beta
-
-        #print np.shape(z)
-        #print np.shape(Z)
-        # N = np.zeros((numWalkers,3)) #Line of node axis
-        tanPhi = np.zeros(len(O))
-        Theta = np.zeros(len(O))
-        tanChi = np.zeros(len(O))
-
-        #print z
-        zyxYX = np.column_stack((z,y,x,Y,X))
-        #print zyxYX
-        #print zyxYX.shape
-        pool = Pool(12)
-        res = pool.map(euler, zyxYX,chunksize=1000)
-        pool.close()
-        pool.join()
-
-        nres = np.array(res)
-        Theta = nres[:, 0]
-        tanPhi = nres[:,1]
-        tanChi = nres[:,2]
-
-        #testing
-        #for i in range(len(O)):
-        #    Theta[i] = np.arccos(np.dot(z[i], Z.T)/(la.norm(z[i])*la.norm(Z.T)))
-        #    if np.isnan(Theta[i]):
-        #        stop
-        #    tanPhi[i] = np.arctan2(np.dot(y[i], Z.T) , np.dot(x[i], Z.T))
-        #    tanChi[i] = np.arctan2(-1 * np.dot(Y[i], z[i].T) , np.dot(X[i], z[i].T))
-        #    if tanChi[i] < 0:
-        #        tanChi[i]+=2*np.pi
-        #    if tanPhi[i] < 0:
-        #        tanPhi[i] += 2*np.pi
+        x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
+        Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
         return Theta,tanPhi, tanChi
 
         #return np.degrees(Theta), np.degrees(tanPhi), np.degrees(tanChi)
 #!!!!!!!!!!!!!!!!!!!!!!!!!h9o4
-    def H9xyzSharedHydrogens(self,atmnm,xx):
-        # X = Outer water - OO Midpoint to outer water. Basically, along O3O1 'bond'
-        # Y =
-        # Z =
-        # Lindsey's index: [walker#,atom#,(x,y,z)]
-        if atmnm == 11:
-            outerW = 2
-        elif atmnm == 12:
-            outerW = 3
-        elif atmnm == 13:
-            outerW = 1
 
-        # print 'Shape Coordinates: ',np.shape(xx)
-
-        oW = xx[:, outerW - 1, :]  # Coordinates of outer water Oxygen
-        center = xx[:, 4 - 1, :]
-        mp = (center + oW) / 2
-
-        sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
-        #xaxis = np.divide((oW - mp), la.norm(oW - mp, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
-        xaxis = np.divide((mp - oW), la.norm(oW - mp, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
-
-        dummy = center.copy()
-        dummy[:, -1] = 0.0
-        oaHat=np.copy(xaxis)
-        OB=dummy-oW
-        s=(oaHat*OB).sum(axis=1)
-        OC=oaHat*s[:,np.newaxis]
-        ze=OC-OB
-        #at this point, my x axis points the 'wrong' direction.  I will flip the sign
-        xaxis=np.negative(xaxis)
-        zaxis = ze / la.norm(ze, axis=1)[:, None]
-        zdotx= (zaxis*xaxis).sum(axis=1)
-        yaxis=np.cross(zaxis,xaxis,axis=1)
-        # # zaxis
-        # dummy = center.copy()
-        # dummy[:, -1] = 0.0
-        # OA = center - oW
-        # BA = center - dummy
-        # st = time.time()
-        # un = OA / la.norm(OA, axis=1)[:, None]  # unit vector pointing along OO axis
-        #
-        # #print 'UN',un
-        # # print la.norm(un,axis=1)
-        # OB = dummy - oW
-        # OC = np.zeros((len(OB), 3))
-        # for i in range(len(oW)):
-        #     s = np.dot(un[i], OB[i])
-        #     OC[i] = s * un[i]
-        # AC = OA - OC
-        # ze = AC - BA
-        # zaxis = ze / la.norm(ze, axis=1)[:, None]
-        # yaxis = np.cross(zaxis,xaxis,axis=1)
-        """ I think I made a mistake earlier on this... Paralellization was not account for xax"""
-        xcomp = ((sharedH-mp)*xaxis).sum(axis=1)
-        ycomp = ((sharedH-mp)*yaxis).sum(axis=1)
-        zcomp = ((sharedH-mp)*zaxis).sum(axis=1)
-        return xcomp, ycomp, zcomp
-
-    def H9getOOOAxis_v1(self,xx,oW):
-        # oW = xx[:,outerW-1,:]  # Coordinates of outer water Oxygen
-        center = xx[:, 4 - 1, :]
-        xaxis = np.divide((center -oW), la.norm(center- oW, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
-        # zaxis
-        dummy = center.copy()
-        dummy[:, -1] = 0.0
-        oaHat=np.copy(xaxis)
-        OB=dummy-oW
-        s=(oaHat*OB).sum(axis=1)
-        OC=oaHat*s[:,np.newaxis]
-        ze=OC-OB
-        #at this point, my x axis points the 'wrong' direction.  I will flip the sign
-        xaxis=np.negative(xaxis)
-        zaxis = ze / la.norm(ze, axis=1)[:, None]
-        zdotx= (zaxis*xaxis).sum(axis=1)
-        yaxis=np.cross(zaxis,xaxis,axis=1)
-        return xaxis, yaxis, zaxis
 
     def  H9getOOOAxis(self,xx,oW):
         # oW = xx[:,outerW-1,:]  # Coordinates of outer water Oxygen
@@ -911,101 +650,6 @@ class molecule (object):
         zaxis=np.cross(h1on,h2on,axis=1)
         yaxis = np.cross(zaxis,xaxis,axis=1)
         return xaxis, yaxis, zaxis
-
-    def H9eulerH2O__V2(self,xx,h1,O1,h2):
-        O = xx[:, O1 - 1, :].copy()
-        center = xx[:, 4 - 1, :].copy()
-        hL = xx[:, h1 - 1, :].copy()
-        hR = xx[:, h2 - 1, :].copy()
-        X, Y, Z = self.H9getOOOAxis(xx, O)  # gets X,Y,Z axes based on water
-        x, y, z = self.H9GetHOHAxis(O, hL, hR)  # THESE ARE ALL WRONG
-        # testing
-        print z.shape
-        Theta = np.arccos((z*Z).sum(axis=1)/(la.norm(z,axis=1) * la.norm(Z,axis=1)))
-        #Theta = np.arccos((z*Z).sum(axis=1))
-        #tanPhi = np.arctan2((y * Z).sum(axis=1)/(la.norm(y,axis=1) * la.norm(Z,axis=1)),
-        #                    (x*Z).sum(axis=1)/(la.norm(x,axis=1) * la.norm(Z,axis=1)))
-        #tanChi = np.arctan2(-1 * (Y * z).sum(axis=1) / (la.norm(Y, axis=1) * la.norm(z, axis=1)),
-        #                    (X * z).sum(axis=1) / (la.norm(X, axis=1) * la.norm(z, axis=1)))
-        print 'hello'
-        tanPhi = np.arctan2((Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1)),
-                            (X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1)))
-        tanChi = np.arctan2(-(y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1)),
-                            (x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1)))
-
-        tanChi[tanChi < 0]+=(2*np.pi)
-        tanPhi[tanPhi < 0]+=(2*np.pi)
-        return Theta, tanPhi, tanChi
-
-    def planarXYZ(self,xx):
-        """Deviation from COM"""
-        #com,allEckVecs,killList
-        start = time.time()
-        print 'eckarting justOOO...'
-        oCom,oEckVectors,killList= self.eckartRotate(xx,justO=True)
-        print 'done'
-        print 'that took ', time.time()-start,' seconds'
-
-        #xxNew=xx-oCom[:,np.newaxis,:]
-        xxNew = np.zeros(xx.shape)
-        for walker in range(len(xx)):
-            xxNew[walker] = np.dot(xx[walker], oEckVectors[walker])
-
-        """tetRef = self.pullTetramerRefPos()
-        #rotTetRef,rotTetRef2 = self.rotateBackToFrame(np.array([tetRef,tetRef]),2,1,3) #the reference geometry
-        rotTetRef = self.pullTetramerRefPos()# the reference geometry
-
-        file = open("OxygensOf3","w+")
-        walkern=2
-        for i in range(3):
-            file.write("%5.12f %5.12f %5.12f\n" % (rotTetRef[i,0],rotTetRef[i,1],rotTetRef[i,2]))
-        for j in range(3):
-            file.write("%5.12f %5.12f %5.12f\n" % (xx[walkern,j,0],xx[walkern,j,1],xx[walkern,j,2]))
-        for k in range(3):
-            file.write("%5.12f %5.12f %5.12f\n" % (xxNew[walkern,k,0],xxNew[walkern,k,1],xxNew[walkern,k,2]))
-        file.close()
-        stop"""
-        o4 = xx[:,4-1,:] #central atom
-        COM = (xx[:,1-1,:]+xx[:,2-1,:]+xx[:,3-1,:])/3
-
-        xaxis = (xxNew[:,2-1,:]-COM)/la.norm(COM-xxNew[:,2-1,:],axis=1)[:,np.newaxis] #define x axis relative to eckarted walker.
-        zaxis = np.tile([0,0,1],(len(xaxis),1))
-        zaxis2 = o4[:,-1]/np.abs(o4[:,-1])
-        yaxis = np.cross(zaxis, xaxis,axis=1)  # z cross x
-        disp=o4-COM
-        xcomp = (disp*xaxis).sum(axis=1)
-        ycomp = (disp*yaxis).sum(axis=1)
-        zcomp = o4[:,-1]
-        #return disp[:,0],disp[:,1],disp[:,2]
-        #print xcomp[0],ycomp[0],zcomp[0]
-        #print xcomp[6],ycomp[6],zcomp[6]
-        #stop
-        return xcomp,ycomp,zcomp
-
-
-    def oldPlanarXYZ(self,xx):
-        O2 = xx[:,2-1,:] #(0,0,0)
-        O1 = xx[:,1-1,:] #(x,0,0)
-        O4 = xx[:,4-1,:]
-        #print 'norming xaxis...'
-        xaxis = (O1-O4)/la.norm(O1-O4,axis=1)[:,None] #should just be 1,0,0
-        #print 'tiling zaxis...'
-        zaxis = np.tile([0,0,1],(len(xaxis),1))
-        yaxis = np.zeros((len(zaxis),3))
-        xcomp = np.zeros(len(zaxis))
-        ycomp = np.zeros(len(zaxis))
-        zcomp = np.zeros(len(zaxis))
-        #print 'prepping and running xcomp and ycomp'
-        yaxis = np.cross(zaxis, xaxis,axis=1)  # z cross x
-        xcomp = (O4*xaxis).sum(axis=1)
-        ycomp = (O4*yaxis).sum(axis=1)
-        zcomp = xx[:, 4 - 1, -1]
-        #print 'done with planarXYZ'
-        #for at in range(len(xaxis)):
-        #    yaxis[at] = np.cross(zaxis[at],xaxis[at])
-        #    xcomp[at] = np.dot(O4[at],xaxis[at].T)
-        #    ycomp[at] = np.dot(O4[at],yaxis[at].T)
-        return xcomp,ycomp,zcomp
 
     def calcD(self,xx,O, H1, H2, H3):
         # calc the unit vectors from O to Hi
@@ -1066,41 +710,6 @@ class molecule (object):
 
         return umbrell
 
-
-    def finalPlanarXyz(self,xx):
-        #For any geometry, use reference to determine xyz compz
-        xx=xx[:,:4]
-        #mass=self.get_mass()[:3]
-        #ocom = (mass[:3]*xxp).sum(axis=1)/ np.sum(mass[:3])
-        #xxp-= ocom[:,np.newaxis]
-        #xx-=ocom[:,np.newaxis]
-
-        ocom, eVecs, kill=self.eckartRotate(xx[:,:3],True)
-        for q in eVecs:
-            if q[-1,-1]==0.:
-                q[-1,-1]=1.
-        xx-=ocom[:,np.newaxis,:]
-        xxNew = np.zeros(xx.shape)
-        asdf = np.copy(xxNew)
-        for walker in range(len(xx)):
-            xxNew[walker] = np.dot(xx[walker], eVecs[walker])
-            #asdf[walker] =  np.dot(eVecs[walker], xx[walker])
-
-        """rotTetRef = self.pullTetramerRefPos()# the reference geometry
-        file = open("OxygensOf4","w+")
-        walkern=1
-        for i in range(4):
-            file.write("%5.12f %5.12f %5.12f\n" % (rotTetRef[i,0],rotTetRef[i,1],rotTetRef[i,2]))
-        for j in range(4):
-            file.write("%5.12f %5.12f %5.12f\n" % (xx[walkern,j,0],xx[walkern,j,1],xx[walkern,j,2]))
-        for k in range(4):
-            file.write("%5.12f %5.12f %5.12f\n" % (xxNew[walkern,k,0],xxNew[walkern,k,1],xxNew[walkern,k,2]))
-        file.close()"""
-        print xxNew[0]
-        print xxNew[1]
-        print 'idk'
-        return xxNew[:,4-1,0],xxNew[:,4-1,1],xxNew[:,4-1,2],
-
     def getfinalOOAxes(self,atmnm,xx):
         #print 'fssdf'
         if atmnm == 11:
@@ -1121,7 +730,10 @@ class molecule (object):
         OB=dummy-oW
         s=(oaHat*OB).sum(axis=1)
         OC=oaHat*s[:,np.newaxis]
-        ze=OC-OB
+        if np.all(np.around(OC,9)==np.around(OB,9)):
+            ze = np.tile(np.array([0.,0.,1.]),len(oW)).reshape((len(oW),3))
+        else:
+            ze=OC-OB
         #at this point, my x axis points the 'wrong' direction.  I will flip the sign
         xaxis=np.negative(xaxis)
         zaxis = ze / la.norm(ze, axis=1)[:, None]
@@ -1209,18 +821,9 @@ class molecule (object):
         thphixi2=all[15:18]
         thphixi3=all[18:21]
         xyzO4 = all[0:3]
-
-
-        #xyz11 = self.H9xyzSharedHydrogens(11,x)
-        #xyz12 = self.H9xyzSharedHydrogens(12, x)
-        #xyz13 = self.H9xyzSharedHydrogens(13, x)
         print 'done hydronium XYZ'
         print 'time it took to get xyzs: ',str(time.time()-start)
         second = time.time()
-        #thphixi1 = self.H9eulerH2O__V2(x,6,5,1)
-        #thphixi1 = self.H9eulerH2O__V2(x,6,1,5)
-        #thphixi2 = self.H9eulerH2O__V2(x, 9, 3,10)
-        #thphixi3 = self.H9eulerH2O__V2(x, 8, 2, 7)
         print 'done euler angles'
         print 'time it took to eulers: ', str(time.time()-second)
         third = time.time()
@@ -1249,79 +852,52 @@ class molecule (object):
         print 'internal shape: ',np.shape(internal)
         print 'internal[0] shape: ',np.shape(internal[0])
         #RYAN COMMENTED THIS OUT self.internalConversion=[bohr2ang,bohr2ang,bohr2ang,rad2deg,rad2deg,rad2deg,bohr2ang,bohr2ang,bohr2ang]
-        """self.internalName = ['xH11','yH11','zH11','xH12','yH12','zH12','xH13','yH13','zH13','theta651','phi651','Chi651',
-                             'theta1039', 'phi1039', 'Chi1039','theta728','phi728','Chi728','rOH5','rOH6','HOH516','rOH7','rOH8','HOH728',
-                             'rOH9', 'rOH10', 'HOH9310','rO4O1','rO4O3','aO1O2O3','xO4','yO4','zO4']"""
-
         self.internalName = ['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
                              'phi651', 'Chi651',
                              'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
                              'HOH516', 'rOH7', 'rOH8', 'HOH728',
                              'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xO4', 'yO4', 'zO4']
-                            #'rOH9', 'rOH10', 'HOH9310', 'rO4O1', 'rO4O2', 'rO4O3', 'Oumbrella', 'thetaOx', 'thetaOx2']
-
         return internal
 
     def SymInternalsH7O3plus(self,x):
-        #3N-6=24: cartesian shared proton (6) ; H8 r,th,phi (3) ; Euler angles for flanking waters: th,ph,xi (6) ; OOdists+OOOtheta (3) ; OH dists + HOH theta flanking (6)
-        #print 'Changing to angstrom coordinates'
-        #rOH1 = self.bondlength(x, atom1=1 - 1, atom2=4 - 1)
-        #print 'before conversion', rOH1[0]
-        #x *= bohr2ang
-
-        #rOH1 = self.bondlength(x, atom1=1 - 1, atom2=4 - 1)
-        #print 'after conversion', rOH1[0]
-        #xyzO9=parmap(self.xyzSharedHydrogens,(self,9,x))-
-        
         print 'Commence getting internal coordinates for trimer'
-        xyzO9 = self.xyzSharedHydrogens(9, x)  # *ang2bohr  #Cartesian shared hydrogen 3xnwalkers
+        xyzO9 = self.xyzTrimerSharedHydrogens(9, x)  # *ang2bohr  #Cartesian shared hydrogen 3xnwalkers
         print 'done with xyzO9'
-        xyz10 = self.xyzSharedHydrogens(10, x)  # *ang2bohr #Cartesian shared hydrogen 3xnwalkers
+        xyz10 = self.xyzTrimerSharedHydrogens(10, x)  # *ang2bohr  #Cartesian shared hydrogen 3xnwalkers
         print 'done with xyz10'
         rthphi = self.xyzFreeHydronium(x)  # *ang2bohr     #Spherical free hydrogen 3xnwalkers in degrees
         print 'done with FH'
-        thphixi1 = self.eulerH2O__V2(x, 6, 2,7)  # Euler angles - 3xnwalkers - going to need to do some adjustments with +/-360
+        thphixi1= self.finalTrimerEuler(x,2,7,6)
+        #thphixi1 = self.eulerH2O__V2(x, 6, 2,7)  # Euler angles - 3xnwalkers - going to need to do some adjustments with +/-360
         print 'done with Euler1'
-        thphixi2 = self.eulerH2O__V2(x, 5, 1,4)  # Euler angles - 3xnwalkers - going to need to do some adjustments with +/-360
+        thphixi2 = self.finalTrimerEuler(x,1,4,5)
+        #thphixi2 = self.eulerH2O__V2(x, 5, 1,4)  # Euler angles - 3xnwalkers - going to need to do some adjustments with +/-360
         print 'done with Euler2'
-        rOH1 = self.bondlength(x, atom1=1 - 1, atom2=4 - 1)  # *ang2bohr
-        rOH2 = self.bondlength(x, atom1=1 - 1, atom2=5 - 1)  # *ang2bohr
-        aHOH1 = self.bondAngle(x, atom1=5 - 1, atom2=1 - 1, atom3=4 - 1)  # RIGHT SIDE OF TRIMER r1,r2,theta
-        rOH3 = self.bondlength(x, atom1=2 - 1, atom2=6 - 1)  ##*ang2bohr
-        rOH4 = self.bondlength(x, atom1=2 - 1, atom2=7 - 1)  # *ang2bohr
-        aHOH2 = self.bondAngle(x, atom1=6 - 1, atom2=2 - 1, atom3=7 - 1)  # LEFT SIDE OF TRIMER r1,r2,theta
-        rOO1 = self.bondlength(x, atom1=1 - 1, atom2=3 - 1)  # *ang2bohr
-        rOO2 = self.bondlength(x, atom1=2 - 1, atom2=3 - 1)  # *ang2bohr
-        aOOO = self.bondAngle(x, atom1=1 - 1, atom2=3 - 1, atom3=2 - 1)  # OOO ANGLE r1,r2,theta
-
+        rOH1 = self.bL(x,1-1,4-1)
+        rOH2 = self.bL(x,1-1,5-1)
+        aHOH1= self.ba(x,5-1,1-1,4-1)
+        rOH3 = self.bL(x,2-1,6-1)
+        rOH4 = self.bL(x,2-1,7-1)
+        aHOH2= self.ba(x,6-1,2-1,7-1)
+        rOO1 = self.bL(x,1-1,3-1)
+        rOO2 = self.bL(x,2-1,3-1)
+        aOOO = self.ba(x,1-1,3-1,2-1)
         #Symmetric & asymmetric stretch
         #h9/h10 sym-asymm
-        symmHB = (1/np.sqrt(2)) * (xyzO9[0]+xyz10[0])
-        asymmHB = (1/np.sqrt(2)) * (xyzO9[0]-xyz10[0])
-        print 'first symm', symmHB[0]
-        print 'first asymm', asymmHB[0]
+        #symmHB = (1/np.sqrt(2)) * (xyzO9[0]+xyz10[0])
+        #asymmHB = (1/np.sqrt(2)) * (xyzO9[0]-xyz10[0])
+        #print 'first symm', symmHB[0]
+        #print 'first asymm', asymmHB[0]
         print 'first O1H4 bond length: ', rOH1[0]
-        print 'first Angle: ',aOOO[0]
-        #self.PltHists1D('allH',aOOO.flatten(),(70,180),'OOOAngle','allHTesting/Probability Density',False,weits)
-        #self.PltHists1D('allH', rthphi[1].flatten(), (0, 180), 'Theta (H8)', 'allHTesting/Probability Density', False, weits)
-        #self.PltHists1D('allH', rthphi[2].flatten(), (-180, 180), 'Phi (H8)', 'allHTesting/Probability Density', False,weits)
-
-        #SYMMETRIZE?
-        #print "Shouldn't these be symmetric and antisymmetric stretches? Bends and rocks? Not just cartesian coordinates."
-
-        #print 'xyzO9: ',np.shape(xyzO9)
-        #print 'rthphi: ',np.shape(rthphi[0])
-        #internal = np.array(zip(xyzO9[0],xyzO9[1],xyzO9[2],xyz10[0],xyz10[1],xyz10[2],rthphi[0],rthphi[1],rthphi[2],
-        #                        thphixi1[0],thphixi1[1],thphixi1[2],thphixi2[0],thphixi2[1],thphixi2[2]
-        #                        ,rOH1,rOH2,aHOH1,rOH3,rOH4,aHOH2,rOO1,rOO2,aOOO))
+        print 'first Angle: ',np.degrees(aOOO[0])
         internal = np.array(
-            zip(symmHB, xyzO9[1], xyzO9[2], asymmHB, xyz10[1], xyz10[2], rthphi[0], rthphi[1], rthphi[2],
+            zip(xyzO9[0], xyzO9[1], xyzO9[2], xyz10[0], xyz10[1], xyz10[2], rthphi[0], rthphi[1], rthphi[2],
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
                 , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO))
         #print 'internal shape: ',np.shape(internal)
         #print 'internal[0] shape: ',np.shape(internal[0])
         #RYAN COMMENTED THIS OUT self.internalConversion=[bohr2ang,bohr2ang,bohr2ang,rad2deg,rad2deg,rad2deg,bohr2ang,bohr2ang,bohr2ang]
-        self.internalName = ['symmStretchHB', 'yH9', 'zH9', 'asymmStretchHB', 'yh10', 'zh10', 'rH8', 'thH8', 'phiH8','th_627','phi_627',
+        self.internalName = ['xH9', 'yH9', 'zH9', 'xH10', 'yh10', 'zh10', 'rH8', 'thH8', 'phiH8','th_627','phi_627',
                              'xi_627','th_514','phi_514','xi_514','rOH_41','rOH_51','aHOH_451','rOH_26','rOH_27','aHOH_267',
                              'rOO_1','rOO_2','aOOO']
         return internal

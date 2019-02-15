@@ -9,10 +9,7 @@ import scipy.linalg as sla
 import itertools
 import copy
 import gc
-import multiprocessing
 import sys
-from multiprocessing import Pool
-from multiprocessing import Process
 import matplotlib as mpl
 mpl.use('agg')
 ProtonatedWaterTrimer = {'H7O3+','O3H7+', 'H7O3plus','H7O3', 'O3H7'}
@@ -153,25 +150,25 @@ class HarmonicApproxSpectrum(object):
         #calculate second moments
         walkerSize =len(dw)
         print 'calculate second moments'
-        if os.path.isfile('mmap'):
-            os.remove('mmap')
-        if os.path.isfile('smap'):
-            os.remove('smap')
-        if os.path.isfile('dmap'):
-            os.remove('dmap')
+        # if os.path.isfile('mmap'):
+        #     os.remove('mmap')
+        # if os.path.isfile('smap'):
+        #     os.remove('smap')
+        # if os.path.isfile('dmap'):
+        #     os.remove('dmap')
 
         #mmap = np.memmap('mmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
         #mmap[:] = moments[:]
         #mmap.flush()
         #del mmap
-        dmap = np.memmap('dmap', dtype='float64', mode='w+', shape=(int(walkerSize)))
+        dmap = np.memmap('dmap'+setOfWalkers, dtype='float64', mode='w+', shape=(int(walkerSize)))
         dmap[:] = dw[:]
         dmap.flush()
         del dw
         del dmap
         gc.collect()
         #mh = np.memmap('mmap', dtype='float64', mode='r', shape=(int(walkerSize), int(self.nVibs)))
-        sh = np.memmap('smap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs),int(self.nVibs)))
+        sh = np.memmap('smap'+setOfWalkers, dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs),int(self.nVibs)))
         print 'walkerSize',walkerSize
         if walkerSize > 1000000:
             chunkSize=1000000
@@ -190,16 +187,17 @@ class HarmonicApproxSpectrum(object):
                 sh[stt:k,:,:]=moments[stt:k,:,np.newaxis]*moments[stt:k,np.newaxis,:]
             else:
                 sh[stt:,:,:]=moments[stt:,:,np.newaxis]*moments[stt:,np.newaxis,:]
-
         sh.flush()
         del sh
         #del mh
         print 'returning moments...'
         return moments
 
-    def overlapMatrix(self,q,dw,poE):
+    def overlapMatrix(self,q,dw,poE,walkerSet):
         lg = open("overlapLog.txt","w+")
         potE = np.copy(poE)*au2wn
+        del poE
+        gc.collect()
         #q=np.load("q.npy")
         walkerSize = len(dw)
         if walkerSize < 1000000:
@@ -287,85 +285,92 @@ class HarmonicApproxSpectrum(object):
             ham2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis]*bq2aq1[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
             lg.write('loop')
         lg.write('done. memmap before ln\n')
-        if os.path.isfile('bmap'):
-            os.remove('bmap')
-        if os.path.isfile('dwmap'):
-            os.remove('dwmap')
-        if os.path.isfile('potEmap'):
-            os.remove('potEmap')
-        if os.path.isfile('qmap'):
-            os.remove('qmap')
-        if os.path.isfile('lmap'):
-            os.remove('lmap')
-        bmap = np.memmap('bmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
-        bmap[:] = bq2aq1[:]
-        del bq2aq1
-        bmap.flush()
-        del bmap
-        gc.collect()
-        dwmap = np.memmap('dwmap', dtype='float64', mode='w+', shape=int(walkerSize))
-        dwmap[:] = dw[:]
-        dwmap.flush()
-        del dwmap
-        del dw
-        gc.collect()
-        potEmap = np.memmap('potEmap', dtype='float64', mode='w+', shape=int(walkerSize))
-        potEmap[:] = potE[:]
-        potEmap.flush()
-        del potEmap
-        del potE
-        gc.collect()
-        qmap = np.memmap('qmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
-        qmap[:] = q[:]
-        qmap.flush()
-        del qmap
-        del q
-        gc.collect()
-        lg.write('memmapotEd\n')
-        for var, obj in locals().items():
-            print var, sys.getsizeof(obj)
-        lg.write(var+" "+str(sys.getsizeof(obj))+"\n")
+        # if os.path.isfile('bmap'):
+        #     os.remove('bmap')
+        # if os.path.isfile('dwmap'):
+        #     os.remove('dwmap')
+        # if os.path.isfile('potEmap'):
+        #     os.remove('potEmap')
+        # if os.path.isfile('qmap'):
+        #     os.remove('qmap')
+        # if os.path.isfile('lmap'):
+        #     os.remove('lmap')
         lnsize = ((self.nVibs * self.nVibs - self.nVibs) / 2)
-        lmap = np.memmap('lmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(lnsize)))
-        cycle = np.arange(0, walkerSize, chunkSize2)
-        qh = np.memmap('qmap', dtype='float64', shape=(int(walkerSize), int(self.nVibs)))
-        for combo in range(self.nVibs):
-            if combo == 0:
-                prev = 0
-            print prev
-            print prev + self.nVibs - combo - 1
-            lg.write(str(prev))
-            lg.write(str(prev + self.nVibs - combo - 1))
-            last=False
-            lg.write("start cycle\n")
-            lg.write("asd0 and 1 "+str(cycle[0])+" "+str(cycle[1])+"\n")
-            for asd in cycle:
-                k=asd+chunkSize2
-                if k > walkerSize - chunkSize2:
-                    last = True
-                if not last:
-                    lmap[asd:k,prev:(prev + self.nVibs - combo - 1)]=qh[asd:k, combo, np.newaxis] * qh[asd:k, (combo + 1):]
-                else:
-                    lmap[asd:,prev:(prev + self.nVibs - combo - 1)]=qh[asd:, combo, np.newaxis] * qh[asd:, (combo + 1):]
-            prev += self.nVibs-1-combo
+        if not(os.path.isfile('bmap_'+walkerSet) and os.path.isfile('dwmap_'+walkerSet) and os.path.isfile('potEmap_'+walkerSet) and os.path.isfile('qmap_'+walkerSet) and os.path.isfile('lmap_'+walkerSet)):
+            bmap = np.memmap('bmap_'+walkerSet, dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
+            bmap[:] = bq2aq1[:]
+            del bq2aq1
+            bmap.flush()
+            del bmap
+            gc.collect()
+            dwmap = np.memmap('dwmap_'+walkerSet, dtype='float64', mode='w+', shape=int(walkerSize))
+            dwmap[:] = dw[:]
+            dwmap.flush()
+            del dwmap
+            del dw
+            gc.collect()
+            potEmap = np.memmap('potEmap_'+walkerSet, dtype='float64', mode='w+', shape=int(walkerSize))
+            potEmap[:] = potE[:]
+            potEmap.flush()
+            del potEmap
+            del potE
+            gc.collect()
+            qmap = np.memmap('qmap_'+walkerSet, dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
+            qmap[:] = q[:]
+            qmap.flush()
+            del qmap
+            del q
+            gc.collect()
+            lg.write('memmapotEd\n')
+            for var, obj in locals().items():
+                print var, sys.getsizeof(obj)
+            lg.write(var+" "+str(sys.getsizeof(obj))+"\n")
+            #lnsize = ((self.nVibs * self.nVibs - self.nVibs) / 2)
+            lmap = np.memmap('lmap_'+walkerSet, dtype='float64', mode='w+', shape=(int(walkerSize), int(lnsize)))
+            cycle = np.arange(0, walkerSize, chunkSize2)
+            qh = np.memmap('qmap_'+walkerSet, dtype='float64', shape=(int(walkerSize), int(self.nVibs)))
+            for combo in range(self.nVibs):
+                if combo == 0:
+                    prev = 0
+                print prev
+                print prev + self.nVibs - combo - 1
+                lg.write(str(prev))
+                lg.write(str(prev + self.nVibs - combo - 1))
+                last=False
+                lg.write("start cycle\n")
+                lg.write("asd0 and 1 "+str(cycle[0])+" "+str(cycle[1])+"\n")
+                for asd in cycle:
+                    k=asd+chunkSize2
+                    if k > walkerSize - chunkSize2:
+                        last = True
+                    if not last:
+                        lmap[asd:k,prev:(prev + self.nVibs - combo - 1)]=qh[asd:k, combo, np.newaxis] * qh[asd:k, (combo + 1):]
+                    else:
+                        lmap[asd:,prev:(prev + self.nVibs - combo - 1)]=qh[asd:, combo, np.newaxis] * qh[asd:, (combo + 1):]
+                prev += self.nVibs-1-combo
 
-        print 'memmapotEd ln'
-        lmap.flush()
-        del lmap
-        gc.collect()
-        #qmap = np.memmap('qmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
-        #qmap[:] = q[:]
-        #qmap.flush()
-        #del qmap
-        #del q
+            print 'memmapotEd ln'
+            lmap.flush()
+            del lmap
+            gc.collect()
+            #qmap = np.memmap('qmap_', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
+            #qmap[:] = q[:]
+            #qmap.flush()
+            #del qmap
+            #del q
 
-        gc.collect()
-        lg.write("mmaps finished being initialized, not opotEn them\n")
-        lnh = np.memmap('lmap', dtype='float64', shape=(int(walkerSize), int(lnsize)))
-        #qh = np.memmap('qmap', dtype='float64', shape=(int(walkerSize), int(self.nVibs)))
-        bh = np.memmap('bmap', dtype='float64', shape=(int(walkerSize), int(self.nVibs)))
-        dwh = np.memmap('dwmap', dtype='float64', shape=int(walkerSize))
-        potEh = np.memmap('potEmap', dtype='float64', shape=int(walkerSize))
+            gc.collect()
+            lg.write("mmaps finished being initialized, not opotEn them\n")
+        else:
+            del bq2aq1
+            del dw
+            del potE
+            del q
+        lnh = np.memmap('lmap_'+walkerSet, dtype='float64', shape=(int(walkerSize), int(lnsize)))
+        qh = np.memmap('qmap_'+walkerSet, dtype='float64', shape=(int(walkerSize), int(self.nVibs)))
+        bh = np.memmap('bmap_'+walkerSet, dtype='float64', shape=(int(walkerSize), int(self.nVibs)))
+        dwh = np.memmap('dwmap_'+walkerSet, dtype='float64', shape=int(walkerSize))
+        potEh = np.memmap('potEmap_'+walkerSet, dtype='float64', shape=int(walkerSize))
 
         ###/MEMMAPS
         print "Begin the reign of memmaps - Funds with overtones"
@@ -399,13 +404,6 @@ class HarmonicApproxSpectrum(object):
         print 'jj'
         #Combos with Combos, funds with combos, and overtones with combos
         print 'com w com'
-        #qmap = np.memmap('qmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
-        #qmap[:] = q[:]
-        #qmap.flush()
-        #del qmap
-        #del q
-        gc.collect()
-        qh = np.memmap('qmap', dtype='float64', shape=(int(walkerSize), int(self.nVibs)))
         nvibs2 = self.nVibs*2
         teststart = time.time()
         coco= np.zeros((lnsize,lnsize))
@@ -428,19 +426,36 @@ class HarmonicApproxSpectrum(object):
             if k > walkerSize - chunkSize2:
                 last = True
             if last:
-                fuco += np.sum((qh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) * dwh[ttt:, np.newaxis, np.newaxis], axis=0)
-                ovco += np.sum((bh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) * dwh[ttt:, np.newaxis, np.newaxis], axis=0)
-                coco+=np.sum((lnh[ttt:,:,np.newaxis]*lnh[ttt:,np.newaxis,:])*dwh[ttt:,np.newaxis,np.newaxis],axis=0)
-                hfuco += np.sum((qh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) *potEh[ttt:, np.newaxis, np.newaxis]* dwh[ttt:, np.newaxis, np.newaxis],axis=0)
-                hovco += np.sum((bh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) *potEh[ttt:, np.newaxis, np.newaxis]* dwh[ttt:, np.newaxis, np.newaxis],axis=0)
-                hcoco += np.sum((lnh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :]) *potEh[ttt:, np.newaxis, np.newaxis]*dwh[ttt:, np.newaxis, np.newaxis], axis=0)
+                fuco += np.sum(qh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :] * dwh[ttt:, np.newaxis, np.newaxis], axis=0)
+                ovco += np.sum(bh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :] * dwh[ttt:, np.newaxis, np.newaxis], axis=0)
+                hfuco += np.sum(qh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :] *potEh[ttt:, np.newaxis, np.newaxis]* dwh[ttt:, np.newaxis, np.newaxis],axis=0)
+                hovco += np.sum(bh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :] *potEh[ttt:, np.newaxis, np.newaxis]* dwh[ttt:, np.newaxis, np.newaxis],axis=0)
             else:
-                fuco+=np.sum((qh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:])*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
-                ovco+=np.sum((bh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:])*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
-                coco+=np.sum((lnh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:])*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
-                hfuco += np.sum((qh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :]) *potEh[ttt:k, np.newaxis, np.newaxis]* dwh[ttt:k, np.newaxis, np.newaxis],axis=0)
-                hovco += np.sum((bh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :]) *potEh[ttt:k, np.newaxis, np.newaxis]* dwh[ttt:k, np.newaxis, np.newaxis],axis=0)
-                hcoco += np.sum((lnh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :]) *potEh[ttt:k, np.newaxis, np.newaxis]*dwh[ttt:k, np.newaxis, np.newaxis], axis=0)
+                fuco+=np.sum(qh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:]*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
+                ovco+=np.sum(bh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:]*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
+                hfuco += np.sum(qh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :] *potEh[ttt:k, np.newaxis, np.newaxis]* dwh[ttt:k, np.newaxis, np.newaxis],axis=0)
+                hovco += np.sum(bh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :] *potEh[ttt:k, np.newaxis, np.newaxis]* dwh[ttt:k, np.newaxis, np.newaxis],axis=0)
+
+        if walkerSize > 500000:
+            chunkSize2 = 500000
+        else:
+            chunkSize2 = 10
+        cycle = np.arange(0,walkerSize,chunkSize2)
+        print len(cycle)
+        last=False
+        for ttt in cycle:
+            ttt = int(ttt)
+            k = ttt + chunkSize2
+            if k > walkerSize - chunkSize2:
+                last = True
+            if last:
+                coco+=np.sum(lnh[ttt:,:,np.newaxis]*lnh[ttt:,np.newaxis,:]*dwh[ttt:,np.newaxis,np.newaxis],axis=0)
+                hcoco += np.sum(lnh[ttt:, :, np.newaxis] * lnh[ttt:, np.newaxis, :] *potEh[ttt:, np.newaxis, np.newaxis]*dwh[ttt:, np.newaxis, np.newaxis], axis=0)
+            else:
+                coco+=np.sum(lnh[ttt:k,:,np.newaxis]*lnh[ttt:k,np.newaxis,:]*dwh[ttt:k,np.newaxis,np.newaxis],axis=0)
+                hcoco += np.sum(lnh[ttt:k, :, np.newaxis] * lnh[ttt:k, np.newaxis, :] *potEh[ttt:k, np.newaxis, np.newaxis]*dwh[ttt:k, np.newaxis, np.newaxis], axis=0)
+
+
         del dwh
         #del qh
         del lnh
@@ -511,35 +526,32 @@ class HarmonicApproxSpectrum(object):
 
         #dips = dips*ang2bohr
         #First, What is the G Matrix for this set of walkers based on the SymInternals coordinates
-        self.G=self.LoadG(GfileName)
-        moments=self.calculateSecondMoments(coords, dw,setOfWalkers)
-        q,q2,q4=self.calculateQCoordinates(moments,dw,GfileName,setOfWalkers)
-        
-        secondMoments=None
-
-        print 'done with normal modes'
-        #q seems to be a linear combination of the pre-defined internal coordinates that make up the gmatrix
-        #when we diagonalize the
-
-        q4ave=np.average(q4,axis=0,weights=dw)
-        q2ave=np.average(q2,axis=0,weights=dw)
-        qave =np.average(q,axis=0,weights=dw)
-        #print q.shape
-        print '/\/\/\/\/\/\/\/\/\/\ '
-        print 'some averages',
-        print 'q\n',qave
-        print 'q^2 \n',q2ave #average of q-squared
-        print 'q^4 \n',q4ave
-        print '/\/\/\/\/\/\/\/\/\/\ '
-        np.save("q.npy",q)
-        np.save("q2.npy",q2)
-        
+        if not os.path.isfile('q_'+setOfWalkers+'.npy'):
+            self.G=self.LoadG(GfileName)
+            moments=self.calculateSecondMoments(coords, dw,setOfWalkers)
+            q,q2=self.calculateQCoordinates(moments,dw,GfileName,setOfWalkers)
+            print 'done with normal modes'
+            #q4ave=np.average(q4,axis=0,weights=dw)
+            q2ave=np.average(q2,axis=0,weights=dw)
+            qave =np.average(q,axis=0,weights=dw)
+            #print q.shape
+            print '/\/\/\/\/\/\/\/\/\/\ '
+            print 'some averages',
+            print 'q\n',qave
+            print 'q^2 \n',q2ave #average of q-squared
+            #print 'q^4 \n',q4ave
+            print '/\/\/\/\/\/\/\/\/\/\ '
+            np.save("q.npy",q)
+            np.save("q2.npy",q2)
+        else:
+            q=np.load('q.npy')
+            q2=np.load('q2_'+setOfWalkers+'.npy')
         #Now calculate the Potential energy
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         overlapTime=True
         if overlapTime:
-            ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy)
+            ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             dov = np.diagonal(overlap2)
             overlap2 = overlap2 / np.sqrt(dov[:,None])
             overlap2 = overlap2 / np.sqrt(dov)
@@ -575,7 +587,7 @@ class HarmonicApproxSpectrum(object):
         print 'ZPE: average v_0',V_0*au2wn
         print 'Vq', Vq*au2wn
 
-        alpha=q2ave/(q4ave-q2ave**2) # Equation #11 
+        alpha=q2ave/(np.average(q*q*q*q)-q2ave**2) # Equation #11
         alphaPrime=0.5/q2ave   #Equation in text after #8
         #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
 
@@ -599,10 +611,6 @@ class HarmonicApproxSpectrum(object):
         #Let's get overtones set up
         a = np.average((q)*(q)*(q) / np.average((q)*(q)),axis=0,weights=dw) * (1/np.average((q)*(q),axis=0,weights=dw))
         b = -1/np.average((q)*(q),axis=0,weights=dw)
-
-        #jk = (1+a*(q)+b*(q)*(q))
-        #jk2 = jk*potentialEnergy[:,None]
-        #jk3 = np.average((1+a*(q)+b*(q)*(q)),axis=0,weights=dw)
         vovers = np.average((1+a*q+b*q*q)*potentialEnergy[:,None]*(1+a*q+b*q*q),axis=0,weights=dw)
         vovers /= (np.average(np.square(1+a*q+b*q*q),axis=0,weights=dw))
         np.fill_diagonal(Vq2d,vovers)
@@ -802,8 +810,8 @@ class HarmonicApproxSpectrum(object):
         walkerSize=len(dw)
         #dwChunks = np.array_split(dw,100)
         mu2AveR = np.zeros((self.nVibs,self.nVibs))
-        sh = np.memmap('smap', dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
-        dh = np.memmap('dmap', dtype='float64', mode='r', shape=int(walkerSize))
+        sh = np.memmap('smap'+setOfWalkers, dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
+        dh = np.memmap('dmap'+setOfWalkers, dtype='float64', mode='r', shape=int(walkerSize))
         if walkerSize > 1000000:
             chunkSize=1000000
         else:
@@ -811,14 +819,6 @@ class HarmonicApproxSpectrum(object):
         cycle = np.arange(0,walkerSize,chunkSize)
         last=False
 
-    # for j in cycle:
-    #     k = j + chunkSize
-    #     if k > walkerSize - chunkSize:
-    #         last = True
-    #     if not last:
-    #         mu2AveR += np.sum(sh[j:k] * dh[j:k, np.newaxis, np.newaxis], axis=0)
-    #     else:
-    #         mu2AveR += np.sum(sh[j:] * dh[j:, np.newaxis, np.newaxis], axis=0)
         for j in cycle:
             k = j+chunkSize
             if k > walkerSize-chunkSize:
@@ -827,7 +827,7 @@ class HarmonicApproxSpectrum(object):
                 mu2AveR += np.sum(sh[j:k]*dh[j:k,np.newaxis,np.newaxis],axis=0)
             else:
                 mu2AveR += np.sum(sh[j:]*dh[j:,np.newaxis,np.newaxis],axis=0)
-        mu2Ave = np.divide(mu2AveR,np.sum(dw))/2.00000
+        mu2Ave = np.divide(mu2AveR,np.sum(dw))/2.00000 #commented this to see what would happen
 
         GHalfInv=self.diagonalizeRootG(self.G)
         mu2AvePrime=np.dot(GHalfInv,np.dot(mu2Ave,GHalfInv)) # mass weights g^-1/2 . sm . g^-1/2
@@ -889,6 +889,6 @@ class HarmonicApproxSpectrum(object):
 
         q=np.array(q)
         q2=q**2
-        q4=q**4
+        #q4=q**4
 
-        return q,q2,q4
+        return q,q2 #,q4
