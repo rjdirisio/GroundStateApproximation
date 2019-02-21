@@ -98,6 +98,7 @@ class wavefunction (object):
         #pe = np.zeros(nMolecules)
         #dip = np.zeros((nMolecules,3))
         for ln in range(nMolecules):
+            print ln
             coordstemp=[]
             if 'eckart' in fileName:
                 print 'doing nothing . . .'
@@ -105,6 +106,9 @@ class wavefunction (object):
                 #pe[ln] = float(filedata[ln*repeatUnit+1].split()[1].replace(',',''))
                 #dip[ln,:] = float(filedata[ln*repeatUnit+1].split()[2].replace(',','')),float(filedata[ln*repeatUnit+1].split()[3].replace(',','')),float(filedata[ln*repeatUnit+1].split()[4].replace(',',''))
             for an in range(self.nAtoms):
+                #print an
+                #if an == 9:
+                #    print 'hi'
                 coordstemp.append(float(filedata[ln*repeatUnit+2+an].split()[1]))
                 coordstemp.append(float(filedata[ln*repeatUnit+2+an].split()[2]))
                 coordstemp.append(float(filedata[ln*repeatUnit+2+an].split()[3]))

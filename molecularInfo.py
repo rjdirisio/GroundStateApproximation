@@ -450,8 +450,12 @@ class molecule (object):
         r[:,0,:]=np.tile([1,0,0],len(trCoordz)).reshape(len(trCoordz),3)
         r[:,1,:]=np.column_stack((np.zeros(len(trCoordz)),cbeta,-1*sbeta))
         r[:,2,:]=np.column_stack((np.zeros(len(trCoordz)),sbeta,cbeta))
-
+        mas = np.where(np.around(la.det(r),10)!=1.0)
+        print mas
         finalCoords = np.matmul(r, xaxtrCoordz.transpose(0, 2, 1)).transpose(0, 2, 1)
+        o1x=np.round(finalCoords[:,1-1,0],12)
+        asdf = np.where(o1x<0)
+        asdf2 = np.where(o1x>0)
         #print finalCoords[0]
         print np.round(finalCoords[0],12)
         return np.round(finalCoords,12)
@@ -574,14 +578,17 @@ class molecule (object):
             outerW = 1
         if atmnm == 10:
             outerW = 2
-        mp = (xx[:,3-1]+ xx[:,outerW-1,:])/ 2
-        xaxis = (xx[:,outerW-1,:] - mp)/la.norm((xx[:,outerW-1,:] - mp),axis=1)
-        zaxis = np.cross(xx[:,1-1],xx[:,3-1],axis=0)
-        yaxis = np.cross(zaxis,xaxis,axis=0)
+        mp = (xx[:,3-1]+xx[:,outerW-1])/ 2
+        print mp.shape
+        xaxis = np.divide((xx[:,outerW-1] - mp),la.norm(xx[:,outerW-1,] - mp,axis=1).reshape(-1,1))
+        print xaxis.shape
+        print xx[:,1-1].shape
+        zaxis = np.cross(xx[:,1-1],xx[:,2-1],axis=1)
+        yaxis = np.cross(zaxis,xaxis,axis=1)
         #xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
-        xcomp = ((xx[:,atmnm] - mp)*xaxis).sum(axis=1)
-        ycomp = ((xx[:,atmnm] - mp)*yaxis).sum(axis=1)
-        zcomp = ((xx[:,atmnm] - mp)*zaxis).sum(axis=1)
+        xcomp = ((xx[:,atmnm-1] - mp)*xaxis).sum(axis=1)
+        ycomp = ((xx[:,atmnm-1] - mp)*yaxis).sum(axis=1)
+        zcomp = ((xx[:,atmnm-1] - mp)*zaxis).sum(axis=1)
         return xcomp, ycomp, zcomp
 
     def getBisectingVector(self,left, middle, right):
@@ -593,22 +600,22 @@ class molecule (object):
 
     def xyzFreeHydronium(self,xx):
         xaxis = self.getBisectingVector(xx[:,1-1,:], xx[:,3 - 1,:],xx[:,2 - 1,:])
-        zaxis = np.cross(xx[:,1-1],xx[:,3-1],axis=0)
-        yaxis = np.cross(zaxis,xaxis,axis=0)
-        xcomp = ((xx[:,8-1] - xx[3-1])*xaxis).sum(axis=1)
-        ycomp = ((xx[:,8-1] - xx[3-1])*yaxis).sum(axis=1)
-        zcomp = ((xx[:,8-1] - xx[3-1])*zaxis).sum(axis=1)
+        zaxis = np.cross(xx[:,1-1],xx[:,2-1],axis=1)
+        yaxis = np.cross(zaxis,xaxis,axis=1)
+        xcomp = ((xx[:,8-1] - xx[:,3-1])*xaxis).sum(axis=1)
+        ycomp = ((xx[:,8-1] - xx[:,3-1])*yaxis).sum(axis=1)
+        zcomp = ((xx[:,8-1] - xx[:,3-1])*zaxis).sum(axis=1)
 
-        rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=0)
+        rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=1)
         thetaOH = np.arccos(zcomp / rdistOH)
         phiOH = np.arctan2(ycomp,xcomp)
         return rdistOH, thetaOH, phiOH
 
     def finalTrimerEuler(self,xx,O1, h1, h2):
         #SharedProtonCoordinateSystem
-        X = (xx[:, O1 - 1, :] - xx[:,3-1]) / la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1)
-        Z = np.cross(xx[:, 1 - 1], xx[:, 3 - 1], axis=0)
-        Y = np.cross(Z, X, axis=0)
+        X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1).reshape(-1,1))
+        Z = np.cross(xx[:, 1 - 1], xx[:, 2 - 1], axis=1)
+        Y = np.cross(Z, X, axis=1)
 
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)

@@ -37,7 +37,7 @@ def plotStuff(symEckRotCoords):
                          'HOH516', 'rOH7', 'rOH8', 'HOH728',
                          'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'xO4', 'yO4', 'zO4']"""
     #ZComps as a sanity check
-    PltHists1D('allH', symEckRotCoords[:, 0, -1], (-2, 2), 'zo1', 'tetramerInternals/Probability Denisty',
+    PltHists1D('allH', symEckRotCoords[:, 0, -1], (-2, 2), 'zo1', 'trimerInternals/Probability Denisty',
                False, symDw)
     PltHists1D('allH', symEckRotCoords[:, 1, -1], (-2, 2), 'zo2', 'trimerInternals/Probability Denisty',
                False, symDw)
@@ -45,15 +45,15 @@ def plotStuff(symEckRotCoords):
                False, symDw)
     PltHists1D('allH', symEckRotCoords[:, 3, -1], (-2, 2), 'zo4', 'trimerInternals/Probability Denisty',
                False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 4, -1], (-2, 2), 'zh5', 'tetramerInternals/Probability Denisty',
+    PltHists1D('allH', symEckRotCoords[:, 4, -1], (-2, 2), 'zh5', 'trimerInternals/Probability Denisty',
                False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 5, -1], (-2, 2), 'zh6', 'tetramerInternals/Probability Denisty',
+    PltHists1D('allH', symEckRotCoords[:, 5, -1], (-2, 2), 'zh6', 'trimerInternals/Probability Denisty',
                False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 6, -1], (-2, 2), 'zh7', 'tetramerInternals/Probability Denisty',
+    PltHists1D('allH', symEckRotCoords[:, 6, -1], (-2, 2), 'zh7', 'trimerInternals/Probability Denisty',
                False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 7, -1], (-2, 2), 'zh8', 'tetramerInternals/Probability Denisty',
+    PltHists1D('allH', symEckRotCoords[:, 7, -1], (-2, 2), 'zh8', 'trimerInternals/Probability Denisty',
                False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 8, -1], (-2, 2), 'zh9', 'tetramerInternals/Probability Denisty',
+    PltHists1D('allH', symEckRotCoords[:, 8, -1], (-2, 2), 'zh9', 'trimerInternals/Probability Denisty',
                False, symDw)
     PltHists1D('allH', symEckRotCoords[:, 9, -1], (-2, 2), 'zh10', 'trimerInternals/Probability Denisty',
                False, symDw)
@@ -189,13 +189,29 @@ else:
     # #     symDw = [1., 1.]
     # #     symCoords = np.array([Wfn.molecule.pullTrimerRefPos(),Wfn.molecule.pullTrimerRefPos()])*angstr
     # symDw=[1.,1.]
-    if symCoords.shape[0]==1:
-        symCoords = np.concatenate((symCoords, symCoords))*angstr
-    symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 2, 1, 3)
+    #if symCoords.shape[0]==1:
+    #    symCoords = np.concatenate((symCoords, symCoords))*angstr
+    #    symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 2, 1, 3)
+    np.save('../coordinates/trimer/'+coordinateSet+'.npy', symCoords)
+    np.save('../coordinates/trimer/'+coordinateSet+'_dw.npy', symDw)
+
     #np.savetxt("eqRotated",symCoords[0])
     #np.save(cds,symCoords)
     #np.save(cds+'_dw',symDw)
 
+# symCoords=Wfn.molecule.rotateBackToFrame(symCoords,3,2,1)
+# wf = open("../coordinates/trimer/rotated_allH",'w+')
+# trim = ["O","O","O","H","H","H","H","H","H","H"]
+#
+# for wI,walker in enumerate(symCoords):
+#     wf.write("13 0\n")
+#     wf.write("%5.12f\n" % symDw[wI])
+#     for aI,atm in enumerate(walker):
+#         wf.write("%s %5.12f %5.12f %5.12f\n"  % (trim[aI],atm[0],atm[1],atm[2]))
+#     wf.write("\n")
+#
+# wf.close()
+# stop
 
 print 'Symcoords shape',symCoords.shape
 print 'Got symCoords!'

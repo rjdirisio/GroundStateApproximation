@@ -1,13 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import os
-import os.path
 import usefulFunctions as use
-import numpy.linalg as la
 import time
 import scipy.linalg as sla
 import itertools
-import copy
 import gc
 import sys
 import matplotlib as mpl
@@ -587,7 +583,7 @@ class HarmonicApproxSpectrum(object):
         print 'ZPE: average v_0',V_0*au2wn
         print 'Vq', Vq*au2wn
 
-        alpha=q2ave/(np.average(q*q*q*q)-q2ave**2) # Equation #11
+        alpha=q2ave/(np.average(q*q*q*q,axis=0)-q2ave**2) # Equation #11
         alphaPrime=0.5/q2ave   #Equation in text after #8
         #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
 
