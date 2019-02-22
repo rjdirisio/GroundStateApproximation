@@ -177,27 +177,8 @@ if os.path.isfile(cds+'.npy'):
     symDw = np.load(cds+'_dw.npy')
 else:
     symCoords, symDw = Wfn.loadCoords(cds)
-    # if 'origMin' in cds:
-    #     symCoords/=(angstr**2)
-    # #symCoords=np.concatenate((symCoords,symCoords))/angstr
-    # print symCoords
-    # print symCoords.shape
-    # if 'min' in cds:
-    #     symDw = [1.,1.]
-    #     symCoords=Wfn.molecule.rotateBackToFrame(symCoords,2,1,3)
-    # # if 'refEck' in cds:
-    # #     symDw = [1., 1.]
-    # #     symCoords = np.array([Wfn.molecule.pullTrimerRefPos(),Wfn.molecule.pullTrimerRefPos()])*angstr
-    # symDw=[1.,1.]
-    #if symCoords.shape[0]==1:
-    #    symCoords = np.concatenate((symCoords, symCoords))*angstr
-    #    symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 2, 1, 3)
     np.save('../coordinates/trimer/'+coordinateSet+'.npy', symCoords)
     np.save('../coordinates/trimer/'+coordinateSet+'_dw.npy', symDw)
-
-    #np.savetxt("eqRotated",symCoords[0])
-    #np.save(cds,symCoords)
-    #np.save(cds+'_dw',symDw)
 
 # symCoords=Wfn.molecule.rotateBackToFrame(symCoords,3,2,1)
 # wf = open("../coordinates/trimer/rotated_allH",'w+')
@@ -219,16 +200,15 @@ print 'Got symCoords!'
 print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
 symEckRotCoords = symCoords
 iwantToPlotStuff=False
-print dipF
-print dipF[:-3]+'npy'
-print dipF[:-4] + '.npy'
-print os.path.isfile(dipF[:-4] + '.npy')
-#print os.listdir()
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)
     stop
 else:
-    if os.path.isfile(dipF[:-3] + 'npy'):
+    eckt=False
+    if os.path.isfile(dipPath+'eng_dip_'+coordinateSet+'_eckart.npy'):
+        pdip = np.load(dipPath+'eng_dip_'+coordinateSet+'_eckart.npy')
+        eckt=True
+    elif os.path.isfile(dipF[:-3] + 'npy'):
         pdip = np.load(dipF[:-3] + 'npy')
     else:
         print 'not a npy file'
@@ -240,9 +220,9 @@ else:
     dip = pdip[:, 1:]
     print 'Shape of dipole: ', np.shape(dip)
     HOASpectrum=CalculateSpectrum.HarmonicApproxSpectrum(Wfn,symEckRotCoords,symDw,path,testName)
-    if 'Eck' in GfileName:
-        coordinateSet=coordinateSet+'refGmat'
-    fundamentalEnergies,fundamentalIntensities, combinationBandEnergies,combinationBandIntensities=HOASpectrum.calculateSpectrum(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill)
+    # if 'Eck' in GfileName:
+    #     coordinateSet=coordinateSet+'refGmat'
+    fundamentalEnergies,fundamentalIntensities, combinationBandEnergies,combinationBandIntensities=HOASpectrum.calculateSpectrum(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill,eckt,dipPath)
     fundamentalFile=open('../spectra/Fundamentals_'+coordinateSet+testName+kill,'w')
     for i,(v,intensity) in enumerate(zip(fundamentalEnergies,fundamentalIntensities)):
         fundamentalFile.write(str(i)+"       "+str(v)+"   "+str(intensity)+"\n")

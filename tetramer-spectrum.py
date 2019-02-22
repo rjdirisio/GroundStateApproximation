@@ -245,9 +245,14 @@ if iwantToPlotStuff:
     plotStuff(symEckRotCoords)
     stop
 else:
-    if os.path.isfile(dipF[:-3] + 'npy'):
+    eckt = False
+    if os.path.isfile(dipPath + 'eng_dip_' + coordinateSet + '_eckart.npy'):
+        pdip = np.load(dipPath + 'eng_dip_' + coordinateSet + '_eckart.npy')
+        eckt = True
+    elif os.path.isfile(dipF[:-3] + 'npy'):
         pdip = np.load(dipF[:-3] + 'npy')
     else:
+        print 'not a npy file'
         pdip = np.loadtxt(dipF)
         np.save(dipF[:-3] + 'npy', pdip)
 
@@ -256,24 +261,9 @@ else:
     dip = pdip[:, 1:]
     print 'Shape of dipole: ', np.shape(dip)
     HOASpectrum=CalculateSpectrum.HarmonicApproxSpectrum(Wfn,symEckRotCoords,symDw,path,testName)
-    #HOASpectrum.overlapMatrix(symDw,0,pe)
-    #ham2,overlap2=HOASpectrum.overlapMatrix(symDw,pe)
-    #plt.matshow(overlap2)
-    #plt.colorbar()
-    #plt.savefig("overlapBeforeDivide.png")
-    #dov = np.diagonal(overlap2)
-    #overlap2 = overlap2 / np.sqrt(dov[:,None])
-    #overlap2 = overlap2 / np.sqrt(dov)
-    #ham2 = ham2 / np.sqrt(dov[:,None])
-    #ham2 = ham2 / np.sqrt(dov)
-    #plt.matshow(overlap2)
-    #plt.colorbar()
-    #plt.savefig("overlapAfterDivide.png")
-    #plt.close()
-    #stop
     if 'Eck' in GfileName:
         coordinateSet=coordinateSet+'refGmat'
-    fundamentalEnergies,fundamentalIntensities, combinationBandEnergies,combinationBandIntensities=HOASpectrum.calculateSpectrum(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill)
+    fundamentalEnergies,fundamentalIntensities, combinationBandEnergies,combinationBandIntensities=HOASpectrum.calculateSpectrum(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill,eckt,dipPath)
     fundamentalFile=open('../spectra/Fundamentals_'+coordinateSet+testName+kill,'w')
     for i,(v,intensity) in enumerate(zip(fundamentalEnergies,fundamentalIntensities)):
         fundamentalFile.write(str(i)+"       "+str(v)+"   "+str(intensity)+"\n")

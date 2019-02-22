@@ -98,7 +98,7 @@ class wavefunction (object):
         #pe = np.zeros(nMolecules)
         #dip = np.zeros((nMolecules,3))
         for ln in range(nMolecules):
-            print ln
+            #print ln
             coordstemp=[]
             if 'eckart' in fileName:
                 print 'doing nothing . . .'
