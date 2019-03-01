@@ -7,6 +7,8 @@ import itertools
 import gc
 import sys
 import matplotlib as mpl
+import multiprocessing
+
 mpl.use('agg')
 ProtonatedWaterTrimer = {'H7O3+','O3H7+', 'H7O3plus','H7O3', 'O3H7'}
 ProtonatedWaterTetramer = {'H9O4+','O4H9+', 'H9O4plus','H9O4', 'O4H9'}
@@ -26,6 +28,9 @@ massO*=massConversionFactor
 
 
 verbose=False
+
+
+
 class HarmonicApproxSpectrum(object):
     def __init__(self,wfn,coords,dw,path,testName): #CHANGE THIS
         self.wfn=wfn
@@ -192,19 +197,9 @@ class HarmonicApproxSpectrum(object):
     def overlapMatrix(self,q,dw,poE,walkerSet):
         lg = open("overlapLog.txt","w+")
         potE = np.copy(poE)*au2wn
-        del poE
-        gc.collect()
-        #q=np.load("q.npy")
-        walkerSize = len(dw)
-        if walkerSize < 1000000:
-            chunkSize2=10
-        else:
-            chunkSize2=1000000
         #Csontruct constants and on diagonal elements
-        sumDw = np.sum(dw)
-        walkerSize=len(dw)
-        a = np.average((q*q*q) / np.average(q*q),axis=0,weights=dw) * (1/np.average((q)*(q),axis=0,weights=dw))
-        b = -1 / np.average(q*q, axis=0, weights=dw)
+        a = np.average(q * q * q / np.average(q * q, axis=0, weights=dw), axis=0, weights=dw) * (1 / np.average(q * q, axis=0, weights=dw))
+        b = -1 / np.average(q * q, axis=0, weights=dw)
         #Construct Overlap Matrix
         #Construct diagonal elements
         lg.write('Construct Diagonal Elements\n')
@@ -280,15 +275,15 @@ class HarmonicApproxSpectrum(object):
             overlap2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
             ham2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis]*bq2aq1[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
             lg.write('loop')
-        lg.write('done. memmap before ln\n')
+        lg.write('done. overs with themselves\n')
         #Funds with Overtones
         hav = np.zeros((self.nVibs,self.nVibs))
         hamhav = np.zeros((self.nVibs,self.nVibs))
         for ind in range(self.nVibs):
             hav[ind,:]=np.average(q[:,ind,np.newaxis]*bq2aq1,weights=dw,axis=0)
             hamhav[ind,:]=np.average(q[:,ind,np.newaxis]*bq2aq1*potE[:,np.newaxis],weights=dw,axis=0)
-        overlap2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav / sumDw
-        ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav / sumDw
+        overlap2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav
+        ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
 
         # funds with combos and overtones with combos
         print 'jj'
@@ -296,7 +291,10 @@ class HarmonicApproxSpectrum(object):
         for o, t in itertools.combinations(np.arange(self.nVibs), 2):
             lst.append((o, t))
         ct=0
+        print len(lst)
+        lg.write('overs with funds\n')
         for (i,j) in lst:
+            print ct
             overlap2[1:self.nVibs + 1,self.nVibs * 2 + 1+ct]=np.average(q*q[:,i,np.newaxis]*q[:,j,np.newaxis],weights=dw,axis=0)
             overlap2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1+ct] = np.average(bq2aq1*q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
             ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
@@ -305,7 +303,7 @@ class HarmonicApproxSpectrum(object):
                 bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis]*potE[:,np.newaxis], weights=dw, axis=0)
             ct+=1
         print 'hello'
-
+        lg.write('combos with combos\n')
         #combos with combos
         ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
         g = ovlas[0]
@@ -378,6 +376,7 @@ class HarmonicApproxSpectrum(object):
         #Now calculate the Potential energy
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
+        print 'Potential Energy', potentialEnergy
         overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
@@ -395,6 +394,7 @@ class HarmonicApproxSpectrum(object):
             np.savetxt(overlapMs+'offDiagonalCouplingsInPotential2_' + setOfWalkers + testName + kill + '.dat', ham2)
         #V_0=<0|V|0>
         print 'overlap matrix done'
+        print 'Potential Energy',potentialEnergy
         V_0=np.average(potentialEnergy[:,None],axis=0,weights=dw)
 
         # Vq= <1_q|V|1_q> bra:state with one quanta in mode q, ket: state with one quanta in mode q
@@ -416,7 +416,7 @@ class HarmonicApproxSpectrum(object):
         print 'ZPE: average v_0',V_0*au2wn
         print 'Vq', Vq*au2wn
 
-        alpha=q2ave/(np.average(q*q*q*q,axis=0)-q2ave**2) # Equation #11
+        alpha=q2ave/(np.average(q*q*q*q,weights=dw,axis=0)-q2ave**2) # Equation #11
         alphaPrime=0.5/q2ave   #Equation in text after #8
         #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
 
@@ -438,8 +438,8 @@ class HarmonicApproxSpectrum(object):
             #Vq2d[ivibmode, ivibmode] = Vq2d[ivibmode, ivibmode] * 4.0 * alpha[ivibmode] ** 2 - Vq[ivibmode] * 4.0 *alpha[ivibmode] + V_0
             Tq2d[ivibmode,ivibmode]=Tq[ivibmode]*2.0
         #Let's get overtones set up
-        a = np.average((q)*(q)*(q) / np.average((q)*(q)),axis=0,weights=dw) * (1/np.average((q)*(q),axis=0,weights=dw))
-        b = -1/np.average((q)*(q),axis=0,weights=dw)
+        a = np.average(q*q*q / np.average(q*q,axis=0,weights=dw),axis=0,weights=dw) * (1/np.average(q*q,axis=0,weights=dw))
+        b = -1/np.average(q*q,axis=0,weights=dw)
         vovers = np.average((1+a*q+b*q*q)*potentialEnergy[:,None]*(1+a*q+b*q*q),axis=0,weights=dw)
         vovers /= (np.average(np.square(1+a*q+b*q*q),axis=0,weights=dw))
         np.fill_diagonal(Vq2d,vovers)
@@ -472,8 +472,6 @@ class HarmonicApproxSpectrum(object):
         aMu=np.zeros((3,self.nVibs))  
         #aMu2d_{i,j}=<1_i,1_j|dipoleMoment|0>=Sum_n^walkers(Dipole_n*q_i*q_j*dw_n)/Sum(dw) #Equation 4 for \psi_n=\psi_{1,1}
         aMu2d=np.zeros((3,self.nVibs,self.nVibs))
-        #print 'q: ',q.shape
-        #print q
         print 'dip:'
         print dipoleMoments.shape
         #q = nWalkers x 24

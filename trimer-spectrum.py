@@ -179,20 +179,35 @@ else:
     symCoords, symDw = Wfn.loadCoords(cds)
     np.save('../coordinates/trimer/'+coordinateSet+'.npy', symCoords)
     np.save('../coordinates/trimer/'+coordinateSet+'_dw.npy', symDw)
+    symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 3, 2, 1)
 
-# symCoords=Wfn.molecule.rotateBackToFrame(symCoords,3,2,1)
-# wf = open("../coordinates/trimer/rotated_allH",'w+')
-# trim = ["O","O","O","H","H","H","H","H","H","H"]
-#
-# for wI,walker in enumerate(symCoords):
-#     wf.write("13 0\n")
-#     wf.write("%5.12f\n" % symDw[wI])
-#     for aI,atm in enumerate(walker):
-#         wf.write("%s %5.12f %5.12f %5.12f\n"  % (trim[aI],atm[0],atm[1],atm[2]))
-#     wf.write("\n")
-#
-# wf.close()
-# stop
+if 'input' in coordinateSet:
+    print 'input file - rotating'
+    wf = open("../coordinates/trimer/rotated_"+coordinateSet[-4:],'w+')
+    trim = ["O","O","O","H","H","H","H","H","H","H"]
+    for wI, walker in enumerate(symCoords):
+        wf.write("13 0\n")
+        wf.write("%5.12f\n" % symDw[wI])
+        for aI, atm in enumerate(walker):
+            wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
+        wf.write("\n")
+    wf.close()
+    stop
+elif 'Rotated' in coordinateSet:
+    print 'rotated and symmetrized file - rotatedagain'
+    wf = open("../coordinates/trimer/final_" + coordinateSet[-4:], 'w+')
+    trim = ["O", "O", "O", "H", "H", "H", "H", "H", "H", "H"]
+    np.save("../coordinates/trimer/final_"+coordinateSet[-4:],symCoords)
+    np.save("../coordinates/trimer/final_"+coordinateSet[-4:]+"_dw",symDw)
+    print 'npy saved finalcds'
+    for wI, walker in enumerate(symCoords):
+        wf.write("13 0\n")
+        wf.write("%5.12f\n" % symDw[wI])
+        for aI, atm in enumerate(walker):
+            wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
+        wf.write("\n")
+    wf.close()
+    stop
 
 print 'Symcoords shape',symCoords.shape
 print 'Got symCoords!'
