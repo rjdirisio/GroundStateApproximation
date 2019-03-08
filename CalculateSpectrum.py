@@ -276,6 +276,7 @@ class HarmonicApproxSpectrum(object):
             ham2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis]*bq2aq1[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
             lg.write('loop')
         lg.write('done. overs with themselves\n')
+
         #Funds with Overtones
         hav = np.zeros((self.nVibs,self.nVibs))
         hamhav = np.zeros((self.nVibs,self.nVibs))
@@ -377,7 +378,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             dov = np.diagonal(overlap2)
@@ -589,7 +590,7 @@ class HarmonicApproxSpectrum(object):
         """magAvgMu = Intensity for fundamentals
            magMu2d  = Intensity for combination and overtone bands"""
         for (x,y) in itertools.combinations(np.arange(self.nVibs),2):
-                print Eq2d[x,y]*au2wn , magMu2d[x,y],'combination bands' , x,y
+                #print Eq2d[x,y]*au2wn , magMu2d[x,y],'combination bands' , x,y
                 comboFile2.write(str( Eq2d[x,y]*au2wn)+"   "+str(magMu2d[x,y])+"       "+str(x)+" "+str(y)+"\n")
 
         for i in range(self.nVibs):
@@ -627,7 +628,7 @@ class HarmonicApproxSpectrum(object):
         return relativePotentialEnergy
 
     def calculateQCoordinates(self,moments, dw,gmf,setOfWalkers):
-    #def calculateQCoordinates(self,moments,dw,gmf,setOfWalkers):
+        #def calculateQCoordinates(self,moments,dw,gmf,setOfWalkers):
         #gmf = gmatrix
         print 'calculating Normal coordinates'
         walkerSize=len(dw)
@@ -667,9 +668,9 @@ class HarmonicApproxSpectrum(object):
         s3 = np.sum(np.square(vects3),axis=1)"""
 
         print 'diagonalized <mu^2>'
-        for i in range(self.wfn.molecule.nVibs):
-            print 'v[',i,',]:',eigval[i]
-            print vects[:,i]
+        #for i in range(self.wfn.molecule.nVibs):
+        #    print 'v[',i,',]:',eigval[i]
+        #    print vects[:,i]
 
         #GAAH                                                              
         TransformationMatrix=np.dot(vects.transpose(),GHalfInv)
@@ -678,6 +679,7 @@ class HarmonicApproxSpectrum(object):
         alpha=1.0*eigval #AS in alpha_j in equation 5 of the JPC A 2011 h5o2 dier paper                                          
         #save the transformation matrix for future reference                                                                      
         TMatFileName='TransformationMatrix'+setOfWalkers+'.data'
+        stop
         #TMatFileName = 'allHTesting/spectra/TransformationMatrix.data'
         np.savetxt(TMatFileName,TransformationMatrix)
         gmf = gmf[30:-5]

@@ -63,6 +63,18 @@ def getEqGeom():
 
 
 def getEulerMat(th,ph,xi):
+    a=np.array([[np.cos(ph)*np.cos(th)*np.cos(xi)-np.sin(ph)*np.sin(xi),
+                      np.sin(ph) * np.cos(th) * np.cos(xi) + np.cos(ph) * np.sin(xi),
+                      -np.sin(th)*np.cos(xi)]
+                        ,
+                     [-np.cos(ph)*np.cos(th)*np.sin(xi)-np.sin(ph)*np.cos(xi),
+                      -np.sin(ph) * np.cos(th) * np.sin(xi) + np.cos(ph) * np.cos(xi),
+                      np.sin(th)*np.sin(xi)]
+                        ,
+                     [np.cos(ph)*np.sin(th),
+                      np.sin(ph)*np.sin(th),
+                      np.cos(th)]
+                     ])
     return np.array([[np.cos(ph)*np.cos(th)*np.cos(xi)-np.sin(ph)*np.sin(xi),
                       np.sin(ph) * np.cos(th) * np.cos(xi) + np.cos(ph) * np.sin(xi),
                       -np.sin(th)*np.cos(xi)]
@@ -230,8 +242,6 @@ def transformSharedHs(geom,atmnm,mp,carts,outerO,geomn=np.zeros(1)):
 
 
 def getOuters(age,outerMomentsR,outerMomentsE):
-    #age is eckarted coming in
-    #Get O1's outer water coordinates
     """
     9 ('theta', 1.5707963267947298), 11
     10('phi', 3.917022130300791), 11
@@ -379,6 +389,10 @@ def rotateToOOAndPlaceHs(x,sharedHn,xyzCompz,outerOn):
     orY = np.cross(orZ,orX)/la.norm(np.cross(orZ,orX))
     xax,yax,zax=Wfn.molecule.getfinalOOAxes(sharedHn,np.array([x,x]))
     emat=constructEuler(orX,orY,orZ,xax[0]/la.norm(xax[0]),yax[0]/la.norm(yax[0]),zax[0]/la.norm(zax[0]))
+
+    #idx=np.where(emat==-0.0)
+    #emat[idx] = 0.0
+
     #print la.det(emat)
     #rotate
     y=np.copy(x)
@@ -490,12 +504,13 @@ def scanAlongCoordinate(modeNumber,config):
     scannedGeoms = np.zeros((numWalkers, 13, 3))
     #export(finalConstructedGeometry, 'testWell')
     print 'numWalkers/2', numWalkers / 2
-    scannedGeoms[numWalkers / 2] = finalConstructedGeometry  # assign central point.
+    scannedGeoms[numWalkers / 2] = np.load("../coordinates/tetramer/"+coordinateSet+".npy")  # assign central point.
 
     for i in range(numWalkers / 2):
         avGeom = np.zeros(np.shape(eqG))
         g = (dx * (i + 1)) * normedSharedH1
         averageMomentChange = averageMoments + g
+        shit=np.copy(averageMomentChange)
         partiallyConstructedGeometry = getTriangle(avGeom, averageMomentChange[27:], averageMomentChange[:9])
         scannedGeoms[(numWalkers / 2) + 1 + i] = getOuters(partiallyConstructedGeometry, averageMomentChange[18:27],
                                                            averageMomentChange[9:18])
@@ -524,7 +539,9 @@ mass = Wfn.molecule.get_mass()
 avGeom = np.zeros(np.shape(eqG)) #Where we will fill in our coordinates
 Tmatname ='TransformationMatrix'+coordModel+'.data'
 averageMoments = np.loadtxt('averageInternalsWithNewEckart_'+coordinateSet)
-partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
-averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
-finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+averageMoments = np.around(averageMoments,12)
+# partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
+# #averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+# finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+
 scanAlongCoordinate(int(modeNum),coordModel)

@@ -737,8 +737,8 @@ class molecule (object):
         OB=dummy-oW
         s=(oaHat*OB).sum(axis=1)
         OC=oaHat*s[:,np.newaxis]
-        if np.all(np.around(OC,9)==np.around(OB,9)):
-            ze = np.tile(np.array([0.,0.,1.]),len(oW)).reshape((len(oW),3))
+        if np.all(np.around(OC,12)==np.around(OB,12)):
+            ze = np.cross(xx[:,2-1],xx[:,1-1],axis=1)
         else:
             ze=OC-OB
         #at this point, my x axis points the 'wrong' direction.  I will flip the sign
@@ -746,19 +746,31 @@ class molecule (object):
         zaxis = ze / la.norm(ze, axis=1)[:, None]
         #I don't think this is correct, I think I should be taking X x Y to get Z
         #On second thought, I think this is okay
+
         negZ=np.where(xx[:,4-1,-1]<0)
         zaxis[negZ,-1]=np.negative(zaxis[negZ,-1])
+        xaxis[negZ,-1]=np.negative(xaxis[negZ,-1])
         yaxis = np.cross(zaxis, xaxis, axis=1)
         return xaxis,yaxis,zaxis
 
 
     def eulerMatrix(self,x,y,z,X,Y,Z):
+        zdot=(z * Z).sum(axis=1) / (la.norm(z, axis=1) * la.norm(Z, axis=1))
+        Yzdot=(Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1))
+        Xzdot=(X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1))
+        yZdot=(y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1))
+        xZdot=-(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
+        # if np.all(xZdot== 0.0):
+        #     tanChi = np.tile(np.arctan2(0,0),len(x))
+        # else:
+        #     tanChi = np.arctan2((y * Z).sum(axis=1) / (la.norm(y, axis=1) * la.norm(Z, axis=1)),
+        #                         -(x * Z).sum(axis=1) / (la.norm(x, axis=1) * la.norm(Z, axis=1)))
+
         Theta = np.arccos((z*Z).sum(axis=1)/(la.norm(z,axis=1) * la.norm(Z,axis=1)))
         tanPhi = np.arctan2((Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1)),
                             (X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1)))
         tanChi = np.arctan2((y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1)),
-                            -(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1)))
-
+                             -(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1)))
         tanChi[tanChi < 0]+=(2*np.pi)
         tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta, tanPhi, tanChi
@@ -771,7 +783,7 @@ class molecule (object):
         xx-=ocom[:,np.newaxis,:]
         rotM = np.loadtxt("rotM_EckRef")
         for walker in range(len(xx)):
-            #eckart Frame
+            #eckart Rotate
             xx[walker] = np.dot(xx[walker], eVecs[walker])
             #bring them to proper coordinate
             xx[walker] = np.dot(rotM,xx[walker].T).T
