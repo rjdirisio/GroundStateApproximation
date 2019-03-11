@@ -679,7 +679,7 @@ class HarmonicApproxSpectrum(object):
         alpha=1.0*eigval #AS in alpha_j in equation 5 of the JPC A 2011 h5o2 dier paper                                          
         #save the transformation matrix for future reference                                                                      
         TMatFileName='TransformationMatrix'+setOfWalkers+'.data'
-        stop
+        #stop
         #TMatFileName = 'allHTesting/spectra/TransformationMatrix.data'
         np.savetxt(TMatFileName,TransformationMatrix)
         gmf = gmf[30:-5]

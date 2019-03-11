@@ -239,7 +239,7 @@ print 'Got symCoords!'
 #print symCoords
 print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
 symEckRotCoords = symCoords
-iwantToPlotStuff=True
+iwantToPlotStuff=False
 path='../spectra/'
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)

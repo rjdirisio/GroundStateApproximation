@@ -729,11 +729,11 @@ class molecule (object):
         center = xx[:, 4 - 1, :]
         mp = (center + oW) / 2 #no decimal
         #print mp
-        sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
-        xaxis = np.divide((mp - oW), la.norm(oW - mp, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
+        #sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
+        xaxisp = np.divide((mp - oW), la.norm(oW - mp, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
         dummy = center.copy()
         dummy[:, -1] = 0.0
-        oaHat=np.copy(xaxis)
+        oaHat=np.copy(xaxisp)
         OB=dummy-oW
         s=(oaHat*OB).sum(axis=1)
         OC=oaHat*s[:,np.newaxis]
@@ -741,15 +741,20 @@ class molecule (object):
             ze = np.cross(xx[:,2-1],xx[:,1-1],axis=1)
         else:
             ze=OC-OB
+
         #at this point, my x axis points the 'wrong' direction.  I will flip the sign
-        xaxis=np.negative(xaxis)
+
+        #xaxisMaybe=np.fliplr(xaxisp)
+        xaxis=np.divide((center-oW), la.norm(center-oW, axis=1).reshape(-1,1))
+        #xaxis=np.negative(xaxis)
+
         zaxis = ze / la.norm(ze, axis=1)[:, None]
         #I don't think this is correct, I think I should be taking X x Y to get Z
         #On second thought, I think this is okay
 
-        negZ=np.where(xx[:,4-1,-1]<0)
-        zaxis[negZ,-1]=np.negative(zaxis[negZ,-1])
-        xaxis[negZ,-1]=np.negative(xaxis[negZ,-1])
+        #let's try this.negZ=np.where(xx[:,4-1,-1]<0)
+        #zaxis[negZ,-1]=np.negative(zaxis[negZ,-1])
+        #xaxis[negZ,-1]=np.negative(xaxis[negZ,-1])
         yaxis = np.cross(zaxis, xaxis, axis=1)
         return xaxis,yaxis,zaxis
 
