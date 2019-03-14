@@ -718,13 +718,19 @@ class molecule (object):
         return umbrell
 
     def getfinalOOAxes(self,atmnm,xx):
-        #print 'fssdf'
         if atmnm == 11:
             outerW = 2
+            at2 = 1
+            at3 = 3
         elif atmnm == 12:
             outerW = 3
+            at2 = 2
+            at3 = 1
         elif atmnm == 13:
             outerW = 1
+            at2 = 3
+            at3 = 2
+        ZBig = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
         oW = xx[:, outerW - 1, :]  # Coordinates of outer water Oxygen
         center = xx[:, 4 - 1, :]
         mp = (center + oW) / 2 #no decimal
@@ -749,6 +755,8 @@ class molecule (object):
         #xaxis=np.negative(xaxis)
 
         zaxis = ze / la.norm(ze, axis=1)[:, None]
+        sgn = np.where((ZBig*zaxis).sum(axis=1) < 0)
+        zaxis[sgn] = np.negative(zaxis[sgn])
         #I don't think this is correct, I think I should be taking X x Y to get Z
         #On second thought, I think this is okay
 
@@ -780,6 +788,34 @@ class molecule (object):
         tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta, tanPhi, tanChi
 
+    def sphHydrogens(self,xx,atmnm,ocom):
+        if atmnm == 11: #o2
+            at2=13
+            at3=12
+            oxx=2
+        elif atmnm == 12: #o3
+            at2=11
+            at3=13
+            oxx=3
+        elif atmnm == 13: #o1
+            at2=12
+            at3=11
+            oxx=1
+        xax = xx[:,oxx-1] #-ocom, which is 0,0,0
+        zax = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
+        yax = np.cross(zax,xax)
+        xax/=la.norm(xax)
+        yax/=la.norm(yax)
+        zax/=la.norm(zax)
+        xcomp = ((xx[:,atmnm-1]) * xax).sum(axis=1)
+        ycomp = ((xx[:,atmnm-1]) * yax).sum(axis=1)
+        zcomp = ((xx[:,atmnm-1]) * zax).sum(axis=1)
+        rdistOH = la.norm(np.column_stack((xcomp, ycomp, zcomp)), axis=1)
+        thetaOH = np.arccos(zcomp / rdistOH)
+        phiOH = np.arctan2(ycomp, xcomp)
+        return rdistOH,thetaOH,phiOH
+
+
     def finalPlaneShareEuler(self,xx):
         #For any geometry, use reference to determine xyz compz
         #xxp=np.copy(xx[:,:4])
@@ -794,6 +830,9 @@ class molecule (object):
             xx[walker] = np.dot(rotM,xx[walker].T).T
         #planarXYZ=np.copy(np.array([xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2]]))
         ##########Got O4 - Begin SharedProtons#############
+        ar,eth,eph=self.sphHydrogens(xx,11,ocom)
+        ethD = np.degrees(eth)
+        ephD = np.degrees(eph)
         print xx[0]
         print 'central O computed.  Moving to eulers and shared XYZs'
         atmnm=11
@@ -805,6 +844,7 @@ class molecule (object):
         xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
         ycomp11 = ((xx[:,atmnm-1]-mp)*Y).sum(axis=1)
         zcomp11 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
+
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th11,phi11,xi11 = self.eulerMatrix(x,y,z,X,Y,Z)
 

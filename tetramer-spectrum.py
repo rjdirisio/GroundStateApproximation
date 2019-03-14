@@ -233,6 +233,34 @@ else:
     #np.save(cds,symCoords)
     #np.save(cds+'_dw',symDw)
 
+if 'input' in coordinateSet:
+    print 'input file - rotating'
+    wf = open("../coordinates/tetramer/rotated_"+coordinateSet[-4:],'w+')
+    trim = ["O", "O", "O", "O","H","H","H", "H", "H", "H", "H", "H", "H"]
+    for wI, walker in enumerate(symCoords):
+        wf.write("13 0\n")
+        wf.write("%5.12f\n" % symDw[wI])
+        for aI, atm in enumerate(walker):
+            wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
+        wf.write("\n")
+    wf.close()
+    stop
+elif 'RSwapped' in coordinateSet:
+    print 'rotated and symmetrized file - rotatedagain'
+    wf = open("../coordinates/tetramer/final_" + coordinateSet[-4:], 'w+')
+    trim = ["O", "O", "O", "O","H","H","H", "H", "H", "H", "H", "H", "H"]
+    np.save("../coordinates/tetramer/cSymtet"+coordinateSet[-4:],symCoords)
+    np.save("../coordinates/tetramer/cSymtet"+coordinateSet[-4:]+"_dw",symDw)
+    print 'npy saved finalcds'
+    for wI, walker in enumerate(symCoords):
+        wf.write("13 0\n")
+        wf.write("%5.12f\n" % symDw[wI])
+        for aI, atm in enumerate(walker):
+            wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
+        wf.write("\n")
+    wf.close()
+    stop
+
 
 print 'Symcoords shape',symCoords.shape
 print 'Got symCoords!'

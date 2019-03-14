@@ -287,36 +287,67 @@ class HarmonicApproxSpectrum(object):
         ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
 
         # funds with combos and overtones with combos
-        print 'jj'
-        lst=[]
-        for o, t in itertools.combinations(np.arange(self.nVibs), 2):
-            lst.append((o, t))
-        ct=0
-        print len(lst)
-        lg.write('overs with funds\n')
-        for (i,j) in lst:
-            print ct
-            overlap2[1:self.nVibs + 1,self.nVibs * 2 + 1+ct]=np.average(q*q[:,i,np.newaxis]*q[:,j,np.newaxis],weights=dw,axis=0)
-            overlap2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1+ct] = np.average(bq2aq1*q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
-            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                q * q[:, i, np.newaxis] * q[:, j, np.newaxis]*potE[:,np.newaxis], weights=dw, axis=0)
-            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis]*potE[:,np.newaxis], weights=dw, axis=0)
-            ct+=1
-        print 'hello'
-        lg.write('combos with combos\n')
-        #combos with combos
-        ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
-        g = ovlas[0]
-        h = ovlas[1]
-        g += nvibs2 + 1
-        h += nvibs2 + 1
-        ct=0
-        for [(w, x), (y, z)] in itertools.combinations(lst, 2):
-            overlap2[tuple((g[ct], h[ct]))] = np.average(q[:,w] * q[:,x] * q[:,y] * q[:,z], weights=dw)
-            ham2[tuple((g[ct], h[ct]))] = np.average(q[:, w] * q[:, x] * q[:, y] * q[:, z]*potE, weights=dw)
-            ct += 1
-        print 'total time off diags', time.time()-start
+        bigMem = True
+        if bigMem:
+            sumDw = np.sum(dw)
+            nvibs2 = self.nVibs * 2
+            print 'bigMemActivated'
+            lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
+            lm = np.zeros((len(q), lnsize))
+            for combo in range(self.nVibs):
+                if combo == 0:
+                    prev = 0
+                print prev
+                print prev + self.nVibs - combo - 1
+                lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:,(combo + 1):]
+                prev += self.nVibs - 1 - combo
+            # fuco = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0)
+            # ovco = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0)
+            # hfuco = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)
+            # hovco = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)
+            # coco = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)
+            # hcoco = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)
+            ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
+            g = ovlas[0] + nvibs2+1
+            h = ovlas[1] + nvibs2+1
+            asco = np.triu_indices_from(np.zeros((lnsize,lnsize)), k=1)
+            overlap2[tuple((g, h))] = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)[asco] / sumDw
+            overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0) / sumDw  # FC
+            overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0) / sumDw
+            ham2[tuple((g, h))] = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)[asco] / sumDw
+            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0) / sumDw  # FC
+            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0) / sumDw
+        else:
+            print 'smol Mem Activated'
+            lst=[]
+            for o, t in itertools.combinations(np.arange(self.nVibs), 2):
+                lst.append((o, t))
+            ct=0
+            print len(lst)
+            lg.write('funds and overs with combos\n')
+            for (i,j) in lst:
+                print ct
+                overlap2[1:self.nVibs + 1,self.nVibs * 2 + 1+ct]=np.average(q*q[:,i,np.newaxis]*q[:,j,np.newaxis],weights=dw,axis=0)
+                overlap2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1+ct] = np.average(bq2aq1*q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
+                ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis]*potE[:,np.newaxis], weights=dw, axis=0)
+                ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis]*potE[:,np.newaxis], weights=dw, axis=0)
+                ct+=1
+            print 'hello'
+            lg.write('combos with combos\n')
+            #combos with combos
+            ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
+            g = ovlas[0]
+            h = ovlas[1]
+            g += nvibs2 + 1
+            h += nvibs2 + 1
+            ct=0
+            for [(w, x), (y, z)] in itertools.combinations(lst, 2):
+                overlap2[tuple((g[ct], h[ct]))] = np.average(q[:,w] * q[:,x] * q[:,y] * q[:,z], weights=dw)
+                ham2[tuple((g[ct], h[ct]))] = np.average(q[:, w] * q[:, x] * q[:, y] * q[:, z]*potE, weights=dw)
+                ct += 1
+            print 'total time off diags', time.time()-start
         return ham2,overlap2
 
     def calculateSpectrum(self, coords,dw,GfileName,pe,dips,setOfWalkers,testName,kill,ecked,diPath):
@@ -378,7 +409,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             dov = np.diagonal(overlap2)
