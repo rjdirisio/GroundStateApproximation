@@ -650,8 +650,8 @@ class molecule (object):
 
     def H9GetHOHAxis(self,o,h1,h2):
         xaxis = self.getBisectingVector(h1, o, h2)  # bisector of HOH angle
-        yaxis = np.zeros((len(h1), 3))
-        zaxis = np.zeros((len(h1), 3))
+        #yaxis = np.zeros((len(h1), 3))
+        #zaxis = np.zeros((len(h1), 3))
         h1on = (h1 - o) / la.norm(h1 - o, axis=1).reshape([-1, 1])
         h2on = (h2 - o) / la.norm(h2 - o, axis=1).reshape([-1, 1])
         zaxis=np.cross(h1on,h2on,axis=1)
@@ -730,9 +730,11 @@ class molecule (object):
             outerW = 1
             at2 = 3
             at3 = 2
-        ZBig = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
         oW = xx[:, outerW - 1, :]  # Coordinates of outer water Oxygen
         center = xx[:, 4 - 1, :]
+        dummy = center.copy()
+        dummy[:, -1] = 0.0
+        ZBig = np.cross(xx[:,at2-1]-dummy,xx[:,at3-1]-dummy,axis=1)
         mp = (center + oW) / 2 #no decimal
         #print mp
         #sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
@@ -755,7 +757,7 @@ class molecule (object):
         #xaxis=np.negative(xaxis)
 
         zaxis = ze / la.norm(ze, axis=1)[:, None]
-        sgn = np.where((ZBig*zaxis).sum(axis=1) < 0)
+        sgn = np.where((ZBig*zaxis).sum(axis=1) < 0)[0]
         zaxis[sgn] = np.negative(zaxis[sgn])
         #I don't think this is correct, I think I should be taking X x Y to get Z
         #On second thought, I think this is okay
@@ -768,11 +770,11 @@ class molecule (object):
 
 
     def eulerMatrix(self,x,y,z,X,Y,Z):
-        zdot=(z * Z).sum(axis=1) / (la.norm(z, axis=1) * la.norm(Z, axis=1))
-        Yzdot=(Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1))
-        Xzdot=(X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1))
-        yZdot=(y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1))
-        xZdot=-(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
+        # zdot=(z * Z).sum(axis=1) / (la.norm(z, axis=1) * la.norm(Z, axis=1))
+        # Yzdot=(Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1))
+        # Xzdot=(X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1))
+        # yZdot=(y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1))
+        # xZdot=-(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
         # if np.all(xZdot== 0.0):
         #     tanChi = np.tile(np.arctan2(0,0),len(x))
         # else:
@@ -819,28 +821,14 @@ class molecule (object):
     def finalPlaneShareEuler(self,xx):
         #For any geometry, use reference to determine xyz compz
         #xxp=np.copy(xx[:,:4])
-        print 'eckarting...'
-        ocom, eVecs, kill=self.eckartRotate(xx[:,:3],True)
-        xx-=ocom[:,np.newaxis,:]
-        rotM = np.loadtxt("rotM_EckRef")
-        for walker in range(len(xx)):
-            #eckart Rotate
-            xx[walker] = np.dot(xx[walker], eVecs[walker])
-            #bring them to proper coordinate
-            xx[walker] = np.dot(rotM,xx[walker].T).T
-        #planarXYZ=np.copy(np.array([xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2]]))
-        ##########Got O4 - Begin SharedProtons#############
-        ar,eth,eph=self.sphHydrogens(xx,11,ocom)
-        ethD = np.degrees(eth)
-        ephD = np.degrees(eph)
-        print xx[0]
-        print 'central O computed.  Moving to eulers and shared XYZs'
+        print 'get carts & eulers pre eckart'
         atmnm=11
         h1 = 8
         h2 = 7
         o  = 2
         mp = 0.5*(xx[:,o-1]+xx[:,4-1])
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
+        #asdfasdf=(X*Z).sum(axis=1)
         xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
         ycomp11 = ((xx[:,atmnm-1]-mp)*Y).sum(axis=1)
         zcomp11 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
@@ -871,8 +859,20 @@ class molecule (object):
         zcomp13 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
+        print 'eckarting...'
+        ocom, eVecs,kil=self.eckartRotate(xx[:,:3],True)
+        print 'got matrix'
+        xx-=ocom[:,np.newaxis,:]
+        #rotM = np.loadtxt("rotM_EckRef")
+        # asdf = np.repeat(rotM[np.newaxis,:,:],len(xx),axis=0)
+        print 'b4'
+        print xx[0]
+        xx = np.einsum('knj,kij->kni',eVecs.transpose(0,2,1),xx).transpose(0,2,1)
+        print 'af'
+        print xx[0]
+        # xx = np.einsum('knj,kij->kni',asdf,xx).transpose(0,2,1)
+        print 'fully rotated'
         return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
-
 
     def SymInternalsH9O4plus(self,x):
         print 'Commence getting internal coordinates for tetramer'
@@ -886,10 +886,7 @@ class molecule (object):
         thphixi3=all[18:21]
         xyzO4 = all[0:3]
         print 'done hydronium XYZ'
-        print 'time it took to get xyzs: ',str(time.time()-start)
-        second = time.time()
-        print 'done euler angles'
-        print 'time it took to eulers: ', str(time.time()-second)
+        print 'time it took to get xyzs,eulers: ',str(time.time()-start)
         third = time.time()
         rOH5 = self.bL(x,5-1,1-1)
         rOH6 = self.bL(x,6-1,1-1)
@@ -1047,10 +1044,10 @@ class molecule (object):
 
     def pullTetramerRefPos(self): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
         """goes O1,O2,O3,O4,..H12"""
-        myRef2 = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
-                           [-4.16865752E+00, -2.40677554E+00,  1.18329136E-30],
+        myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
                            [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
-                           [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
+                             [-4.16865752E+00, -2.40677554E+00, 1.18329136E-30],
+                             [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
                            [1.79529146E-16,  5.90334467E+00, -1.46596673E+00],
                            [-3.94430453E-31,  5.90334467E+00,  1.46596673E+00],
                            [-5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
@@ -1060,32 +1057,24 @@ class molecule (object):
                            [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
                            [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
                            [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
-        myRefCOM, extra = self.rotateBackToFrame(np.array([myRef2, myRef2]), 2, 1, 3)  # rotate reference to OOO plane
+        # myRefCOM, extra = self.rotateBackToFrame(np.array([myRef2, myRef2]), 2, 1, 3)  # rotate reference to OOO plane
+        # print 'got Eckgeometry'
         mass=self.get_mass()
         com = np.dot(mass[:3], myRefCOM[:3]) / np.sum(mass[:3]) #same as overal COM
         myRefCOM-=com
+        print myRefCOM
+        # np.savetxt('myRefCOM.txt',myRefCOM)
+
+
         ##get rotation matrix for ref geom to O2 being x axis
-        newX = (myRefCOM[2-1]-myRefCOM[4-1])/la.norm(myRefCOM[2-1]-myRefCOM[4-1])
-        oldX = (myRefCOM[1-1]-myRefCOM[2-1])/la.norm(myRefCOM[1-1]-myRefCOM[2-1])
-        th = np.arccos(np.dot(newX,oldX))
-        rotM = np.array([[np.cos(th),-np.sin(th),0],
-                         [np.sin(th),np.cos(th),0],
-                         [0,0,1]])
-        test = np.dot(rotM,myRefCOM.T).T
-        np.savetxt("rotM_EckRef",rotM)
-        # myRefAxis = np.array([[-2.40677555e+00,  4.16865753e+00, -5.10513310e-16],
-        #                    [ 4.81355108e+00,  1.15299152e-09, -1.41201920e-25],
-        #                    [-2.40677554e+00, -4.16865752e+00,  5.10513309e-16],
-        #                    [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-        #                    [-2.95167234e+00,  5.11244645e+00,  1.46596673e+00],
-        #                    [-2.95167234e+00,  5.11244645e+00, -1.46596673e+00],
-        #                    [ 5.90334467e+00,  3.57239792e-09,  1.46596673e+00],
-        #                    [ 5.90334467e+00,  3.57239756e-09, -1.46596673e+00],
-        #                    [-2.95167234e+00, -5.11244645e+00, -1.46596673e+00],
-        #                    [-2.95167234e+00, -5.11244645e+00,  1.46596673e+00],
-        #                    [ 1.90592922e+00,  2.29657230e-09, -2.81249386e-25],
-        #                    [-9.52964610e-01, -1.65058312e+00,  2.02138133e-16],
-        #                    [-9.52964605e-01,  1.65058311e+00, -2.02138133e-16]])
+        # newX = (myRefCOM[2-1]-myRefCOM[4-1])/la.norm(myRefCOM[2-1]-myRefCOM[4-1])
+        # oldX = (myRefCOM[1-1]-myRefCOM[2-1])/la.norm(myRefCOM[1-1]-myRefCOM[2-1])
+        # th = np.arccos(np.dot(newX,oldX))
+        # rotM = np.array([[np.cos(th),-np.sin(th),0],
+        #                  [np.sin(th),np.cos(th),0],
+        #                  [0,0,1]])
+        # test = np.dot(rotM,myRefCOM.T).T
+        # np.savetxt("rotM_EckRef",rotM)
         return myRefCOM
 
 
@@ -1102,6 +1091,7 @@ class molecule (object):
         if len(pos.shape)<3:
             pos=np.array([pos])
         #Center of Mass
+        print 'getting mass'
         mass=self.get_mass()
         #com=np.dot(mass,pos)/np.sum(mass)
         if justO: #the OOO plane
@@ -1113,10 +1103,12 @@ class molecule (object):
             com = np.dot(mass, pos) / np.sum(mass)
 
         #First Translate:
+        print 'shifting molecules'
         ShiftedMolecules=pos-com[:,np.newaxis,:]
 
         #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
         start = time.time()
+        print 'starting mathy math'
         myFF = np.zeros((len(ShiftedMolecules),3,3))
         myF = np.zeros((len(ShiftedMolecules),3,3))
         st=time.time()
@@ -1129,7 +1121,7 @@ class molecule (object):
             myFF[:,-1,-1]=1.0
         bigEvals,bigEvecs=la.eigh(myFF)
         #bigEvals=np.sort(bigEvals,axis=1)
-        bvec = copy.deepcopy(bigEvecs)
+        #bvec = copy.deepcopy(bigEvecs)
         #bigEvecs=bigEvecs[:,:,(2,1,0)]
         bigEvecsT=np.transpose(bigEvecs,(0,2,1))
         if np.all(np.around(bigEvals[:,0]==0.0)):
@@ -1139,24 +1131,25 @@ class molecule (object):
         #print myF
         eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
         eckVecs2[:,-1]=np.cross(eckVecs2[:,0],eckVecs2[:,1])
-        #print 'did it work'
-        plus=0
-        minus=0
-        mas = np.where(np.around(la.det(eckVecs2),10)==-1.0)
-        print 'wlks neg for mine'
-        print mas
-        if len(mas[0])!=0:
-            killList2=mas
-            #eckVecs2[mas] = np.negative(eckVecs2[mas])
-            minus = len(mas[0])
-
-        else:
-            killList2=mas[0]
-
-        plus=len(ShiftedMolecules)-minus
-        print 'Plus rotation: ',plus
-        print 'Inverted Rotation: ',minus
-        return com, eckVecs2, killList2
+        print 'done'
+        # plus=0
+        # minus=0
+        # mas = np.where(np.around(la.det(eckVecs2),10)==-1.0)
+        # print 'wlks neg for mine'
+        # print mas
+        # if len(mas[0])!=0:
+        #     killList2=mas
+        #     #eckVecs2[mas] = np.negative(eckVecs2[mas])
+        #     minus = len(mas[0])
+        #
+        # else:
+        #     killList2=mas[0]
+        #
+        # plus=len(ShiftedMolecules)-minus
+        # print 'Plus rotation: ',plus
+        # print 'Inverted Rotation: ',minus
+        killList2=0
+        return com, eckVecs2 , killList2
 
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         """

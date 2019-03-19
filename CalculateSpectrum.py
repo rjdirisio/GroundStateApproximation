@@ -45,7 +45,10 @@ class HarmonicApproxSpectrum(object):
         if not os.path.isfile(GfileName):
                 print 'no!'
                 gnm=self.calculateG(self.coords,self.dw)
-                np.savetxt(GfileName,gnm)
+                if 'test' not in GfileName:
+                    np.savetxt(GfileName,gnm)
+                else:
+                    return gnm
         else:
             print 'yes! ^-^'
         G=np.loadtxt(GfileName)
@@ -63,10 +66,8 @@ class HarmonicApproxSpectrum(object):
         sumDescendants=0
         mass=self.wfn.molecule.get_mass()
         print 'Start calculating G'
-        #internal=self.wfn.molecule.SymInternals(eckartRotatedCoords,True)
-        #internal = self.wfn.molecule.SymInternals(eckartRotatedCoords,descendantWeights)
-
-        #print 'some internals that you might care about!', np.average(internal,weights=descendantWeights,axis=0), '\n std',np.std(internal,axis=0)
+        #ocom, eVecs, kil = self.wfn.molecule.eckartRotate(eckartRotatedCoords)
+        #eckartRotatedCoords = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), eckartRotatedCoords).transpose(0, 2, 1)
 
         threwOut=0
         print 'summing up the descendants', np.sum(descendantWeights)
@@ -76,46 +77,66 @@ class HarmonicApproxSpectrum(object):
                 """WHERE INTERNAL COORDINATES ARE USED"""
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
-                deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest                                        
+                deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 #ECKART ROTATION DOES NOT NEED TO HAPPEN YET
-                #coordPlus=self.wfn.molecule.SymInternals(self.wfn.molecule.eckartRotate(eckartRotatedCoords+deltax))
-                #coordMinus=self.wfn.molecule.SymInternals(self.wfn.molecule.eckartRotate(eckartRotatedCoords-deltax))
+
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False) #true = rotate to frame before adjusting axis coordinates.
+
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
 
                 timegnm=time.time()
 
                 LastPartialDerv2MassWeighted=0
-                for i,pd in enumerate(partialderv): #i = enum num
-                    partialderv2=np.outer(pd,pd)
-                    #print 'zeros ?',partialderv2prime[i*self.nVibs:(i+1)*self.nVibs,i*self.nVibs:(i+1)*self.nVibs]-partialderv2                                     
-                    tempPartialDerv2MassWeighted=partialderv2*descendantWeights[i]/mass[atom] #24x24
-                    if np.any(tempPartialDerv2MassWeighted>1000000.0*dx):#(gnm[9,9]/(np.sum(self.Descendants[:i]))): $$$$$
-                        #print 'Problem!'
-                        #listOfpartials = np.transpose(np.where(tempPartialDerv2MassWeighted > 1000000.0 * dx))
-                        #print tempPartialDerv2MassWeighted[np.where((tempPartialDerv2MassWeighted > 1000000.0 * dx))]
-                        #print 'atom',atom, 'coordinate',coordinate, i,'temp',np.transpose(np.where(tempPartialDerv2MassWeighted>10000.0*dx)),'is too big'
-                        #print 'walker',i
-                        #for ptls in range(len(listOfpartials)):
-                        #    print listOfpartials[ptls,0],listOfpartials[ptls,1]
-                        #    print self.wfn.molecule.internalName[listOfpartials[ptls,0]],self.wfn.molecule.internalName[listOfpartials[ptls,1]]
-                        #    cdm=coordMinus[i,listOfpartials[ptls,0]],coordMinus[i,listOfpartials[ptls,1]]
-                        #    cdp=coordPlus[i,listOfpartials[ptls,0]],coordPlus[i,listOfpartials[ptls,1]]
-                        #    #print 'Minus: ',cdm
-                        #    #print 'Plus: ',cdp
-                        #    print "Thing that's >100",tempPartialDerv2MassWeighted[listOfpartials[ptls,0],listOfpartials[ptls,1]]
-                        #,self.wfn.molecule.internalName[coordinate]
-                        #print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', descendantWeights[i]
-                        #print 'max = ', np.amax(tempPartialDerv2MassWeighted)
-                        #print 'coordinates \n', eckartRotatedCoords[i],'\n', eckartRotatedCoords[i]+deltax[i],'\n',eckartRotatedCoords[i]-deltax[i]
-                        #print 'eckart rotate \n', coordPlus[i], coordMinus[i]
-                        #print 'pd \n',pd
-                        gnm=gnm+LastPartialDerv2MassWeighted
-                        threwOut=threwOut+1
+                for i, pd in enumerate(partialderv):
+                    partialderv2 = np.outer(pd, pd)
+                    # print 'zeros ?',partialderv2prime[i*self.nVibs:(i+1)*self.nVibs,i*self.nVibs:(i+1)*self.nVibs]-partialderv2
+                    tempPartialDerv2MassWeighted = partialderv2 * descendantWeights[i] / mass[atom]
+
+                    if np.any(tempPartialDerv2MassWeighted > 1000000.0 * dx):  # (gnm[9,9]/(np.sum(self.Descendants[:i]))): $$$$$
+                        print 'atom', atom, 'coordinate', coordinate, i, 'temp', np.transpose(
+                            np.where(tempPartialDerv2MassWeighted > 10000.0 * dx)), 'is too big'
+
+                        print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', \
+                        descendantWeights[i]
+                        print 'coordinates \n', eckartRotatedCoords[i], '\n', eckartRotatedCoords[i] + deltax[i], '\n', \
+                        eckartRotatedCoords[i] - deltax[i]
+                        print 'eckart rotate \n', coordPlus[i], coordMinus[i]
+                        print 'pd \n', pd
+
+                        gnm = gnm + LastPartialDerv2MassWeighted
+                        threwOut = threwOut + 1
                     else:
-                        gnm=gnm+tempPartialDerv2MassWeighted
-                        #LastPartialDerv2MassWEighted=1.0*tempPartialDerv2MassWeighted
+                        gnm = gnm + tempPartialDerv2MassWeighted
+                        LastPartialDerv2MassWeighted = 1.0 * tempPartialDerv2MassWeighted
+                # for i,pd in enumerate(partialderv): #i = enum num
+                #     partialderv2=np.outer(pd,pd)
+                #     #print 'zeros ?',partialderv2prime[i*self.nVibs:(i+1)*self.nVibs,i*self.nVibs:(i+1)*self.nVibs]-partialderv2
+                #     tempPartialDerv2MassWeighted=partialderv2*descendantWeights[i]/mass[atom] #24x24
+                #     if np.any(tempPartialDerv2MassWeighted>1000000.0*dx):#(gnm[9,9]/(np.sum(self.Descendants[:i]))): $$$$$
+                #         print 'Problem!'
+                #         listOfpartials = np.transpose(np.where(tempPartialDerv2MassWeighted > 1000000.0 * dx))
+                #         print tempPartialDerv2MassWeighted[np.where((tempPartialDerv2MassWeighted > 1000000.0 * dx))]
+                #         print 'atom',atom, 'coordinate',coordinate, i,'temp',np.transpose(np.where(tempPartialDerv2MassWeighted>10000.0*dx)),'is too big'
+                #         print 'walker',i
+                #         for ptls in range(len(listOfpartials)):
+                #            print listOfpartials[ptls,0],listOfpartials[ptls,1]
+                #            print self.wfn.molecule.internalName[listOfpartials[ptls,0]],self.wfn.molecule.internalName[listOfpartials[ptls,1]]
+                #            cdm=coordMinus[i,listOfpartials[ptls,0]],coordMinus[i,listOfpartials[ptls,1]]
+                #            cdp=coordPlus[i,listOfpartials[ptls,0]],coordPlus[i,listOfpartials[ptls,1]]
+                #            #print 'Minus: ',cdm
+                #            #print 'Plus: ',cdp
+                #            print "Thing that's >100",tempPartialDerv2MassWeighted[listOfpartials[ptls,0],listOfpartials[ptls,1]],self.wfn.molecule.internalName[coordinate]
+                #         print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', descendantWeights[i]
+                #         print 'max = ', np.amax(tempPartialDerv2MassWeighted)
+                #         print 'coordinates \n', eckartRotatedCoords[i],'\n', eckartRotatedCoords[i]+deltax[i],'\n',eckartRotatedCoords[i]-deltax[i]
+                #         print 'eckart rotate \n', coordPlus[i], coordMinus[i]
+                #         print 'pd \n',pd
+                #         gnm=gnm+LastPartialDerv2MassWeighted
+                #         threwOut=threwOut+1
+                #     else:
+                #         gnm=gnm+tempPartialDerv2MassWeighted
+                #         #LastPartialDerv2MassWEighted=1.0*tempPartialDerv2MassWeighted
 
             print 'gnmtiminging:',time.time()-timegnm
         print "THREW OUT ", threwOut, " walkers :-("
@@ -172,7 +193,7 @@ class HarmonicApproxSpectrum(object):
         sh = np.memmap('smap'+setOfWalkers, dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs),int(self.nVibs)))
         print 'walkerSize',walkerSize
         if walkerSize > 1000000:
-            chunkSize=1000000
+            chunkSize=500000
         else:
             chunkSize=100
         cycle = np.arange(0,walkerSize,chunkSize)
@@ -287,7 +308,7 @@ class HarmonicApproxSpectrum(object):
         ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
 
         # funds with combos and overtones with combos
-        bigMem = True
+        bigMem = False
         if bigMem:
             sumDw = np.sum(dw)
             nvibs2 = self.nVibs * 2
@@ -397,8 +418,9 @@ class HarmonicApproxSpectrum(object):
             print 'q^2 \n',q2ave #average of q-squared
             #print 'q^4 \n',q4ave
             print '/\/\/\/\/\/\/\/\/\/\ '
-            np.save("q_"+setOfWalkers+".npy",q)
-            np.save("q2_"+setOfWalkers+".npy",q2)
+            if 'test' not in setOfWalkers:
+                np.save("q_"+setOfWalkers+".npy",q)
+                np.save("q2_"+setOfWalkers+".npy",q2)
         else:
             print 'loading qs from file'
             q=np.load('q_'+setOfWalkers+'.npy')
