@@ -21,7 +21,13 @@ def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     mP.plotIt()
 
 def plotStuff(symEckRotCoords):
+    print 'plotQs'
+    q = np.load("q_" + coordinateSet + ".npy")
+    for i in range(q.shape[1]):
+        PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'tetramerInternals/Probability Denisty',
+                   False, symDw)
     print 'INTERNAL COORDINATES :-O'
+
     internals = Wfn.molecule.SymInternalsH9O4plus(symEckRotCoords)
     nm=Wfn.molecule.internalName
     print internals
@@ -32,6 +38,7 @@ def plotStuff(symEckRotCoords):
     print 'One attribute shape: ',np.shape(internals[:,0])
     print 'number of dws: ', symDw
     symEckRotCoords*=angstr
+
     """self.internalName = ['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
                          'phi651', 'Chi651',
                          'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
@@ -266,7 +273,7 @@ print 'Got symCoords!'
 #print symCoords
 print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
 symEckRotCoords = symCoords
-iwantToPlotStuff=True
+iwantToPlotStuff=False
 path='../spectra/'
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)

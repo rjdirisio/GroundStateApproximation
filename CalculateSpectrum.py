@@ -114,7 +114,7 @@ class HarmonicApproxSpectrum(object):
                 #     #print 'zeros ?',partialderv2prime[i*self.nVibs:(i+1)*self.nVibs,i*self.nVibs:(i+1)*self.nVibs]-partialderv2
                 #     tempPartialDerv2MassWeighted=partialderv2*descendantWeights[i]/mass[atom] #24x24
                 #     if np.any(tempPartialDerv2MassWeighted>1000000.0*dx):#(gnm[9,9]/(np.sum(self.Descendants[:i]))): $$$$$
-                #         print 'Problem!'
+                #         print 'Problem!'z
                 #         listOfpartials = np.transpose(np.where(tempPartialDerv2MassWeighted > 1000000.0 * dx))
                 #         print tempPartialDerv2MassWeighted[np.where((tempPartialDerv2MassWeighted > 1000000.0 * dx))]
                 #         print 'atom',atom, 'coordinate',coordinate, i,'temp',np.transpose(np.where(tempPartialDerv2MassWeighted>10000.0*dx)),'is too big'
@@ -260,6 +260,7 @@ class HarmonicApproxSpectrum(object):
         del a
         del b
         gc.collect()
+
         lg.write('Construct Off-Diagonal Elements\n')
         lg.write('Funds w ground\n')
         overlap2[0,1:self.nVibs+1]=np.average(q,axis=0,weights=dw)
@@ -308,67 +309,112 @@ class HarmonicApproxSpectrum(object):
         ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
 
         # funds with combos and overtones with combos
-        bigMem = False
+        ####PUT BACK HERE
+        bigMem = True
         if bigMem:
             sumDw = np.sum(dw)
             nvibs2 = self.nVibs * 2
             print 'bigMemActivated'
             lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
-            lm = np.zeros((len(q), lnsize))
-            for combo in range(self.nVibs):
-                if combo == 0:
-                    prev = 0
-                print prev
-                print prev + self.nVibs - combo - 1
-                lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:,(combo + 1):]
-                prev += self.nVibs - 1 - combo
-            # fuco = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0)
-            # ovco = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0)
-            # hfuco = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)
-            # hovco = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)
-            # coco = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)
-            # hcoco = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)
+            # lm = np.zeros((len(q), lnsize))
+            # for combo in range(self.nVibs):
+            #     if combo == 0:
+            #         prev = 0
+            #     print prev
+            #     print prev + self.nVibs - combo - 1
+            #     lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
+            #     prev += self.nVibs - 1 - combo
+            lm = np.ones((len(q), lnsize))
+            splitArs = 10000
+            qsize = q.shape[1]
+            q = np.array_split(q, splitArs)
+            bq2aq1 = np.array_split(bq2aq1, splitArs)
+            potE = np.array_split(potE, splitArs)
+            dw = np.array_split(dw, splitArs)
+            lm = np.array_split(lm, splitArs)
+            cyc = 0
+            fuco = np.zeros((qsize, lnsize))
+            ovco = np.zeros((qsize, lnsize))
+            hfuco = np.zeros((qsize, lnsize))
+            hovco = np.zeros((qsize, lnsize))
+            coco = np.zeros((lnsize, lnsize))
+            hcoco = np.zeros((lnsize, lnsize))
+
+            for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
+                print 'cycle', cyc
+                print qq.shape
+                print ll.shape
+                fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                hfuco += np.sum(
+                    qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+                                                                                                  np.newaxis], axis=0)
+                hovco += np.sum(
+                    bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+                                                                                                  np.newaxis], axis=0)
+                coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                hcoco += np.sum(
+                    ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+                                                                                                  np.newaxis], axis=0)
+                cyc += 1
+            # stop
             ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
-            g = ovlas[0] + nvibs2+1
-            h = ovlas[1] + nvibs2+1
-            asco = np.triu_indices_from(np.zeros((lnsize,lnsize)), k=1)
-            overlap2[tuple((g, h))] = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)[asco] / sumDw
-            overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0) / sumDw  # FC
-            overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis],axis=0) / sumDw
-            ham2[tuple((g, h))] = np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0)[asco] / sumDw
-            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0) / sumDw  # FC
-            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis,np.newaxis] * dw[:,np.newaxis,np.newaxis],axis=0) / sumDw
+            g = ovlas[0] + nvibs2 + 1
+            h = ovlas[1] + nvibs2 + 1
+            asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
+            overlap2[tuple((g, h))] = \
+                np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)[
+                    asco] / sumDw
+            overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+                q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw  # FC
+            overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+                bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw
+            ham2[tuple((g, h))] = np.sum(
+                lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
+                                                                                                np.newaxis], axis=0)[
+                                      asco] / sumDw
+            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+                q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
+                                                                                               np.newaxis],
+                axis=0) / sumDw  # FC
+            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+                bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
+                                                                                                    np.newaxis],
+                axis=0) / sumDw
         else:
             print 'smol Mem Activated'
-            lst=[]
+            lst = []
             for o, t in itertools.combinations(np.arange(self.nVibs), 2):
                 lst.append((o, t))
-            ct=0
+            ct = 0
             print len(lst)
             lg.write('funds and overs with combos\n')
-            for (i,j) in lst:
+            for (i, j) in lst:
                 print ct
-                overlap2[1:self.nVibs + 1,self.nVibs * 2 + 1+ct]=np.average(q*q[:,i,np.newaxis]*q[:,j,np.newaxis],weights=dw,axis=0)
-                overlap2[self.nVibs+1:2*self.nVibs + 1, self.nVibs * 2 + 1+ct] = np.average(bq2aq1*q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
+                overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
+                overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
                 ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis]*potE[:,np.newaxis], weights=dw, axis=0)
+                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
                 ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis]*potE[:,np.newaxis], weights=dw, axis=0)
-                ct+=1
+                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
+                ct += 1
             print 'hello'
             lg.write('combos with combos\n')
-            #combos with combos
+            # combos with combos
             ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
             g = ovlas[0]
             h = ovlas[1]
             g += nvibs2 + 1
             h += nvibs2 + 1
-            ct=0
+            ct = 0
             for [(w, x), (y, z)] in itertools.combinations(lst, 2):
-                overlap2[tuple((g[ct], h[ct]))] = np.average(q[:,w] * q[:,x] * q[:,y] * q[:,z], weights=dw)
-                ham2[tuple((g[ct], h[ct]))] = np.average(q[:, w] * q[:, x] * q[:, y] * q[:, z]*potE, weights=dw)
+                overlap2[tuple((g[ct], h[ct]))] = np.average(q[:, w] * q[:, x] * q[:, y] * q[:, z], weights=dw)
+                ham2[tuple((g[ct], h[ct]))] = np.average(q[:, w] * q[:, x] * q[:, y] * q[:, z] * potE, weights=dw)
                 ct += 1
-            print 'total time off diags', time.time()-start
+            print 'total time off diags', time.time() - start
+        ###PUTBACKHERE
         return ham2,overlap2
 
     def calculateSpectrum(self, coords,dw,GfileName,pe,dips,setOfWalkers,testName,kill,ecked,diPath):
@@ -389,7 +435,7 @@ class HarmonicApproxSpectrum(object):
         if not ecked:
             com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO)
             dips = dips - com  # added this to shift dipole to center of mass before eckart roatation - translation of dipole should NOT matter
-            print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
+            #print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
             dipoleMoments = np.zeros(np.shape(dips))
             print 'dips shifted to COM: ', dips[0]
             for den in range(dips.shape[0]):
