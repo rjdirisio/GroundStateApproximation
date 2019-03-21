@@ -540,8 +540,8 @@ avGeom = np.zeros(np.shape(eqG)) #Where we will fill in our coordinates
 Tmatname ='TransformationMatrix'+coordModel+'.data'
 averageMoments = np.loadtxt('averageInternalsWithNewEckart_'+coordinateSet)
 averageMoments = np.around(averageMoments,12)
-partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
-#averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+# partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
+# averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
 # finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
 # xx=Wfn.molecule.rotateBackToFrame(np.array([finalConstructedGeometry,finalConstructedGeometry]),2,1,3)[0]
 # export(xx,'desting')

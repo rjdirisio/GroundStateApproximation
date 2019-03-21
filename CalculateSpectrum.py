@@ -316,15 +316,14 @@ class HarmonicApproxSpectrum(object):
             nvibs2 = self.nVibs * 2
             print 'bigMemActivated'
             lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
-            # lm = np.zeros((len(q), lnsize))
-            # for combo in range(self.nVibs):
-            #     if combo == 0:
-            #         prev = 0
-            #     print prev
-            #     print prev + self.nVibs - combo - 1
-            #     lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
-            #     prev += self.nVibs - 1 - combo
-            lm = np.ones((len(q), lnsize))
+            lm = np.zeros((len(q), lnsize))
+            for combo in range(self.nVibs):
+                if combo == 0:
+                    prev = 0
+                print prev
+                print prev + self.nVibs - combo - 1
+                lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
+                prev += self.nVibs - 1 - combo
             splitArs = 10000
             qsize = q.shape[1]
             q = np.array_split(q, splitArs)
@@ -362,25 +361,31 @@ class HarmonicApproxSpectrum(object):
             g = ovlas[0] + nvibs2 + 1
             h = ovlas[1] + nvibs2 + 1
             asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
-            overlap2[tuple((g, h))] = \
-                np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)[
-                    asco] / sumDw
-            overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-                q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw  # FC
-            overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-                bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw
-            ham2[tuple((g, h))] = np.sum(
-                lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
-                                                                                                np.newaxis], axis=0)[
-                                      asco] / sumDw
-            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-                q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
-                                                                                               np.newaxis],
-                axis=0) / sumDw  # FC
-            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-                bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
-                                                                                                    np.newaxis],
-                axis=0) / sumDw
+            overlap2[tuple((g, h))] = coco[asco]/sumDw
+            overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
+            overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
+            ham2[tuple((g, h))] = hcoco[asco] / sumDw
+            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco
+            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
+            # overlap2[tuple((g, h))] = \
+            #     np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)[
+            #         asco] / sumDw
+            # overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+            #     q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw  # FC
+            # overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+            #     bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw
+            # ham2[tuple((g, h))] = np.sum(
+            #     lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
+            #                                                                                     np.newaxis], axis=0)[
+            #                           asco] / sumDw
+            # ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+            #     q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
+            #                                                                                    np.newaxis],
+            #     axis=0) / sumDw  # FC
+            # ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
+            #     bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
+            #                                                                                         np.newaxis],
+            #     axis=0) / sumDw
         else:
             print 'smol Mem Activated'
             lst = []
