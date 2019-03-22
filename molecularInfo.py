@@ -735,18 +735,18 @@ class molecule (object):
         dummy = center.copy()
         dummy[:, -1] = 0.0
         ZBig = np.cross(xx[:,at2-1]-dummy,xx[:,at3-1]-dummy,axis=1)
+        #test = la.norm(ZBig,axis=1)
+        ZBig /= la.norm(ZBig,axis=1)[:,None]
         mp = (center + oW) / 2 #no decimal
         #print mp
         #sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
         xaxisp = np.divide((mp - oW), la.norm(oW - mp, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
-        dummy = center.copy()
-        dummy[:, -1] = 0.0
         oaHat=np.copy(xaxisp)
         OB=dummy-oW
         s=(oaHat*OB).sum(axis=1)
         OC=oaHat*s[:,np.newaxis]
         if np.all(np.around(OC,12)==np.around(OB,12)):
-            ze = np.cross(xx[:,2-1],xx[:,1-1],axis=1)
+            ze = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
         else:
             ze=OC-OB
 
@@ -772,7 +772,7 @@ class molecule (object):
     def eulerMatrix(self,x,y,z,X,Y,Z):
         # zdot=(z * Z).sum(axis=1) / (la.norm(z, axis=1) * la.norm(Z, axis=1))
         # Yzdot=(Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1))
-        # Xzdot=(X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1))
+        # # Xzdot=(X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1))
         # yZdot=(y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1))
         # xZdot=-(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
         # if np.all(xZdot== 0.0):
@@ -780,7 +780,6 @@ class molecule (object):
         # else:
         #     tanChi = np.arctan2((y * Z).sum(axis=1) / (la.norm(y, axis=1) * la.norm(Z, axis=1)),
         #                         -(x * Z).sum(axis=1) / (la.norm(x, axis=1) * la.norm(Z, axis=1)))
-
         Theta = np.arccos((z*Z).sum(axis=1)/(la.norm(z,axis=1) * la.norm(Z,axis=1)))
         tanPhi = np.arctan2((Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1)),
                             (X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1)))

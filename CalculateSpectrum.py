@@ -45,7 +45,7 @@ class HarmonicApproxSpectrum(object):
         if not os.path.isfile(GfileName):
                 print 'no!'
                 gnm=self.calculateG(self.coords,self.dw)
-                if 'test' not in GfileName:
+                if 'test' not in GfileName and 'topWalk' not in GfileName:
                     np.savetxt(GfileName,gnm)
                 else:
                     return gnm
@@ -469,7 +469,7 @@ class HarmonicApproxSpectrum(object):
             print 'q^2 \n',q2ave #average of q-squared
             #print 'q^4 \n',q4ave
             print '/\/\/\/\/\/\/\/\/\/\ '
-            if 'test' not in setOfWalkers:
+            if 'test' not in setOfWalkers and 'top' not in setOfWalkers:
                 np.save("q_"+setOfWalkers+".npy",q)
                 np.save("q2_"+setOfWalkers+".npy",q2)
         else:
@@ -482,7 +482,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             dov = np.diagonal(overlap2)

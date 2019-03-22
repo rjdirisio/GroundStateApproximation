@@ -384,17 +384,23 @@ def constructEuler(X,Y,Z,x,y,z):
     return em
 
 def rotateToOOAndPlaceHs(x,sharedHn,xyzCompz,outerOn):
+    if sharedHn== 11:
+        outerW = 2
+        at2 = 1
+        at3 = 3
+    elif sharedHn== 12:
+        outerW = 3
+        at2 = 2
+        at3 = 1
+    elif sharedHn== 13:
+        outerW = 1
+        at2 = 3
+        at3 = 2
     orX =np.array([1.,0.,0.])
-    orZ =np.cross(x[2-1],x[1-1])/la.norm(np.cross(x[2-1],x[1-1]))
+    orZ =np.cross(x[at2-1],x[at3-1])/la.norm(np.cross(x[at2-1],x[at3-1]))
     orY = np.cross(orZ,orX)/la.norm(np.cross(orZ,orX))
     xax,yax,zax=Wfn.molecule.getfinalOOAxes(sharedHn,np.array([x,x]))
     emat=constructEuler(orX,orY,orZ,xax[0]/la.norm(xax[0]),yax[0]/la.norm(yax[0]),zax[0]/la.norm(zax[0]))
-
-    #idx=np.where(emat==-0.0)
-    #emat[idx] = 0.0
-
-    #print la.det(emat)
-    #rotate
     y=np.copy(x)
     newInts = emat.T.dot(xyzCompz)
     mpy = (y[outerOn-1]+y[4-1])*0.500000000
@@ -540,9 +546,9 @@ avGeom = np.zeros(np.shape(eqG)) #Where we will fill in our coordinates
 Tmatname ='TransformationMatrix'+coordModel+'.data'
 averageMoments = np.loadtxt('averageInternalsWithNewEckart_'+coordinateSet)
 averageMoments = np.around(averageMoments,12)
-# partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
-# averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
-# finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
-# xx=Wfn.molecule.rotateBackToFrame(np.array([finalConstructedGeometry,finalConstructedGeometry]),2,1,3)[0]
-# export(xx,'desting')
+partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
+averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+xx=Wfn.molecule.rotateBackToFrame(np.array([finalConstructedGeometry,finalConstructedGeometry]),2,1,3)[0]
+export(xx,'desting')
 scanAlongCoordinate(int(modeNum),coordModel)

@@ -21,14 +21,15 @@ def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     mP.plotIt()
 
 def plotStuff(symEckRotCoords):
-    print 'plotQs'
-    q = np.load("q_" + coordinateSet + ".npy")
-    for i in range(q.shape[1]):
-        PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'tetramerInternals/Probability Denisty',
+    if os.path.isfile("q_" + coordinateSet + ".npy"):
+        print 'plotQs'
+        q = np.load("q_" + coordinateSet + ".npy")
+        for i in range(q.shape[1]):
+            PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'tetramerInternals/Probability Denisty',
                    False, symDw)
     print 'INTERNAL COORDINATES :-O'
-
     internals = Wfn.molecule.SymInternalsH9O4plus(symEckRotCoords)
+
     nm=Wfn.molecule.internalName
     print internals
     x=np.average(internals,axis=0,weights=symDw)
@@ -93,14 +94,14 @@ def plotStuff(symEckRotCoords):
 
     PltHists1D('allH', np.rad2deg(internals[:, 9]), (0, 360), nm[9],
                'tetramerInternals/Probability Density', False, symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 10]), (0, 360), nm[10], 'tetramerInternals/Probability Density',
+    PltHists1D('allH', np.rad2deg(internals[:, 10]), (-360, 360), nm[10], 'tetramerInternals/Probability Density',
                False, symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 11]), (0, 360), nm[11],'tetramerInternals/Probability Density', False, symDw)
 
 
     PltHists1D('allH', np.rad2deg(internals[:, 12]), (0, 360), nm[12],
                'tetramerInternals/Probability Density', False, symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 13]), (0, 360), nm[13],
+    PltHists1D('allH', np.rad2deg(internals[:, 13]), (-360, 360), nm[13],
                'tetramerInternals/Probability Density',
                False, symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 14]), (0, 360), nm[14],
@@ -108,7 +109,7 @@ def plotStuff(symEckRotCoords):
 
     PltHists1D('allH', np.rad2deg(internals[:, 15]), (0, 360), nm[15],
                'tetramerInternals/Probability Density', False, symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 16]), (0, 360), nm[16],
+    PltHists1D('allH', np.rad2deg(internals[:, 16]), (-360, 360), nm[16],
                'tetramerInternals/Probability Density',
                False, symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 17]), (0, 360), nm[17],
@@ -241,12 +242,12 @@ else:
     #np.save(cds+'_dw',symDw)
 
 if 'input' in coordinateSet:
-    print 'input file - rotating'
+    print 'input file - writing'
     wf = open("../coordinates/tetramer/rotated_"+coordinateSet[-4:],'w+')
     trim = ["O", "O", "O", "O","H","H","H", "H", "H", "H", "H", "H", "H"]
     for wI, walker in enumerate(symCoords):
-        wf.write("13 0\n")
-        wf.write("%5.12f\n" % symDw[wI])
+        wf.write("13\n")
+        wf.write("%5.12f 0.0 0.0 0.0 0.0\n" % symDw[wI])
         for aI, atm in enumerate(walker):
             wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
         wf.write("\n")
@@ -256,16 +257,16 @@ elif 'RSwapped' in coordinateSet:
     print 'rotated and symmetrized file - rotatedagain'
     wf = open("../coordinates/tetramer/final_" + coordinateSet[-4:], 'w+')
     trim = ["O", "O", "O", "O","H","H","H", "H", "H", "H", "H", "H", "H"]
-    np.save("../coordinates/tetramer/cSymtet"+coordinateSet[-4:],symCoords)
-    np.save("../coordinates/tetramer/cSymtet"+coordinateSet[-4:]+"_dw",symDw)
+    np.save("../coordinates/tetramer/iSymtet"+coordinateSet[-4:],symCoords)
+    np.save("../coordinates/tetramer/iSymtet"+coordinateSet[-4:]+"_dw",symDw)
     print 'npy saved finalcds'
-    for wI, walker in enumerate(symCoords):
-        wf.write("13 0\n")
-        wf.write("%5.12f\n" % symDw[wI])
-        for aI, atm in enumerate(walker):
-            wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
-        wf.write("\n")
-    wf.close()
+    # for wI, walker in enumerate(symCoords):
+    #     wf.write("13\n")
+    #     wf.write("%5.12f\n" % symDw[wI])
+    #     for aI, atm in enumerate(walker):
+    #         wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
+    #     wf.write("\n")
+    # wf.close()
     stop
 
 print 'Symcoords shape',symCoords.shape
