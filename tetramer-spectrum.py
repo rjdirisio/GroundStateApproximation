@@ -218,7 +218,12 @@ if 'nz' in kill:
 
 
 if os.path.isfile(cds+'.npy'):
+    print 'npy file found'
     symCoords=np.load(cds+'.npy')
+    if symCoords.shape[0]==13:
+        symCoords = np.concatenate((symCoords[np.newaxis,:,:],symCoords[np.newaxis,:,:]))
+    #symCoords=Wfn.molecule.rotateBackToFrame(symCoords,2,1,3)
+    #np.save("refEck.npy",symCoords)
     symDw = np.load(cds+'_dw.npy')
 else:
     symCoords, symDw = Wfn.loadCoords(cds)
@@ -234,14 +239,16 @@ else:
     # #     symDw = [1., 1.]
     # #     symCoords = np.array([Wfn.molecule.pullTetramerRefPos(),Wfn.molecule.pullTetramerRefPos()])*angstr
     # symDw=[1.,1.]
-    if symCoords.shape[0]==1:
-        symCoords = np.concatenate((symCoords, symCoords))*angstr
+    if symCoords.shape[0]==13:
+        symCoords = np.concatenate((symCoords, symCoords))
     symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 2, 1, 3)
     #np.savetxt("eqRotated",symCoords[0])
     #np.save(cds,symCoords)
     #np.save(cds+'_dw',symDw)
 
 if 'input' in coordinateSet:
+    np.save("rotated"+coordinateSet+".npy",symCoords)
+    np.save("rotated"+coordinateSet+"_dw.npy",symDw)
     print 'input file - writing'
     wf = open("../coordinates/tetramer/rotated_"+coordinateSet[-4:],'w+')
     trim = ["O", "O", "O", "O","H","H","H", "H", "H", "H", "H", "H", "H"]
@@ -253,6 +260,20 @@ if 'input' in coordinateSet:
         wf.write("\n")
     wf.close()
     stop
+# if 'Top' in coordinateSet:
+#     #np.save("f"+coordinateSet+".npy",symCoords)
+#     #np.save("f"+coordinateSet+"_dw.npy",symDw)
+#     print 'input file - writing'
+#     wf = open("../coordinates/tetramer/f"+coordinateSet,'w+')
+#     trim = ["O", "O", "O", "O","H","H","H", "H", "H", "H", "H", "H", "H"]
+#     for wI, walker in enumerate(symCoords):
+#         wf.write("13\n")
+#         wf.write("%5.12f 0.0 0.0 0.0 0.0\n" % symDw[wI])
+#         for aI, atm in enumerate(walker):
+#             wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
+#         wf.write("\n")
+#     wf.close()
+#     stop
 elif 'RSwapped' in coordinateSet:
     print 'rotated and symmetrized file - rotatedagain'
     wf = open("../coordinates/tetramer/final_" + coordinateSet[-4:], 'w+')

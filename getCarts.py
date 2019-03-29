@@ -21,6 +21,7 @@ path='../spectra/'
 gPath = '../Gmats/tetramer/'
 GfileName = gPath+coordinateSet+'.gmat'
 numWalkers = 201
+
 def writeNewWalkers(walkz,title):
     coordAr = ['O','O','O','O','H','H','H','H','H','H','H','H','H']
     walkz2 = walkz*angstr
@@ -374,7 +375,6 @@ def getTriangle(ge,triMoments,sharedMoments):
     age -= oCom[0, np.newaxis, :]
     age= np.dot(age, oEckVectors[0])
 
-
     return age
 
 def constructEuler(X,Y,Z,x,y,z):
@@ -421,15 +421,20 @@ def rotateToOOAndPlaceHs(x,sharedHn,xyzCompz,outerOn):
     return x
 
 def rotateToOOAndPlaceOuters(x, r1, r2, ang, o, hl, hr, ema):
-    if o == 1:
-        sh = 13
-    elif o == 2:
-        sh = 11
-    else:
+    if o== 2:
+        at2 = 1
+        at3 = 3
+        sh=11
+    elif o== 3:
+        at2 = 2
+        at3 = 1
         sh = 12
-
+    elif o== 1:
+        at2 = 3
+        at3 = 2
+        sh = 13
     orX =np.array([1.,0.,0.])
-    orZ =np.cross(x[2-1],x[1-1])/la.norm(np.cross(x[2-1],x[1-1]))
+    orZ =np.cross(x[at2-1],x[at3-1])/la.norm(np.cross(x[at2-1],x[at3-1]))
     orY = np.cross(orZ,orX)/la.norm(np.cross(orZ,orX))
     xax,yax,zax=Wfn.molecule.getfinalOOAxes(sh,np.array([x,x]))
 
@@ -470,7 +475,7 @@ def rotateToOOAndPlaceOuters(x, r1, r2, ang, o, hl, hr, ema):
 
 
 def export(gem,extr):
-    gem2=gem*angstr
+    gem2=gem#*angstr
     fl = open('testExtract'+extr+'.xyz','w')
     j=0
     k=0
@@ -547,8 +552,8 @@ Tmatname ='TransformationMatrix'+coordModel+'.data'
 averageMoments = np.loadtxt('averageInternalsWithNewEckart_'+coordinateSet)
 averageMoments = np.around(averageMoments,12)
 partiallyConstructedGeometry=getTriangle(avGeom,averageMoments[27:],averageMoments[:9])
-averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
-finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
-xx=Wfn.molecule.rotateBackToFrame(np.array([finalConstructedGeometry,finalConstructedGeometry]),2,1,3)[0]
-export(xx,'desting')
+# averagedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+# finalConstructedGeometry=getOuters(partiallyConstructedGeometry,averageMoments[18:27],averageMoments[9:18])
+# xx=Wfn.molecule.rotateBackToFrame(np.array([finalConstructedGeometry,finalConstructedGeometry]),2,1,3)[0]
+# export(xx,'desting')
 scanAlongCoordinate(int(modeNum),coordModel)

@@ -108,8 +108,8 @@ plt.close()
 
 #NOrmalScan
 mass=1
-refScanGeom = "refEck"
-#refScanGeom = "h9o4_minc1"
+#refScanGeom = "refEck"
+refScanGeom = "h9o4_minc1"
 
 scanPotential(config,modeN,refScanGeom)
 V = getPotential("eng_dip_"+config+'_Mode_'+modeN)
@@ -126,7 +126,7 @@ np.savetxt("DeltaE/DeltaE01"+refScanGeom+"_"+config+"_"+modeN,np.array([Ecm[1]-E
 for i in range(3):
     plt.plot(np.diag(V))
     plt.plot(Wf[:,i]**2+(E[i]))
-    plt.ylim([0.0,0.9])
+    #plt.ylim([0.0,0.9])
     #plt.ylim([0.0,0.2])
 plt.savefig("DVRResults/WavePix"+config+refScanGeom+"_""Mode_"+modeN)
 np.savetxt("DVRResults/Wavefunctions_"+config+refScanGeom+"_""Mode_"+modeN,Wf)

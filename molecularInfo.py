@@ -5,6 +5,8 @@ import os
 import time
 import Plot
 import copy
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from multiprocessing import Process, Pipe,Pool
 from itertools import izip
 
@@ -592,10 +594,32 @@ class molecule (object):
         return xcomp, ycomp, zcomp
 
     def getBisectingVector(self,left, middle, right):
+        # vec1 = (right-middle)/la.norm(right-middle,axis=1)[:,np.newaxis]
+        # vec2 = (left-middle)/la.norm(left-middle,axis=1)[:,np.newaxis]
+        # c = (vec1+vec2)/la.norm(vec1+vec2,axis=1)[:,np.newaxis]
+        # fig = plt.figure()
+        # ax = Axes3D(fig)
+        # ax.scatter(0,0,0)
+        # ax.scatter(vec1[0, 0], vec1[0, 1], vec1[0, 2])
+        # ax.scatter(vec2[0, 0], vec2[0, 1], vec2[0, 2])
+        # ax.scatter(c[0, 0], c[0, 1], c[0, 2])
+        # plt.show()
+        # plt.savefig('asdf.png')
+        # test1 = np.arccos((vec1* c).sum(axis=1) / (la.norm(vec1,axis=1) * la.norm(c,axis=1)))
+        # test2 = np.arccos((c * vec2).sum(axis=1) / (la.norm(vec2,axis=1) * la.norm(c,axis=1)))
+        # print np.degrees(test1)
+        # print np.degrees(test2)
+        # test3 = np.arccos((vec2*vec1).sum(axis=1) / (la.norm(vec1,axis=1) * la.norm(vec2,axis=1)))
+        # print np.degrees(test3)
+
         bisector1 = la.norm(left - middle, axis=1).reshape(-1, 1) * (right - middle)  # |b|*a + |a|*b
         bisector2 = la.norm(right - middle, axis=1).reshape(-1, 1) * (left - middle)
         normedbisector = la.norm(bisector1 + bisector2, axis=1).reshape(-1, 1)
         bisector = (bisector1 + bisector2) / normedbisector
+        #test = np.arccos(((left-middle)*bisector).sum(axis=1)/(la.norm(left)*la.norm(bisector)))
+        #test2 = np.arccos(((right-middle) * bisector).sum(axis=1) / (la.norm(right) * la.norm(bisector)))
+        #test3= np.arccos(((right-middle) * (left-middle)).sum(axis=1) / (la.norm(right) * la.norm(left)))
+        #print 'testing'
         return bisector
 
     def xyzFreeHydronium(self,xx):
@@ -732,21 +756,21 @@ class molecule (object):
             at3 = 2
         oW = xx[:, outerW - 1, :]  # Coordinates of outer water Oxygen
         center = xx[:, 4 - 1, :]
-        dummy = center.copy()
+        dummy = np.copy(center)
         dummy[:, -1] = 0.0
         ZBig = np.cross(xx[:,at2-1]-dummy,xx[:,at3-1]-dummy,axis=1)
         #test = la.norm(ZBig,axis=1)
         ZBig /= la.norm(ZBig,axis=1)[:,None]
-        mp = (center + oW) / 2 #no decimal
+        #mp = (center + oW) / 2 #no decimal
         #print mp
         #sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
-        xaxisp = np.divide((mp - oW), la.norm(oW - mp, axis=1).reshape(-1,1))  # Normalized coordinates of xaxis definition. aka vector with only x component, where x = 1
+        xaxisp = np.divide((center - oW), la.norm(center - oW, axis=1).reshape(-1,1))  # Normalized coordinates of xpaxis definition. aka vector with only x component, where x = 1
         oaHat=np.copy(xaxisp)
         OB=dummy-oW
         s=(oaHat*OB).sum(axis=1)
         OC=oaHat*s[:,np.newaxis]
         if np.all(np.around(OC,12)==np.around(OB,12)):
-            ze = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
+            ze = np.copy(ZBig)
         else:
             ze=OC-OB
 
@@ -785,8 +809,8 @@ class molecule (object):
                             (X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1)))
         tanChi = np.arctan2((y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1)),
                              -(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1)))
-        tanChi[tanChi < 0]+=(2*np.pi)
-        tanPhi[tanPhi < 0]+=(2*np.pi)
+        #tanChi[tanChi < 0]+=(2*np.pi)
+        #tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta, tanPhi, tanChi
 
     def sphHydrogens(self,xx,atmnm,ocom):
@@ -858,20 +882,30 @@ class molecule (object):
         zcomp13 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
-        print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx[:,:3],True)
-        print 'got matrix'
-        xx-=ocom[:,np.newaxis,:]
-        #rotM = np.loadtxt("rotM_EckRef")
-        # asdf = np.repeat(rotM[np.newaxis,:,:],len(xx),axis=0)
-        print 'b4'
-        print xx[0]
-        xx = np.einsum('knj,kij->kni',eVecs.transpose(0,2,1),xx).transpose(0,2,1)
-        print 'af'
-        print xx[0]
-        # xx = np.einsum('knj,kij->kni',asdf,xx).transpose(0,2,1)
-        print 'fully rotated'
-        return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
+
+
+        # print 'eckarting...'
+        # ocom, eVecs,kil=self.eckartRotate(xx[:,:4],False,True)
+        # print 'got matrix'
+        # xx-=ocom[:,np.newaxis,:]
+        # #rotM = np.loadtxt("rotM_EckRef")
+        # # asdf = np.repeat(rotM[np.newaxis,:,:],len(xx),axis=0)
+        # print 'b4'
+        # evForMe = eVecs.transpose(0,2,1)
+        # print xx[0]
+        # xx = np.einsum('knj,kij->kni',eVecs.transpose(0,2,1),xx).transpose(0,2,1)
+        # print 'af'
+        # print xx[0]
+        # # xx = np.einsum('knj,kij->kni',asdf,xx).transpose(0,2,1)
+        # print 'fully rotated'
+
+        umTh = self.umbrella(xx,4-1,11-1,12-1,13-1)
+        th1 = self.ba(xx,2-1,4-1,3-1)
+        th2 = self.ba(xx,3-1,4-1,1-1)
+        th3 = self.ba(xx,2-1,4-1,1-1)
+        return umTh, 2*th1-th2-th3, th2-th3, xcomp11, ycomp11, zcomp11, xcomp12, ycomp12, zcomp12, xcomp13, ycomp13, zcomp13, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
+
+        #return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
 
     def SymInternalsH9O4plus(self,x):
         print 'Commence getting internal coordinates for tetramer'
@@ -1043,42 +1077,58 @@ class molecule (object):
 
     def pullTetramerRefPos(self): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
         """goes O1,O2,O3,O4,..H12"""
-        myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
-                           [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
-                           [-4.16865752E+00, -2.40677554E+00, 1.18329136E-30],
-                           [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
-                           [1.79529146E-16,  5.90334467E+00, -1.46596673E+00],
-                           [-3.94430453E-31,  5.90334467E+00,  1.46596673E+00],
-                           [5.11244645E+00, -2.95167233E+00,  1.46596673E+00],
-                           [5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
-                           [-5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
-                           [-5.11244645E+00, -2.95167233E+00, 1.46596673E+00],
-                           [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
-                           [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
-                           [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
+        # myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
+        #                    [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
+        #                    [-4.16865752E+00, -2.40677554E+00, 1.18329136E-30],
+        #                    [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
+        #                    [1.79529146E-16,  5.90334467E+00, -1.46596673E+00],
+        #                    [-3.94430453E-31,  5.90334467E+00,  1.46596673E+00],
+        #                    [5.11244645E+00, -2.95167233E+00,  1.46596673E+00],
+        #                    [5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
+        #                    [-5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
+        #                    [-5.11244645E+00, -2.95167233E+00, 1.46596673E+00],
+        #                    [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
+        #                    [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
+        #                    [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
+        myRefCOM = np.array([[-4.64953331e+00,  1.24583870e+00,  3.55153419e-32],
+                             [ 3.40369461e+00,  3.40369461e+00, -1.29965664e-30],
+                             [ 1.24583870e+00, -4.64953331e+00,  1.26414130e-30],
+                             [ 3.21975274e-09, -8.62730146e-10,  8.08499391e-32],
+                             [-5.70219308e+00,  1.52789803e+00, -1.46596673e+00],
+                             [-5.70219308e+00,  1.52789803e+00,  1.46596673e+00],
+                             [ 4.17429505e+00,  4.17429505e+00,  1.46596673e+00],
+                             [ 4.17429505e+00,  4.17429505e+00, -1.46596673e+00],
+                             [ 1.52789803e+00, -5.70219308e+00, -1.46596673e+00],
+                             [ 1.52789803e+00, -5.70219308e+00,  1.46596673e+00],
+                             [ 4.93290781e-01, -1.84098625e+00,  4.75280392e-31],
+                             [ 1.34769547e+00,  1.34769547e+00, -4.12188127e-31],
+                             [-1.84098624e+00,  4.93290777e-01,  6.35582926e-32]])
         # myRefCOM, extra = self.rotateBackToFrame(np.array([myRef2, myRef2]), 2, 1, 3)  # rotate reference to OOO plane
         # print 'got Eckgeometry'
-        mass=self.get_mass()
-        com = np.dot(mass[:3], myRefCOM[:3]) / np.sum(mass[:3]) #same as overal COM
-        myRefCOM-=com
-        print myRefCOM
+        # mass=self.get_mass()
+        # com = np.dot(mass[:3], myRefCOM[:3]) / np.sum(mass[:3]) #same as overal COM
+        # myRefCOM-=com
+        # print 'myRefCOM',myRefCOM
+
         # np.savetxt('myRefCOM.txt',myRefCOM)
 
 
-        ##get rotation matrix for ref geom to O2 being x axis
+        # #get rotation matrix for ref geom to O2 being x axis
         # newX = (myRefCOM[2-1]-myRefCOM[4-1])/la.norm(myRefCOM[2-1]-myRefCOM[4-1])
         # oldX = (myRefCOM[1-1]-myRefCOM[2-1])/la.norm(myRefCOM[1-1]-myRefCOM[2-1])
-        # th = np.arccos(np.dot(newX,oldX))
+        # th = np.deg2rad(150./2.)
         # rotM = np.array([[np.cos(th),-np.sin(th),0],
         #                  [np.sin(th),np.cos(th),0],
         #                  [0,0,1]])
         # test = np.dot(rotM,myRefCOM.T).T
+        # print 'tset',test
+        # stop
         # np.savetxt("rotM_EckRef",rotM)
         return myRefCOM
 
 
 
-    def eckartRotate(self,pos,justO=False,specialCond=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+    def eckartRotate(self,pos,justO=False,cart=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
         one should transpose the matrix, for do eck.dot(___)"""
         nMolecules=pos.shape[0]
@@ -1095,9 +1145,18 @@ class molecule (object):
         #com=np.dot(mass,pos)/np.sum(mass)
         if justO: #the OOO plane
             self.refPos=self.refPos[:3]
+            refCOM = np.dot(mass[:3], self.refPos) / np.sum(mass[:3])  # same as overal COM
+            self.refPos-=refCOM
             com = np.dot(mass[:3],pos[:,:3])/np.sum(mass[:3])
             mass = mass[:3]
             pos = pos[:,:3,:]
+        elif cart:
+            self.refPos = self.refPos[:4]
+            com = np.dot(mass[:4], pos[:, :4]) / np.sum(mass[:4])
+            refCOM =  np.dot(mass[:4], self.refPos) / np.sum(mass[:4]) #same as overal COM
+            self.refPos-=refCOM
+            mass = mass[:4]
+            pos = pos[:, :4, :]
         else:
             com = np.dot(mass, pos) / np.sum(mass)
 
@@ -1116,7 +1175,7 @@ class molecule (object):
         myF = np.transpose(asdf,(0,2,1))
         myFF = np.matmul(myF,asdf)
         #If just planar, then we need to do this
-        if justO:
+        if justO or cart:
             myFF[:,-1,-1]=1.0
         bigEvals,bigEvecs=la.eigh(myFF)
         #bigEvals=np.sort(bigEvals,axis=1)
