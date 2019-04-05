@@ -97,12 +97,12 @@ class HarmonicApproxSpectrum(object):
                         print 'atom', atom, 'coordinate', coordinate, i, 'temp', np.transpose(
                             np.where(tempPartialDerv2MassWeighted > 10000.0 * dx)), 'is too big'
 
-                        print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', \
-                        descendantWeights[i]
-                        print 'coordinates \n', eckartRotatedCoords[i], '\n', eckartRotatedCoords[i] + deltax[i], '\n', \
-                        eckartRotatedCoords[i] - deltax[i]
-                        #print 'eckart rotate \n', coordPlus[i], coordMinus[i]
-                        print 'pd \n', pd
+                        # print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', \
+                        # descendantWeights[i]
+                        # print 'coordinates \n', eckartRotatedCoords[i], '\n', eckartRotatedCoords[i] + deltax[i], '\n', \
+                        # eckartRotatedCoords[i] - deltax[i]
+                        # #print 'eckart rotate \n', coordPlus[i], coordMinus[i]
+                        # print 'pd \n', pd
                         #wf.write("13\n%5.12f 0.0 0.0 0.0 0.0\n" % descendantWeights[i])
                         #ats = ["O","O","O","O","H","H","H","H","H","H","H","H","H"]
                         #for h in range(len(ats)):
@@ -797,7 +797,7 @@ class HarmonicApproxSpectrum(object):
         else:
             print 'loading second moments matrix'
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'.npy')
-        testing=True
+        testing=False
         if testing:
             self.wfn.molecule.internalName=['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
                              'phi651', 'Chi651',
