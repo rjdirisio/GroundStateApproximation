@@ -533,7 +533,7 @@ class HarmonicApproxSpectrum(object):
             np.savetxt(overlapMs+'overlapMatrix2_' + setOfWalkers + testName + kill + '.dat', overlap2)
             np.savetxt(overlapMs+'offDiagonalCouplingsInPotential2_' + setOfWalkers + testName + kill + '.dat', ham2)
         #V_0=<0|V|0>
-        print 'overlap matrix done'
+        print 'overlap matrix done or skipped'
         print 'Potential Energy',potentialEnergy
         V_0=np.average(potentialEnergy[:,None],axis=0,weights=dw)
 
@@ -861,7 +861,13 @@ class HarmonicApproxSpectrum(object):
         GHalfInv=self.diagonalizeRootG(self.G)
         mu2AvePrime=np.dot(GHalfInv,np.dot(mu2Ave,GHalfInv)) # mass weights g^-1/2 . sm . g^-1/2
         eigval,vects=np.linalg.eigh(mu2AvePrime)
-        eigvalt, vectt = sla.eigh(mu2Ave,self.G)
+        print self.G == self.G.T
+        #eigvalt, vectt = sla.eigh(mu2Ave,self.G)
+        # self.wfn.molecule.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH', 'theta651',
+        #                     'phi651', 'Chi651',
+        #                     'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
+        #                     'HOH516', 'rOH7', 'rOH8', 'HOH728',
+        #                     'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
         print 'test'
         """testVect = np.dot(self.G,vects)
         testest = np.dot(np.dot(vects.conj(),self.G),vects)
