@@ -806,6 +806,11 @@ class molecule (object):
 
 
     def eulerMatrix(self,x,y,z,X,Y,Z):
+        #Using the
+        #[X]    [. . .][x]
+        #[Y] =  [. . .][y]
+        #[Z]    [. . .][z]
+        #Formalism, where x,y,z is HOH in outer water. Should be opposite? <-- I don't think it matters
         x[x==0.0]=0.0
         y[y == 0.0] = 0.0
         z[z == 0.0] = 0.0
@@ -919,6 +924,21 @@ class molecule (object):
         y = np.cross(z, x)
         return X,Y,Z,x,y,z
 
+    def extractEulers(self,rotMs):
+        # [x]    [. . .][X]
+        # [y] =  [. . .][Y]
+        # [z]    [. . .][Z]
+        #be careful with which euler matrix you're using, body fixed space fixed stuff\
+        zdot=rotMs[:,-1,-1]
+        Yzdot = rotMs[:,2,1]
+        Xzdot = rotMs[:,2,0]
+        yZdot = rotMs[:,1,2]
+        xZdot = rotMs[:,0,2]
+        Theta = np.arccos(zdot)
+        tanPhi = np.arctan2(Yzdot, Xzdot)
+        tanChi = np.arctan2(yZdot, xZdot)  # negative baked in
+        return Theta,tanPhi,tanChi
+
     def finalPlaneShareEuler(self,xx):
         #For any geometry, use reference to determine xyz compz
         #xxp=np.copy(xx[:,:4])
@@ -970,13 +990,15 @@ class molecule (object):
         dh2[dh2 < 0.0] += 2*np.pi
         dh3[dh3 < 0.0] += 2*np.pi
 
-        XH,YH,ZH,xH,yH,zH=self.getHydroniumAxes(xx)
-        thH, phiH, xiH = self.eulerMatrix(xH, yH, zH, XH, YH, ZH)
-        mat = self.getEulerMat(thH,phiH,xiH)
-        dthH=np.degrees(thH)
-        dphiH=np.degrees(phiH)
-        dxiH=np.degrees(xiH)
 
+        #################################################################
+        # XH,YH,ZH,xH,yH,zH=self.getHydroniumAxes(xx)
+        # thH, phiH, xiH = self.eulerMatrix(xH, yH, zH, XH, YH, ZH)
+        # mat = self.getEulerMat(thH,phiH,xiH)
+        # dthH=np.degrees(thH)
+        # dphiH=np.degrees(phiH)
+        # dxiH=np.degrees(xiH)
+        ##################################################################
         rOH11=self.bL(xx,11-1,4-1)
         rOH12=self.bL(xx,12-1,4-1)
         rOH13=self.bL(xx,13-1,4-1)
@@ -986,8 +1008,15 @@ class molecule (object):
         ocom, eVecs,kil=self.eckartRotate(xx[:,:4],False,True)
         print 'got matrix'
         xx-=ocom[:,np.newaxis,:]
-        #rotM = np.loadtxt("rotM_EckRef")
-        # asdf = np.repeat(rotM[np.newaxis,:,:],len(xx),axis=0)
+        #Just hydronium
+        ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True)
+        eVecsH=eVecsH.transpose(0,2,1)
+        thH,phiH,xiH=self.extractEulers(eVecsH)
+        dthH=np.degrees(thH)
+        dphiH=np.degrees(phiH)
+        dxiH=np.degrees(xiH)
+        print dthH,dphiH,dxiH
+        print 'done'
         print 'b4'
         #evForMe = eVecs.transpose(0,2,1)
         print xx[0]
@@ -1283,7 +1312,7 @@ class molecule (object):
 
 
 
-    def eckartRotate(self,pos,justO=False,cart=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+    def eckartRotate(self,pos,justO=False,cart=False,hydro=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
         one should transpose the matrix, for do eck.dot(___)"""
         nMolecules=pos.shape[0]
@@ -1305,13 +1334,20 @@ class molecule (object):
             com = np.dot(mass[:3],pos[:,:3])/np.sum(mass[:3])
             mass = mass[:3]
             pos = pos[:,:3,:]
-        elif cart:
+        elif cart: #include central oxygen
             self.refPos = self.refPos[:4]
             com = np.dot(mass[:4], pos[:, :4]) / np.sum(mass[:4])
             refCOM =  np.dot(mass[:4], self.refPos) / np.sum(mass[:4]) #same as overal COM
             self.refPos-=refCOM
             mass = mass[:4]
             pos = pos[:, :4, :]
+        elif hydro:
+            self.refPos = self.refPos[[4-1,11-1,12-1,13-1]]
+            com = np.dot(mass[[4-1,11-1,12-1,13-1]], pos[:, [4-1,11-1,12-1,13-1]]) / np.sum(mass[[4-1,11-1,12-1,13-1]])
+            refCOM = np.dot(mass[[4-1,11-1,12-1,13-1]], self.refPos) / np.sum(mass[[4-1,11-1,12-1,13-1]])  # same as overal COM
+            self.refPos -= refCOM
+            mass = mass[[4-1,11-1,12-1,13-1]]
+            pos = pos[:, [4-1,11-1,12-1,13-1],:]
         else:
             com = np.dot(mass, pos) / np.sum(mass)
 
@@ -1330,7 +1366,7 @@ class molecule (object):
         myF = np.transpose(asdf,(0,2,1))
         myFF = np.matmul(myF,asdf)
         #If just planar, then we need to do this
-        if justO or cart:
+        if justO or cart or hydro:
             myFF[:,-1,-1]=1.0
         bigEvals,bigEvecs=la.eigh(myFF)
         #bigEvals=np.sort(bigEvals,axis=1)
