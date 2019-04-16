@@ -74,7 +74,7 @@ class myPlot:
                         
         elif self.type == '2d':
             if self.indv == True: #Standard 1dHists
-                if not fancy:
+                if not self.fancy:
                     plt.contour(self.binCenters1,self.binCenters2,self.pltdata,colors='k')
                     plt.contourf(self.binCenters1,self.binCenters2,self.pltdata)
                     plt.colorbar()

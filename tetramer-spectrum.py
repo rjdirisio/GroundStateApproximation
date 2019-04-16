@@ -88,10 +88,10 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH',np.degrees(internals[:, 6]), (0,180), nm[6], 'tetramerInternals/Probability Density',
                False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 7]), (-180,180), nm[7], 'tetramerInternals/Probability Density',
+    PltHists1D('allH', np.degrees(internals[:, 7]), (0,360), nm[7], 'tetramerInternals/Probability Density',
                False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 8]), (-180, 180), nm[8], 'tetramerInternals/Probability Density',
+    PltHists1D('allH', np.degrees(internals[:, 8]), (0, 360), nm[8], 'tetramerInternals/Probability Density',
                False,
                symDw)
 

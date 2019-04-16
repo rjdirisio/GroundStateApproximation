@@ -937,6 +937,8 @@ class molecule (object):
         Theta = np.arccos(zdot)
         tanPhi = np.arctan2(Yzdot, Xzdot)
         tanChi = np.arctan2(yZdot, xZdot)  # negative baked in
+        tanChi[tanChi < 0]+=(2*np.pi)
+        tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta,tanPhi,tanChi
 
     def finalPlaneShareEuler(self,xx):
@@ -1005,26 +1007,29 @@ class molecule (object):
         # return dh1,dh2,dh3,xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
 
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx[:,:4],False,True)
+        ocom, eVecs,kil=self.eckartRotate(xx,cart=True)
         print 'got matrix'
         xx-=ocom[:,np.newaxis,:]
-        #Just hydronium
-        ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True)
+        print 'done'
+        print 'b4'
+        # evForMe = eVecs.transpose(0,2,1)
+        print xx[0]
+        xx = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
+        print 'af'
+        print xx[0]
+        # xx = np.einsum('knj,kij->kni',asdf,xx).transpose(0,2,1)
+        print 'fully rotated'
+
+        ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+        # xxp=np.copy(xx)-ocomH[:,np.newaxis,:]
+        # xxp = np.einsum('knj,kij->kni', eVecsH.transpose(0, 2, 1), xx).transpose(0, 2, 1)
         eVecsH=eVecsH.transpose(0,2,1)
+
         thH,phiH,xiH=self.extractEulers(eVecsH)
         dthH=np.degrees(thH)
         dphiH=np.degrees(phiH)
         dxiH=np.degrees(xiH)
         print dthH,dphiH,dxiH
-        print 'done'
-        print 'b4'
-        #evForMe = eVecs.transpose(0,2,1)
-        print xx[0]
-        xx = np.einsum('knj,kij->kni',eVecs.transpose(0,2,1),xx).transpose(0,2,1)
-        print 'af'
-        print xx[0]
-        # xx = np.einsum('knj,kij->kni',asdf,xx).transpose(0,2,1)
-        print 'fully rotated'
 
         return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
 
@@ -1259,7 +1264,7 @@ class molecule (object):
 
         return myBetterRef #myRef2
 
-    def pullTetramerRefPos(self): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
+    def pullTetramerRefPos(self,yz): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
         """goes O1,O2,O3,O4,..H12"""
         # myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
         #                    [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
@@ -1287,6 +1292,34 @@ class molecule (object):
                              [ 4.93290781e-01, -1.84098625e+00,  4.75280392e-31],
                              [ 1.34769547e+00,  1.34769547e+00, -4.12188127e-31],
                              [-1.84098624e+00,  4.93290777e-01,  6.35582926e-32]])
+        #Rotate such that Z is along OOOOPlane
+        #th = np.deg2rad(90.)
+        if yz:
+            # #O2 being y axis
+            # th = np.deg2rad(-(75.+90))
+            # rotM = np.array([[np.cos(th),-np.sin(th),0],
+            #                  [np.sin(th),np.cos(th),0],
+            #                  [0,0,1]])
+            # myRefCOM = np.dot(rotM,myRefCOM.T).T
+
+            #rotate 90 degrees about y axis
+            rotM = np.array([[0.,0.,1.],
+                         [0, 1, 0],
+                         [-1.,0,0.]
+                         ])
+            myRefCOM= np.dot(rotM,myRefCOM.T).T
+            # #nullify O2 being y axis
+            # th = np.deg2rad((75. + 90))
+            # rotM = np.array([[np.cos(th), -np.sin(th), 0],
+            #                  [np.sin(th), np.cos(th), 0],
+            #                  [0, 0, 1]])
+            # myRefCOM = np.dot(rotM, myRefCOM.T).T
+
+            print 'refStructureTurned'
+
+
+
+
         # myRefCOM, extra = self.rotateBackToFrame(np.array([myRef2, myRef2]), 2, 1, 3)  # rotate reference to OOO plane
         # print 'got Eckgeometry'
         # mass=self.get_mass()
@@ -1312,7 +1345,7 @@ class molecule (object):
 
 
 
-    def eckartRotate(self,pos,justO=False,cart=False,hydro=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+    def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
         one should transpose the matrix, for do eck.dot(___)"""
         nMolecules=pos.shape[0]
@@ -1320,7 +1353,7 @@ class molecule (object):
         if self.name in ProtonatedWaterTrimer:
             self.refPos = self.pullTrimerRefPos()
         else:
-            self.refPos = self.pullTetramerRefPos()
+            self.refPos = self.pullTetramerRefPos(yz)
         if len(pos.shape)<3:
             pos=np.array([pos])
         #Center of Mass
@@ -1343,11 +1376,23 @@ class molecule (object):
             pos = pos[:, :4, :]
         elif hydro:
             self.refPos = self.refPos[[4-1,11-1,12-1,13-1]]
+            #rotate reference so that Z axis is along OOOO Plane
+
             com = np.dot(mass[[4-1,11-1,12-1,13-1]], pos[:, [4-1,11-1,12-1,13-1]]) / np.sum(mass[[4-1,11-1,12-1,13-1]])
             refCOM = np.dot(mass[[4-1,11-1,12-1,13-1]], self.refPos) / np.sum(mass[[4-1,11-1,12-1,13-1]])  # same as overal COM
             self.refPos -= refCOM
             mass = mass[[4-1,11-1,12-1,13-1]]
             pos = pos[:, [4-1,11-1,12-1,13-1],:]
+
+            # self.refPos = self.refPos[[11 - 1, 12 - 1, 13 - 1]]
+            # # rotate reference so that Z axis is along OOOO Plane
+            # com = np.dot(mass[[11 - 1, 12 - 1, 13 - 1]], pos[:, [11 - 1, 12 - 1, 13 - 1]]) / np.sum(
+            #     mass[[11 - 1, 12 - 1, 13 - 1]])
+            # refCOM = np.dot(mass[[11 - 1, 12 - 1, 13 - 1]], self.refPos) / np.sum(
+            #     mass[[11 - 1, 12 - 1, 13 - 1]])  # same as overal COM
+            # self.refPos -= refCOM
+            # mass = mass[[11 - 1, 12 - 1, 13 - 1]]
+            # pos = pos[:, [11 - 1, 12 - 1, 13 - 1], :]
         else:
             com = np.dot(mass, pos) / np.sum(mass)
 
@@ -1358,28 +1403,39 @@ class molecule (object):
         #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
         start = time.time()
         print 'starting mathy math'
-        myFF = np.zeros((len(ShiftedMolecules),3,3))
-        myF = np.zeros((len(ShiftedMolecules),3,3))
-        st=time.time()
+        # myFF = np.zeros((len(ShiftedMolecules),3,3))
+        # myF = np.zeros((len(ShiftedMolecules),3,3))
+        #st=time.time()
         asdf = np.sum(ShiftedMolecules[:,:,:,np.newaxis]*self.refPos[np.newaxis,:,np.newaxis,:]*mass[np.newaxis,:,np.newaxis,np.newaxis],axis=1)
 
         myF = np.transpose(asdf,(0,2,1))
         myFF = np.matmul(myF,asdf)
         #If just planar, then we need to do this
         if justO or cart or hydro:
-            myFF[:,-1,-1]=1.0
+            if not yz:
+                #myFF[:,-1,-1]=1.0
+                myFF[:,-1]=np.cross(myFF[:,0],myFF[:,1])
+            if yz:
+                #myFF[:, 0, 0] = 1.0
+                myFF[:,0]=np.cross(myFF[:,1],myFF[:,2])
         bigEvals,bigEvecs=la.eigh(myFF)
         #bigEvals=np.sort(bigEvals,axis=1)
         #bvec = copy.deepcopy(bigEvecs)
         #bigEvecs=bigEvecs[:,:,(2,1,0)]
         bigEvecsT=np.transpose(bigEvecs,(0,2,1))
-        if np.all(np.around(bigEvals[:,0]==0.0)):
+        if np.all(np.around(bigEvals[:,0])==0.0) or np.all(np.around(bigEvals[:,1])==0.0) or np.all(np.around(bigEvals[:,2])==0.0):
+            print 'DANGER: 0 EIGENVALUE, KILLING'
             stop
         invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
         invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
         #print myF
         eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
-        eckVecs2[:,-1]=np.cross(eckVecs2[:,0],eckVecs2[:,1])
+        if not yz and (cart or hydro or justO):
+            eckVecs2[:,:,-1]=np.cross(eckVecs2[:,:,0],eckVecs2[:,:,1])
+        elif cart or hydro or justO:
+            # tec=eckVecs2[:, 1]
+            # test=np.cross(eckVecs2[:, :,1], eckVecs2[:, :,2])
+            eckVecs2[:,:,0] = np.cross(eckVecs2[:,:,1], eckVecs2[:,:,2])
         print 'done'
         # plus=0
         # minus=0
