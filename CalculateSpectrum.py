@@ -3,6 +3,7 @@ import os
 import usefulFunctions as use
 import time
 import scipy.linalg as sla
+import numpy.linalg as la
 import itertools
 import gc
 import sys
@@ -169,7 +170,7 @@ class HarmonicApproxSpectrum(object):
         #print w,v
         #octomom
         #vinv=np.linalg.inv(v)
-        invRootDiagG=np.diag(1.0/np.sqrt(w))  #1.0/rootDiagG  #MAYBE THIS IS OK??                                                                                       
+        invRootDiagG=np.diag(1.0/np.sqrt(w))  #1.0/rootDiagG  #MAYBE THIS IS OK??
         for i,ValinvRootDiagG in enumerate(invRootDiagG):#range(self.nVibs):                                                                                            
             if verbose: print 'alp[',i,']',ValinvRootDiagG[i]
         invRootG=np.dot(v,np.dot(invRootDiagG,v.transpose()))
@@ -236,98 +237,105 @@ class HarmonicApproxSpectrum(object):
         return moments
 
     def overlapMatrix(self,q,dw,poE,walkerSet):
+        nwalkers = len(dw)
         lg = open("overlapLog.txt","w+")
         potE = np.copy(poE)*au2wn
         #Csontruct constants and on diagonal elements
         a = np.average(q * q * q / np.average(q * q, axis=0, weights=dw), axis=0, weights=dw) * (1 / np.average(q * q, axis=0, weights=dw))
         b = -1 / np.average(q * q, axis=0, weights=dw)
+        bq2aq1 = 1 + a * q + b * q * q
         #Construct Overlap Matrix
         #Construct diagonal elements
         lg.write('Construct Diagonal Elements\n')
-        dgnl2=[]
-        dgnl2.append(1)
-        #dgnl.append(1) #ground state with itself
-        for y in range(self.nVibs*2):
-            if y < self.nVibs: #Fundamentals
-                #dgnl.append(np.average(q2[:,y],weights=dw))
-                dgnl2.append(np.average((q*q)[:,y],weights=dw))
-            else: #Overtones
-                a1sqrt=1+a[y-self.nVibs]*(q[:,y-self.nVibs])+b[y-self.nVibs]*(q[:,y-self.nVibs])*(q[:,y-self.nVibs])
-                a1 =  np.average(a1sqrt*a1sqrt,weights=dw)
-                #dgnl.append(a1)
-                dgnl2.append(a1)
-        del a1sqrt
-        lg.write('time for on diag combos')
-        ########combos for overlap 2
-        for (x,y) in itertools.combinations(q.T,2):
-            a2p=np.average(x*x*y*y,weights=dw)
-            dgnl2.append(a2p)
-        #np.savetxt("dgnl2",dgnl2)
+        if not os.path.isfile('ezOvMat_'+walkerSet+".npy"):
+            print 'ez part of overlap matrix doesnt exist'
+            dgnl2=[]
+            dgnl2.append(1)
+            #dgnl.append(1) #ground state with itself
+            for y in range(self.nVibs*2):
+                if y < self.nVibs: #Fundamentals
+                    #dgnl.append(np.average(q2[:,y],weights=dw))
+                    dgnl2.append(np.average((q*q)[:,y],weights=dw))
+                else: #Overtones
+                    a1sqrt=1+a[y-self.nVibs]*(q[:,y-self.nVibs])+b[y-self.nVibs]*(q[:,y-self.nVibs])*(q[:,y-self.nVibs])
+                    a1 =  np.average(a1sqrt*a1sqrt,weights=dw)
+                    #dgnl.append(a1)
+                    dgnl2.append(a1)
+            del a1sqrt
+            lg.write('time for on diag combos')
+            ########combos for overlap 2
+            for (x,y) in itertools.combinations(q.T,2):
+                a2p=np.average(x*x*y*y,weights=dw)
+                dgnl2.append(a2p)
+            #np.savetxt("dgnl2",dgnl2)
 
-        #############Overlap matrix constructed######################
-        overlap2=np.diag(dgnl2)
-        ham2 = np.diag(np.zeros(len(dgnl2)))
-        #fig = plt.figure()
-        #plt.matshow(overlap2)
-        #plt.colorbar()
-        #plt.savefig("overlapBegin.png")
-        #plt.close()
-        ############Off diagonal Elements#############################
-        #q
-        # bq^2+aq+1 ASDF
-        start = time.time()
-        bq2aq1=1+a*q+b*q*q
-        del a
-        del b
-        gc.collect()
+            #############Overlap matrix constructed######################
+            overlap2=np.diag(dgnl2)
+            ham2 = np.diag(np.zeros(len(dgnl2)))
+            #fig = plt.figure()
+            #plt.matshow(overlap2)
+            #plt.colorbar()
+            #plt.savefig("overlapBegin.png")
+            #plt.close()
+            ############Off diagonal Elements#############################
+            #q
+            # bq^2+aq+1 ASDF
+            start = time.time()
+            del a
+            del b
+            gc.collect()
+            lg.write('Construct Off-Diagonal Elements\n')
+            lg.write('Funds w ground\n')
+            overlap2[0,1:self.nVibs+1]=np.average(q,axis=0,weights=dw)
+            ham2[0, 1:self.nVibs + 1] = np.average(q*potE[:,np.newaxis], axis=0, weights=dw)
+            overlap2[0,self.nVibs+1:self.nVibs*2+1] = np.average(bq2aq1, axis=0, weights=dw)
+            ham2[0, self.nVibs + 1:self.nVibs * 2 + 1] = np.average(bq2aq1*potE[:,np.newaxis], axis=0, weights=dw)
+            #combinations
+            lg.write('Combinations with ground\n')
+            nvibs2 = self.nVibs*2
+            vbo=np.flip(np.arange(self.nVibs+1))
+            curI = nvibs2+1
+            nxtI = curI+self.nVibs-1
+            for combo in range(self.nVibs):
+                overlap2[0,curI:nxtI]=np.average(q[:,combo,np.newaxis]*q[:,(combo+1):],axis=0,weights=dw)
+                ham2[0, curI:nxtI] = np.average(q[:, combo, np.newaxis]*q[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
+                curI = nxtI
+                nxtI += vbo[combo+1]-1
+            lg.write("done\n")
+            ##Fundamentals with other funds - already calculated
+            lg.write('Funds with other Funds\n')
+            pst=np.triu_indices_from(overlap2[1:self.nVibs+1,1:self.nVibs+1],k=1)
+            af=pst[0]+1
+            bf=pst[1]+1
+            overlap2[tuple((af,bf))] = np.copy(overlap2[0,nvibs2+1:])
+            ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
+            lg.write("done\n")
+            ##Funds with overtones
+            ##MEMMAPS
+            # overtones with other overtones
+            lg.write("Ovs with Ovs\n")
+            for combo in range(self.nVibs):
+                lg.write('combo_'+str(combo))
+                #asdf=np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
+                overlap2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
+                ham2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis]*bq2aq1[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
+                lg.write('loop')
+            lg.write('done. overs with themselves\n')
 
-        lg.write('Construct Off-Diagonal Elements\n')
-        lg.write('Funds w ground\n')
-        overlap2[0,1:self.nVibs+1]=np.average(q,axis=0,weights=dw)
-        ham2[0, 1:self.nVibs + 1] = np.average(q*potE[:,np.newaxis], axis=0, weights=dw)
-        overlap2[0,self.nVibs+1:self.nVibs*2+1] = np.average(bq2aq1, axis=0, weights=dw)
-        ham2[0, self.nVibs + 1:self.nVibs * 2 + 1] = np.average(bq2aq1*potE[:,np.newaxis], axis=0, weights=dw)
-        #combinations
-        lg.write('Combinations with ground\n')
-        nvibs2 = self.nVibs*2
-        vbo=np.flip(np.arange(self.nVibs+1))
-        curI = nvibs2+1
-        nxtI = curI+self.nVibs-1
-        for combo in range(self.nVibs):
-            overlap2[0,curI:nxtI]=np.average(q[:,combo,np.newaxis]*q[:,(combo+1):],axis=0,weights=dw)
-            ham2[0, curI:nxtI] = np.average(q[:, combo, np.newaxis]*q[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
-            curI = nxtI
-            nxtI += vbo[combo+1]-1
-        lg.write("done\n")
-        ##Fundamentals with other funds - already calculated
-        lg.write('Funds with other Funds\n')
-        pst=np.triu_indices_from(overlap2[1:self.nVibs+1,1:self.nVibs+1],k=1)
-        af=pst[0]+1
-        bf=pst[1]+1
-        overlap2[tuple((af,bf))] = np.copy(overlap2[0,nvibs2+1:])
-        ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
-        lg.write("done\n")
-        ##Funds with overtones
-        ##MEMMAPS
-        # overtones with other overtones
-        lg.write("Ovs with Ovs\n")
-        for combo in range(self.nVibs):
-            lg.write('combo_'+str(combo))
-            #asdf=np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
-            overlap2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
-            ham2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis]*bq2aq1[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
-            lg.write('loop')
-        lg.write('done. overs with themselves\n')
-
-        #Funds with Overtones
-        hav = np.zeros((self.nVibs,self.nVibs))
-        hamhav = np.zeros((self.nVibs,self.nVibs))
-        for ind in range(self.nVibs):
-            hav[ind,:]=np.average(q[:,ind,np.newaxis]*bq2aq1,weights=dw,axis=0)
-            hamhav[ind,:]=np.average(q[:,ind,np.newaxis]*bq2aq1*potE[:,np.newaxis],weights=dw,axis=0)
-        overlap2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav
-        ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
-
+            #Funds with Overtones
+            hav = np.zeros((self.nVibs,self.nVibs))
+            hamhav = np.zeros((self.nVibs,self.nVibs))
+            for ind in range(self.nVibs):
+                hav[ind,:]=np.average(q[:,ind,np.newaxis]*bq2aq1,weights=dw,axis=0)
+                hamhav[ind,:]=np.average(q[:,ind,np.newaxis]*bq2aq1*potE[:,np.newaxis],weights=dw,axis=0)
+            overlap2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav
+            ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
+            np.save("ezOvMat_"+walkerSet+".npy",overlap2)
+            np.save("ezHamMat_"+walkerSet+".npy",ham2)
+        else:
+            print 'ez overlap and ham already exist! loading...'
+            overlap2 = np.load('ezOvMat_'+walkerSet+".npy")
+            ham2 = np.load('ezHamMat_'+walkerSet+".npy")
         # funds with combos and overtones with combos
         ####PUT BACK HERE
         bigMem = True
@@ -336,21 +344,48 @@ class HarmonicApproxSpectrum(object):
             nvibs2 = self.nVibs * 2
             print 'bigMemActivated'
             lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
-            lm = np.zeros((len(q), lnsize))
-            for combo in range(self.nVibs):
-                if combo == 0:
-                    prev = 0
-                print prev
-                print prev + self.nVibs - combo - 1
-                lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
-                prev += self.nVibs - 1 - combo
-            splitArs = 10000
+            if not os.path.isfile('lm_' + walkerSet + ".npy"):
+                print 'no lm , calculating...'
+                lm = np.zeros((len(q), lnsize))
+                for combo in range(self.nVibs):
+                    if combo == 0:
+                        prev = 0
+                    print prev
+                    print prev + self.nVibs - combo - 1
+                    lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
+                    prev += self.nVibs - 1 - combo
+                np.save('lm_' + walkerSet + ".npy",lm)
+            else:
+                print 'lm exists, laoding...'
+                lm=np.load('lm_' + walkerSet + ".npy")
+            if walkerSet == 'fSymtet_allH':
+                splitArs = len(q) #for my fully symmeytized tetramer
+            elif walkerSet == 'final_allH': #trimer
+                splitArs = 192
+            else:
+                splitArs=100
+            #splitArs=10
             qsize = q.shape[1]
-            q = np.array_split(q, splitArs)
-            bq2aq1 = np.array_split(bq2aq1, splitArs)
-            potE = np.array_split(potE, splitArs)
-            dw = np.array_split(dw, splitArs)
-            lm = np.array_split(lm, splitArs)
+            print 'splitting arrays'
+
+            if len(dw) % splitArs != 0.0:
+                print 'not divisible~!!!'
+                octopus
+
+            #Reshaping for chopping instead of array splits
+            q = np.reshape(q, (splitArs,nwalkers/splitArs,-1))
+            bq2aq1 = np.reshape(bq2aq1, (splitArs,nwalkers/splitArs,-1))
+            potE = np.reshape(potE,(splitArs,nwalkers/splitArs))
+            dw = np.reshape(dw,(splitArs,nwalkers/splitArs))
+            lm = np.reshape(lm,(splitArs,nwalkers/splitArs,-1))
+
+            # q = np.array_split(q, splitArs)
+            # bq2aq1 = np.array_split(bq2aq1, splitArs)
+            # potE = np.array_split(potE, splitArs)
+            # dw = np.array_split(dw, splitArs)
+            # lm = np.array_split(lm, splitArs)
+
+
             cyc = 0
             fuco = np.zeros((qsize, lnsize))
             ovco = np.zeros((qsize, lnsize))
@@ -360,9 +395,10 @@ class HarmonicApproxSpectrum(object):
             hcoco = np.zeros((lnsize, lnsize))
 
             for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
-                print 'cycle', cyc
-                print qq.shape
-                print ll.shape
+                #st = time.time()
+                #print 'cycle', cyc, 'out of ', splitArs
+                #print qq.shape
+                #print ll.shape
                 fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
                 ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
                 hfuco += np.sum(
@@ -376,6 +412,7 @@ class HarmonicApproxSpectrum(object):
                     ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
                                                                                                   np.newaxis], axis=0)
                 cyc += 1
+                #print 'cyc took', time.time()-st
             # stop
             ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
             g = ovlas[0] + nvibs2 + 1
@@ -385,27 +422,8 @@ class HarmonicApproxSpectrum(object):
             overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
             overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
             ham2[tuple((g, h))] = hcoco[asco] / sumDw
-            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco
+            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
             ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
-            # overlap2[tuple((g, h))] = \
-            #     np.sum(lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0)[
-            #         asco] / sumDw
-            # overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-            #     q[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw  # FC
-            # overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-            #     bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * dw[:, np.newaxis, np.newaxis], axis=0) / sumDw
-            # ham2[tuple((g, h))] = np.sum(
-            #     lm[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
-            #                                                                                     np.newaxis], axis=0)[
-            #                           asco] / sumDw
-            # ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-            #     q[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
-            #                                                                                    np.newaxis],
-            #     axis=0) / sumDw  # FC
-            # ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = np.sum(
-            #     bq2aq1[:, :, np.newaxis] * lm[:, np.newaxis, :] * potE[:, np.newaxis, np.newaxis] * dw[:, np.newaxis,
-            #                                                                                         np.newaxis],
-            #     axis=0) / sumDw
         else:
             print 'smol Mem Activated'
             lst = []
@@ -464,7 +482,7 @@ class HarmonicApproxSpectrum(object):
             dipoleMoments = np.zeros(np.shape(dips))
             print 'dips shifted to COM: ', dips[0]
             for den in range(dips.shape[0]):
-                dipoleMoments[den] = np.dot(dips[den],eckVecs[den])
+                dipoleMoments[den] = np.dot(dips[den],eckVecs[den]) #because eckVecs is .T?
                 #dipoleMoments2[b] = np.dot(eckVecs[b],dips[b]) #This definitely isn't right
             print 'dipole moment - after eckart rotation: ', dipoleMoments[0]
             np.save(diPath+'eng_dip_'+setOfWalkers+'_eckart.npy',np.column_stack((pe,dipoleMoments)))
@@ -476,6 +494,7 @@ class HarmonicApproxSpectrum(object):
         #First, What is the G Matrix for this set of walkers based on the SymInternals coordinates
         if not os.path.isfile('q_'+setOfWalkers+'.npy'):
             self.G=self.LoadG(GfileName)
+            self.wfn.molecule.setInternalName()
             if not os.path.isfile("smap"+setOfWalkers):
                 moments=self.calculateSecondMoments(coords, dw,setOfWalkers)
             else:
@@ -492,7 +511,7 @@ class HarmonicApproxSpectrum(object):
                 else:
                     print 'moments already calculated'
                     moments = np.load("moments_"+setOfWalkers+".npy")
-            q,q2=self.calculateQCoordinates(moments,dw,GfileName,setOfWalkers)
+            q,q2=self.calculateQCoordinates(moments,dw,GfileName,setOfWalkers,kill,testName)
             print 'done with normal modes'
             #q4ave=np.average(q4,axis=0,weights=dw)
             q2ave=np.average(q2,axis=0,weights=dw)
@@ -619,15 +638,34 @@ class HarmonicApproxSpectrum(object):
         #dipoleMoments = nWalkers x 3
         #aMu = dipole (x) -Q coord - 24x3
         for P,R,d in zip(dipoleMoments,q,dw): #P = dipole moment (nx3), R = q coordinate (3n-6x1), d = descendent wight (n)
+            # wtf = np.outer(P,-R)
+            # wtf2 = wtf*d
             aMu=aMu+np.outer(P,-R)*d  #off by a sign change for some reason so I changed it to be -R instead of R...I guess P could be backwards?
             #aMu=aMu+np.outer(P,R)*d  #Ryan - this doesn't change the results, as of right now (7/19/18)
             temp=np.outer(R,R)        #aMu += Dipole.coordinate * DQ
             temp=temp.reshape((self.nVibs*self.nVibs,1))
             aMu2d=aMu2d+(np.outer(P,temp).reshape((3,self.nVibs,self.nVibs)))*d
         #aMu = 24x3 dipole contribution in that coordinate?
+
+        # test = (-q[:, np.newaxis, :] * dipoleMoments[:, :, np.newaxis] * dw[:, np.newaxis, np.newaxis]).sum(axis=0)
+        # qout = q[:,:,np.newaxis]*q[:,np.newaxis,:]
+        # test2 = dipoleMoments[:,np.newaxis,:,np.newaxis]*qout[:,:,np.newaxis,:]*dw[:,np.newaxis,np.newaxis,np.newaxis]
+        # test2 = np.sum(test2,axis=0).transpose(1,0,2)
+        # print test.shape
+        # test/=np.sum(dw)
+        # test2/=np.sum(dw)
+
         aMu=aMu/np.sum(dw)
         aMu2d=aMu2d/np.sum(dw)
 
+
+
+
+
+
+        # testI = np.sum(np.square(test)/q2ave,axis=0)
+        # testI2 = np.square(la.norm(test.T,axis=1))/q2ave
+        # testI22 = la.norm(np.square(test/q2ave),axis=0)
         #np.savetxt("WtvsMu-qs-a.data",zip(dw,np.sum(dipoleMoments**2,axis=1),q[:,5],q[:,6]))
 
         aMu=aMu.transpose() #3x24 instead of 24x3
@@ -642,7 +680,6 @@ class HarmonicApproxSpectrum(object):
         for m,mode in enumerate(aMu): #eq 4
             magAvgMu[m]=magAvgMu[m]+(mode[0]**2+mode[1]**2+mode[2]**2)/(q2ave[m])  #     += mu_x^2+mu_y^2+mu_z^2 /<q^2>
         print magAvgMu
-        #stop
 
         magMu2d=np.zeros((self.nVibs,self.nVibs))
         #Finding |<1_i,1_j|dipoleMoment|0>|^2
@@ -661,6 +698,7 @@ class HarmonicApproxSpectrum(object):
         mu10 = aMu/ np.sqrt(q2ave)[:,None]
         overlapMs = self.path+'redH/'
         np.savetxt(overlapMs+'1mu0' + setOfWalkers + testName + kill,mu10)
+
         #Overtones: <i=2|u|0>
         #isthisok = np.diagonal(aMu2d).T #it is.
         #f = np.average(np.square(2*alpha*q2-1),axis=0,weights=dw)
@@ -695,20 +733,26 @@ class HarmonicApproxSpectrum(object):
 
         for glomp in tupz:
             fMu[ct,:] = aMu2d[glomp[0],glomp[1]]
-            avg2pairs[ct] = q2ave2d[glomp[0],glomp[1]]
+            avg2pairs[ct] = np.sqrt(q2ave2d[glomp[0],glomp[1]])
             ct+=1
         ct=0
         for (x,y) in itertools.combinations(np.arange(self.nVibs),2):
             fMup[ct,:] = aMu2d[x,y]
-            avg2pairsp[ct] = q2ave2d[x,y]
+            avg2pairsp[ct] = np.sqrt(q2ave2d[x,y])
             ct+=1
         mu110 = fMu/avg2pairs[:,None]
         mu110p = fMup/avg2pairsp[:,None]
 
         np.savetxt(overlapMs+'11mu0'+ setOfWalkers + testName + kill,mu110)
         np.savetxt(overlapMs+'11mu0p'+ setOfWalkers + testName + kill,mu110p)
-        #want all of the things I need to magnitude:
-        #
+        # comoz=np.square(la.norm(mu110p,axis=1))
+        # intFromAnalysis = []
+        # for (x,y) in itertools.combinations(np.arange(self.nVibs),2):
+        #         #print Eq2d[x,y]*au2wn , magMu2d[x,y],'combination bands' , x,y
+        #         intFromAnalysis.append(magMu2d[x,y])
+        # #asdf=magMu2d[np.triu_indices(magAvgMu.shape[0],k=1)]
+        # ar = np.array(intFromAnalysis)
+        # print np.around(ar,5) == np.around(comoz,5)
         print 'done'
         
         #######################################################################################################
@@ -766,7 +810,7 @@ class HarmonicApproxSpectrum(object):
         #print 'descendant weighted average relative potential energy', np.average(relativePotentialEnergy,weights=dw)
         return relativePotentialEnergy
 
-    def calculateQCoordinates(self,moments, dw,gmf,setOfWalkers):
+    def calculateQCoordinates(self,moments, dw,gmf,setOfWalkers,kil,eckt):
         #def calculateQCoordinates(self,moments,dw,gmf,setOfWalkers):
         #gmf = gmatrix
         print 'calculating Normal coordinates'
@@ -898,9 +942,9 @@ class HarmonicApproxSpectrum(object):
         if 'Eck' in gmf:
             gmf=setOfWalkers
         if not testing:
-            assignF = open(self.path+'assignments'+setOfWalkers+gmf,'w+')
+            assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
         else:
-            assignF = open('assignments_test'+setOfWalkers+gmf,'w+')
+            assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
         for i,(vec,q2) in enumerate(zip(TransformationMatrix,eigval)):
             if verbose: print '\n',i,':<q^2 >=',q2
             #        alpha[i]=alpha[i]/(firstterm-(alpha[i]*alpha[i]))                                                            

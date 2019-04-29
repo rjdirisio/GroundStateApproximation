@@ -8,6 +8,7 @@ import glob
 import Plot
 import CalculateSpectrum
 import sys, os
+import numpy.linalg as la
 angstr = 0.529177
 au2wn=219474.63
 
@@ -19,6 +20,39 @@ def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     print bnd
     mP = Plot.myPlot(cfg, '1d', bnd, bnd, xl, yl, overly, inin, theLen,(xx[1:]+xx[:-1])/2)
     mP.plotIt()
+
+
+def ba(xx, atm1, atm2, atm3):  # left center right
+    # Rotation of O1 to xyplane
+    atmO = xx[:, atm1, :]
+    atmT = xx[:, atm2, :]
+    atmH = xx[:, atm3, :]
+    left = atmO - atmT
+    right = atmH - atmT
+    return np.arccos((left * right).sum(axis=1) / (la.norm(left, axis=1) * la.norm(right, axis=1)))
+
+def bL(xx,atm1,atm2):
+    #Rotation of O1 to xyplane
+    atmO = xx[:,atm1,:]
+    atmT = xx[:, atm2, :]
+    lens = la.norm(atmO-atmT,axis=1)
+    return lens
+
+def anglePlot(cds,wts):
+    ang = np.degrees(ba(cds,4-1,13-1,1-1))
+    np.savetxt(coordinateSet+"avgAng",[np.average(ang,weights=wts)])
+    theLen, xx = np.histogram(ang, bins=25, range=(80,200), density=True, weights=wts)  # WEIGHTS=WEIGHTARRAY
+    binz = (xx[1:]+xx[:-1])/2
+    np.savetxt(coordinateSet+"ang",zip(binz,theLen))
+
+def bondPlot(cds,wts):
+    OO = bL(cds,4-1,1-1)*angstr
+    np.savetxt(coordinateSet+"avgooDist",[np.average(OO,weights=wts)])
+    theLen, xx = np.histogram(OO, bins=25, range=(2.0, 3.2), density=True, weights=wts)  # WEIGHTS=WEIGHTARRAY
+    binz = (xx[1:] + xx[:-1]) / 2
+    np.savetxt(coordinateSet + "ooDist", zip(binz, theLen))
+
+
 
 def plotStuff(symEckRotCoords):
     # if os.path.isfile("q_" + coordinateSet + ".npy"):
@@ -277,6 +311,11 @@ else:
     #np.savetxt("eqRotated",symCoords[0])
     #np.save(cds,symCoords)
     #np.save(cds+'_dw',symDw)
+
+anglePlot(symCoords,symDw)
+bondPlot(symCoords,symDw)
+stop
+
 
 if 'input' in coordinateSet:
     np.save("rotated"+coordinateSet+".npy",symCoords)

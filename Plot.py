@@ -49,7 +49,7 @@ class myPlot:
                 num=1
                 if self.overlay == True: #self.overlay 1dHists
                     for i in self.pltdata:
-                        plt.plot(self.binCenters1,i,lienwidth=2,label=num)
+                        plt.plot(self.binCenters1,i,linewidth=2,label=num)
                         num+=1
                     plt.xlabel(self.xl)
                     plt.ylabel(self.yl)

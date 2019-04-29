@@ -585,7 +585,7 @@ class molecule (object):
         xaxis = np.divide((xx[:,outerW-1] - mp),la.norm(xx[:,outerW-1,] - mp,axis=1).reshape(-1,1))
         print xaxis.shape
         print xx[:,1-1].shape
-        zaxis = np.cross(xx[:,1-1],xx[:,2-1],axis=1)
+        zaxis = np.cross(xx[:,1-1]-xx[:,3-1],xx[:,2-1]-xx[:,3-1],axis=1)
         yaxis = np.cross(zaxis,xaxis,axis=1)
         #xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
         xcomp = ((xx[:,atmnm-1] - mp)*xaxis).sum(axis=1)
@@ -624,7 +624,7 @@ class molecule (object):
 
     def xyzFreeHydronium(self,xx):
         xaxis = self.getBisectingVector(xx[:,1-1,:], xx[:,3 - 1,:],xx[:,2 - 1,:])
-        zaxis = np.cross(xx[:,1-1],xx[:,2-1],axis=1)
+        zaxis = np.cross(xx[:,1-1]-xx[:,3-1],xx[:,2-1]-xx[:,3-1],axis=1)
         yaxis = np.cross(zaxis,xaxis,axis=1)
         xcomp = ((xx[:,8-1] - xx[:,3-1])*xaxis).sum(axis=1)
         ycomp = ((xx[:,8-1] - xx[:,3-1])*yaxis).sum(axis=1)
@@ -638,7 +638,7 @@ class molecule (object):
     def finalTrimerEuler(self,xx,O1, h1, h2):
         #SharedProtonCoordinateSystem
         X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1).reshape(-1,1))
-        Z = np.cross(xx[:, 1 - 1], xx[:, 2 - 1], axis=1)
+        Z = np.cross(xx[:, 1 - 1]-xx[:,3-1], xx[:, 2 - 1]-xx[:,3-1], axis=1)
         Y = np.cross(Z, X, axis=1)
 
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
@@ -1019,18 +1019,11 @@ class molecule (object):
         print xx[0]
         # xx = np.einsum('knj,kij->kni',asdf,xx).transpose(0,2,1)
         print 'fully rotated'
-
         ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
         # xxp=np.copy(xx)-ocomH[:,np.newaxis,:]
         # xxp = np.einsum('knj,kij->kni', eVecsH.transpose(0, 2, 1), xx).transpose(0, 2, 1)
         eVecsH=eVecsH.transpose(0,2,1)
-
         thH,phiH,xiH=self.extractEulers(eVecsH)
-        dthH=np.degrees(thH)
-        dphiH=np.degrees(phiH)
-        dxiH=np.degrees(xiH)
-        print dthH,dphiH,dxiH
-
         return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
 
         # umTh = self.umbrella(xx,4-1,1-1,2-1,3-1)
@@ -1113,7 +1106,6 @@ class molecule (object):
                             'HOH516', 'rOH7', 'rOH8', 'HOH728',
                             'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
 
-
         # internal = np.array(
         #     zip(xyz11[0], xyz11[1], xyz11[2], xyz12[0], xyz12[1], xyz12[2], xyz13[0], xyz13[1], xyz13[2],
         #         thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
@@ -1141,7 +1133,22 @@ class molecule (object):
         #                  'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'dh1', 'dh2', 'dh3']
 
         return internal
-
+    def setInternalName(self):
+        if self.name in DeprotonatedWaterDimer:
+            self.internalName=[]
+        elif self.name in ProtonatedWaterTrimer:
+            self.internalName = ['xH9', 'yH9', 'zH9', 'xH10', 'yh10', 'zh10', 'rH8', 'thH8', 'phiH8', 'th_627',
+                                 'phi_627',
+                                 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41', 'rOH_51', 'aHOH_451', 'rOH_26',
+                                 'rOH_27', 'aHOH_267',
+                                 'rOO_1', 'rOO_2', 'aOOO']
+        elif self.name in ProtonatedWaterTetramer:
+            self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH',
+                                 'theta651',
+                                 'phi651', 'Chi651',
+                                 'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
+                                 'HOH516', 'rOH7', 'rOH8', 'HOH728',
+                                 'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'xo4', 'yo4', 'zo4']
     def SymInternalsH7O3plus(self,x):
         print 'Commence getting internal coordinates for trimer'
         xyzO9 = self.xyzTrimerSharedHydrogens(9, x)  # *ang2bohr  #Cartesian shared hydrogen 3xnwalkers
@@ -1173,10 +1180,9 @@ class molecule (object):
         #print 'first asymm', asymmHB[0]
         print 'first O1H4 bond length: ', rOH1[0]
         print 'first Angle: ',np.degrees(aOOO[0])
-        internal = np.array(
-            zip(xyzO9[0], xyzO9[1], xyzO9[2], xyz10[0], xyz10[1], xyz10[2], rthphi[0], rthphi[1], rthphi[2],
+        internal = np.array((xyzO9[0], xyzO9[1], xyzO9[2], xyz10[0], xyz10[1], xyz10[2], rthphi[0], rthphi[1], rthphi[2],
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
-                , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO))
+                , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
         #print 'internal shape: ',np.shape(internal)
         #print 'internal[0] shape: ',np.shape(internal[0])
         #RYAN COMMENTED THIS OUT self.internalConversion=[bohr2ang,bohr2ang,bohr2ang,rad2deg,rad2deg,rad2deg,bohr2ang,bohr2ang,bohr2ang]
@@ -1226,28 +1232,29 @@ class molecule (object):
         return internal
 
     def pullTrimerRefPos(self): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
-        myRef = np.array([ [-2.677869210066,  3.854059894133, 0.000000000000],
-                           [4.692722823509, - 0.000000000000,  0.000000000000],
-                           [0.000000000000,  0.000000000000,  0.000000000000],
-                           [-3.300280868789,  4.749851143725, 1.466631117729],
-                           [ -3.285993479891,  4.729288353663,  -1.484977070838],
-                           [5.758560142898,  -0.000000005149,  -1.484919577747],
-                           [5.783382924818,  -0.000000001709,  1.466733420402],
-                           [-0.847110300023,  -1.617745856796,  -0.000000000000],
-                           [-1.109445938627,  1.609532820363,  0.010222069526],
-                           [1.954938728445,  0.006207766673,  0.010188860037] ]) #goes O1,O2,O3,H4,..H10
+        # myRef = np.array([ [-2.677869210066,  3.854059894133, 0.000000000000], #NOT EXACTLY PLANAR
+        #                    [4.692722823509, - 0.000000000000,  0.000000000000],
+        #                    [0.000000000000,  0.000000000000,  0.000000000000],
+        #                    [-3.300280868789,  4.749851143725, 1.466631117729],
+        #                    [ -3.285993479891,  4.729288353663,  -1.484977070838],
+        #                    [5.758560142898,  -0.000000005149,  -1.484919577747],
+        #                    [5.783382924818,  -0.000000001709,  1.466733420402],
+        #                    [-0.847110300023,  -1.617745856796,  -0.000000000000],
+        #                    [-1.109445938627,  1.609532820363,  0.010222069526],
+        #                    [1.954938728445,  0.006207766673,  0.010188860037] ]) #goes O1,O2,O3,H4,..H10
 
-        myRef2 = np.array([[4.15875766E+00, -7.07188287E-01,  9.71623738E-04 ],
-                           [-4.15865808E+00, -7.07217393E-01,  9.60925166E-04],
-                           [-1.44995671E-04,  1.46727440E+00, -4.05794501E-04],
-                           [5.12540100E+00, -1.21166877E+00,  1.46792260E+00],
-                           [5.10321557E+00, -1.20192966E+00, -1.48369235E+00],
-                           [-5.10316080E+00, -1.20203703E+00, -1.48364794E+00],
-                           [-5.12516161E+00, -1.21167684E+00,  1.46801170E+00],
-                           [9.08440280E-04,  3.29338915E+00, -1.55804935E-03],
-                           [1.72882181E+00,  5.55063992E-01,  1.03940985E-02],
-                           [-1.72966108E+00,  5.55909445E-01,  1.03558993E-02]]) #Not rotated to xy plane
+        # myRef2 = np.array([[4.15875766E+00, -7.07188287E-01,  9.71623738E-04 ], #IDK About this one
+        #                    [-4.15865808E+00, -7.07217393E-01,  9.60925166E-04],
+        #                    [-1.44995671E-04,  1.46727440E+00, -4.05794501E-04],
+        #                    [5.12540100E+00, -1.21166877E+00,  1.46792260E+00],
+        #                    [5.10321557E+00, -1.20192966E+00, -1.48369235E+00],
+        #                    [-5.10316080E+00, -1.20203703E+00, -1.48364794E+00],
+        #                    [-5.12516161E+00, -1.21167684E+00,  1.46801170E+00],
+        #                    [9.08440280E-04,  3.29338915E+00, -1.55804935E-03],
+        #                    [1.72882181E+00,  5.55063992E-01,  1.03940985E-02],
+        #                    [-1.72966108E+00,  5.55909445E-01,  1.03558993E-02]]) #Not rotated to xy plane
 
+        #This one is good.
         myBetterRef = np.array(
                         [
                             [3.15544362E-30 , 4.06869143E+00, -7.59761292E-01],
@@ -1289,8 +1296,8 @@ class molecule (object):
                              [ 4.17429505e+00,  4.17429505e+00, -1.46596673e+00],
                              [ 1.52789803e+00, -5.70219308e+00, -1.46596673e+00],
                              [ 1.52789803e+00, -5.70219308e+00,  1.46596673e+00],
-                             [ 4.93290781e-01, -1.84098625e+00,  4.75280392e-31],
                              [ 1.34769547e+00,  1.34769547e+00, -4.12188127e-31],
+                             [4.93290781e-01, -1.84098625e+00, 4.75280392e-31],
                              [-1.84098624e+00,  4.93290777e-01,  6.35582926e-32]])
         #Rotate such that Z is along OOOOPlane
         #th = np.deg2rad(90.)
@@ -1375,14 +1382,14 @@ class molecule (object):
             mass = mass[:4]
             pos = pos[:, :4, :]
         elif hydro:
-            self.refPos = self.refPos[[4-1,11-1,12-1,13-1]]
+            self.refPos = self.refPos[[4-1,13-1,11-1,12-1]]
             #rotate reference so that Z axis is along OOOO Plane
 
-            com = np.dot(mass[[4-1,11-1,12-1,13-1]], pos[:, [4-1,11-1,12-1,13-1]]) / np.sum(mass[[4-1,11-1,12-1,13-1]])
-            refCOM = np.dot(mass[[4-1,11-1,12-1,13-1]], self.refPos) / np.sum(mass[[4-1,11-1,12-1,13-1]])  # same as overal COM
+            com = np.dot(mass[[4-1,13-1,11-1,12-1]], pos[:, [4-1,13-1,11-1,12-1]]) / np.sum(mass[[4-1,13-1,11-1,12-1]])
+            refCOM = np.dot(mass[[4-1,13-1,11-1,12-1]], self.refPos) / np.sum(mass[[4-1,13-1,11-1,12-1]])  # same as overal COM
             self.refPos -= refCOM
-            mass = mass[[4-1,11-1,12-1,13-1]]
-            pos = pos[:, [4-1,11-1,12-1,13-1],:]
+            mass = mass[[4-1,13-1,11-1,12-1]]
+            pos = pos[:, [4-1,13-1,11-1,12-1],:]
 
             # self.refPos = self.refPos[[11 - 1, 12 - 1, 13 - 1]]
             # # rotate reference so that Z axis is along OOOO Plane
