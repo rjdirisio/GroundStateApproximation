@@ -52,15 +52,30 @@ def bondPlot(cds,wts):
     binz = (xx[1:] + xx[:-1]) / 2
     np.savetxt(coordinateSet + "ooDist", zip(binz, theLen))
 
-
+def bondAngPlot(cds,wts):
+    ang = np.degrees(ba(cds,4-1,13-1,1-1))
+    OO = bL(cds,4-1,1-1)*angstr
+    theLen, xx,yy = np.histogram2d(OO,ang, bins=25, range=((2.0, 3.2),(80,200)), density=True, weights=wts)  # WEIGHTS=WEIGHTARRAY
+    binzx = (xx[1:] + xx[:-1]) / 2
+    binzy = (yy[1:] + yy[:-1]) / 2
+    np.savetxt(coordinateSet+'2dOOvsOHO',theLen)
+    np.savetxt(coordinateSet+'2dOOvsOHO_b',zip(binzx,binzy))
 
 def plotStuff(symEckRotCoords):
-    # if os.path.isfile("q_" + coordinateSet + ".npy"):
-    #     print 'plotQs'
-    #     q = np.load("q_" + coordinateSet + ".npy")
-    #     for i in range(q.shape[1]):
-    #         PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'tetramerInternals/Probability Denisty',
-    #                False, symDw)
+    if os.path.isfile("q_" + coordinateSet + ".npy"):
+        print 'plotQs'
+        q = np.load("q_" + coordinateSet + ".npy")
+        for i in range(q.shape[1]):
+            PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'tetramerInternals/Probability Denisty',
+                   False, symDw)
+        for i in range(q.shape[1]):
+            PltHists1D('allH', np.square(q[:, i]), (-100, 100), 'q2_' + str(i), 'tetramerInternals/Probability Denisty',
+                   False, symDw)
+        for i in range(q.shape[1]):
+            PltHists1D('allH', np.power(q[:, i],4), (-1000, 1000), 'q4_' + str(i), 'tetramerInternals/Probability Denisty',
+                   False, symDw)
+    stop
+
     print 'INTERNAL COORDINATES :-O'
     internals = Wfn.molecule.SymInternalsH9O4plus(symEckRotCoords)
 
@@ -312,9 +327,11 @@ else:
     #np.save(cds,symCoords)
     #np.save(cds+'_dw',symDw)
 
-anglePlot(symCoords,symDw)
-bondPlot(symCoords,symDw)
-stop
+# anglePlot(symCoords,symDw)
+# bondPlot(symCoords,symDw)
+# bondAngPlot(symCoords,symDw)
+#
+# stop
 
 
 if 'input' in coordinateSet:

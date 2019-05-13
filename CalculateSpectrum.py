@@ -536,7 +536,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             dov = np.diagonal(overlap2)
@@ -578,11 +578,9 @@ class HarmonicApproxSpectrum(object):
         alpha=q2ave/(np.average(q*q*q*q,weights=dw,axis=0)-q2ave**2) # Equation #11
         alphaPrime=0.5/q2ave   #Equation in text after #8
         #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
-
-
         #kineticEnergy= hbar**2 nquanta alpha/(2 mass)
         Tq=1.0**2*1.0*alpha/(2.0*1.0) #Equation #10
-        
+
         Tq2d=np.zeros((self.nVibs,self.nVibs)) #Tij=Ti+Tj
         #Finish calculate the potential and kinetic energy for the combination and overtone bands 
         #put Equation 8 into equation 4, algebra...
@@ -689,6 +687,7 @@ class HarmonicApproxSpectrum(object):
             #magMu2d[ivibmode,ivibmode]=magMu2d[ivibmode,ivibmode]/(q2ave2d[ivibmode,ivibmode]*4.0*alpha[ivibmode]**2-4.0*alpha[ivibmode]*q2ave[ivibmode]+1.0)
             #magMu2d[ivibmode, ivibmode] = magMu2d[ivibmode, ivibmode]/(q2ave2d[ivibmode, ivibmode]*4.0*alpha[ivibmode]**2-4.0*alpha[ivibmode]*q2ave[ivibmode]+1.0)
             for jvibmode in range(ivibmode):
+                #print ivibmode,jvibmode
                 magMu2d[ivibmode,jvibmode]=np.sum(aMu2d[ivibmode,jvibmode]**2)
                 magMu2d[ivibmode,jvibmode]=magMu2d[ivibmode,jvibmode]/q2ave2d[ivibmode,jvibmode]
                 magMu2d[jvibmode,ivibmode]=magMu2d[ivibmode,jvibmode]
@@ -698,15 +697,6 @@ class HarmonicApproxSpectrum(object):
         mu10 = aMu/ np.sqrt(q2ave)[:,None]
         overlapMs = self.path+'redH/'
         np.savetxt(overlapMs+'1mu0' + setOfWalkers + testName + kill,mu10)
-
-        #Overtones: <i=2|u|0>
-        #isthisok = np.diagonal(aMu2d).T #it is.
-        #f = np.average(np.square(2*alpha*q2-1),axis=0,weights=dw)
-
-        #f = np.average(np.square(1+a*(q)+b*np.square(q)),axis=0,weights=dw)
-        #sq_ov2 = np.sqrt(f)
-        #mu20 = (2*alpha*np.diagonal(aMu2d)-averageDipoleMoment_0[:,None])/sq_ov2
-        #mu20 = () / sq_ov2
 
         #Overtone intensities are currently incorrect, let's do it from scratch
         overpoly = (b*q2+a*q+1)
@@ -789,7 +779,7 @@ class HarmonicApproxSpectrum(object):
             comboFile.write(str( Eq2d[i,i]*au2wn)+"   "+str(magMu2d[i,i])+"       "+str(i)+" "+str(i)+"\n")
             comboFile2.write(str( Eq2d[i,i]*au2wn)+"   "+str(magMu2d[i,i])+"       "+str(i)+" "+str(i)+"\n")
 
-        
+
         #np.savetxt("dgnl2",dgnl2)
         #fundamentalFile.close()
         comboFile.close()
