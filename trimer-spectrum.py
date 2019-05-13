@@ -30,58 +30,58 @@ def plotStuff(symEckRotCoords):
     print 'Internal coordinate shape: ', np.shape(internals)
     print 'One attribute shape: ',np.shape(internals[:,0])
     print 'number of dws: ', symDw
-    symEckRotCoords*=angstr
-    """self.internalName = ['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
-                         'phi651', 'Chi651',
-                         'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-                         'HOH516', 'rOH7', 'rOH8', 'HOH728',
-                         'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'xO4', 'yO4', 'zO4']"""
+
+    # symEckRotCoords*=angstr
     #ZComps as a sanity check
-    PltHists1D('allH', symEckRotCoords[:, 0, -1], (-2, 2), 'zo1', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 1, -1], (-2, 2), 'zo2', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 2, -1], (-2, 2), 'zo3', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 3, -1], (-2, 2), 'zo4', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 4, -1], (-2, 2), 'zh5', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 5, -1], (-2, 2), 'zh6', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 6, -1], (-2, 2), 'zh7', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 7, -1], (-2, 2), 'zh8', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 8, -1], (-2, 2), 'zh9', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 9, -1], (-2, 2), 'zh10', 'trimerInternals/Probability Denisty',
-               False, symDw)
-    PltHists1D('allH', symEckRotCoords[:, 10, -1], (-2, 2), 'zh11', 'trimerInternals/Probability Denisty',
-               False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 0, -1], (-2, 2), 'zo1', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 1, -1], (-2, 2), 'zo2', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 2, -1], (-2, 2), 'zo3', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 3, -1], (-2, 2), 'zo4', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 4, -1], (-2, 2), 'zh5', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 5, -1], (-2, 2), 'zh6', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 6, -1], (-2, 2), 'zh7', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 7, -1], (-2, 2), 'zh8', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 8, -1], (-2, 2), 'zh9', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+    # PltHists1D('allH', symEckRotCoords[:, 9, -1], (-2, 2), 'zh10', 'trimerInternals/Probability Denisty',
+    #            False, symDw)
+
+    internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH', 'th_627', 'phi_627',
+                         'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41', 'rOH_51', 'aHOH_451', 'rOH_26',
+                         'rOH_27', 'aHOH_267',
+                         'rOO_1', 'rOO_2', 'aOOO']
 
     PltHists1D('allH', internals[:, 0]*angstr, (-2, 2), nm[0], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', internals[:, 1]*angstr, (-2, 2), nm[1], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', internals[:, 2]*angstr, (-2, 2), nm[2], 'trimerInternals/Probability Density', False,
-               symDw)
-    PltHists1D('allH', internals[:, 3]*angstr, (-2, 2), nm[3], 'trimerInternals/Probability Density', False,
-               symDw)
-    PltHists1D('allH', internals[:, 4]*angstr, (-2, 2), nm[4], 'trimerInternals/Probability Density', False,
-               symDw)
-    PltHists1D('allH', internals[:, 5]*angstr, (-2, 2), nm[5], 'trimerInternals/Probability Density', False,
-               symDw)
-    PltHists1D('allH', internals[:, 6]*angstr, (-5, 5), nm[6], 'trimerInternals/Probability Density',
-               False,
-               symDw)
-    PltHists1D('allH', internals[:, 7]*angstr, (-4, 4), nm[7], 'trimerInternals/Probability Density',
-               False,
-               symDw)
-    PltHists1D('allH', internals[:, 8]*angstr, (-2, 2), nm[8], 'trimerInternals/Probability Density',
-               False,
+    PltHists1D('allH', np.degrees(internals[:, 2]), (0,200), nm[2], 'trimerInternals/Probability Density', False,
                symDw)
 
+    PltHists1D('allH', internals[:, 3]*angstr, (0,2), nm[3], 'trimerInternals/Probability Density', False,
+               symDw)
+    PltHists1D('allH', np.degrees(internals[:, 4]), (0,360), nm[4], 'trimerInternals/Probability Density', False,
+               symDw)
+    PltHists1D('allH', np.degrees(internals[:, 5]), (0,360), nm[5], 'trimerInternals/Probability Density', False,
+               symDw)
+
+    PltHists1D('allH', np.degrees(internals[:, 6]), (0, 360), nm[6], 'trimerInternals/Probability Density',
+               False,
+               symDw)
+    PltHists1D('allH', np.rad2deg(internals[:, 7]), (0, 360), nm[7], 'trimerInternals/Probability Density',
+               False,
+               symDw)
+    PltHists1D('allH', np.rad2deg(internals[:, 8]), (-180, 180), nm[8], 'trimerInternals/Probability Density',
+               False,
+               symDw)
 
     PltHists1D('allH', np.rad2deg(internals[:, 9]), (0, 360), nm[9],
                'trimerInternals/Probability Density', False, symDw)
