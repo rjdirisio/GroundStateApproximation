@@ -68,7 +68,7 @@ def plotStuff(symEckRotCoords):
 
     PltHists1D('allH', internals[:, 3]*angstr, (0,2), nm[3], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 4]), (0,360), nm[4], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', np.degrees(internals[:, 4]), (0,180), nm[4], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 5]), (0,360), nm[5], 'trimerInternals/Probability Density', False,
                symDw)

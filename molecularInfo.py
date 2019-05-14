@@ -594,24 +594,6 @@ class molecule (object):
         return xcomp, ycomp, zcomp
 
     def getBisectingVector(self,left, middle, right):
-        # vec1 = (right-middle)/la.norm(right-middle,axis=1)[:,np.newaxis]
-        # vec2 = (left-middle)/la.norm(left-middle,axis=1)[:,np.newaxis]
-        # c = (vec1+vec2)/la.norm(vec1+vec2,axis=1)[:,np.newaxis]
-        # fig = plt.figure()
-        # ax = Axes3D(fig)
-        # ax.scatter(0,0,0)
-        # ax.scatter(vec1[0, 0], vec1[0, 1], vec1[0, 2])
-        # ax.scatter(vec2[0, 0], vec2[0, 1], vec2[0, 2])
-        # ax.scatter(c[0, 0], c[0, 1], c[0, 2])
-        # plt.show()
-        # plt.savefig('asdf.png')
-        # test1 = np.arccos((vec1* c).sum(axis=1) / (la.norm(vec1,axis=1) * la.norm(c,axis=1)))
-        # test2 = np.arccos((c * vec2).sum(axis=1) / (la.norm(vec2,axis=1) * la.norm(c,axis=1)))
-        # print np.degrees(test1)
-        # print np.degrees(test2)
-        # test3 = np.arccos((vec2*vec1).sum(axis=1) / (la.norm(vec1,axis=1) * la.norm(vec2,axis=1)))
-        # print np.degrees(test3)
-
         bisector1 = la.norm(left - middle, axis=1).reshape(-1, 1) * (right - middle)  # |b|*a + |a|*b
         bisector2 = la.norm(right - middle, axis=1).reshape(-1, 1) * (left - middle)
         normedbisector = la.norm(bisector1 + bisector2, axis=1).reshape(-1, 1)
@@ -623,31 +605,29 @@ class molecule (object):
         return bisector
 
     def xyzFreeHydronium(self,xx):
-        xaxis = self.getBisectingVector(xx[:,1-1,:], xx[:,3 - 1,:],xx[:,2 - 1,:])
-        zaxis = np.cross(xx[:,1-1]-xx[:,3-1],xx[:,2-1]-xx[:,3-1],axis=1)
+        xaxis = self.getBisectingVector(xx[:,9-1,:], xx[:,3 - 1,:],xx[:,10 - 1,:])
+        crs = np.cross(xx[:,9-1]-xx[:,3-1],xx[:,10-1]-xx[:,3-1],axis=1)
+        zaxis = crs/((la.norm(crs,axis=1))[:,np.newaxis])
         yaxis = np.cross(zaxis,xaxis,axis=1)
         xcomp = ((xx[:,8-1] - xx[:,3-1])*xaxis).sum(axis=1)
         ycomp = ((xx[:,8-1] - xx[:,3-1])*yaxis).sum(axis=1)
         zcomp = ((xx[:,8-1] - xx[:,3-1])*zaxis).sum(axis=1)
-
         rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=1)
         thetaOH = np.arccos(zcomp / rdistOH)
         phiOH = np.arctan2(ycomp,xcomp)
+        phiOH[phiOH <= 0]+=(2.*np.pi)
         return rdistOH, thetaOH, phiOH
 
     def finalTrimerEuler(self,xx,O1, h1, h2):
         #SharedProtonCoordinateSystem
         X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1).reshape(-1,1))
-        Z = np.cross(xx[:, 1 - 1]-xx[:,3-1], xx[:, 2 - 1]-xx[:,3-1], axis=1)
+        crs=np.cross(xx[:, 1 - 1]-xx[:,3-1], xx[:, 2 - 1]-xx[:,3-1], axis=1)
+        Z = crs / la.norm(crs,axis=1)[:,np.newaxis]
         Y = np.cross(Z, X, axis=1)
 
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
         return Theta,tanPhi, tanChi
-
-        #return np.degrees(Theta), np.degrees(tanPhi), np.degrees(tanChi)
-#!!!!!!!!!!!!!!!!!!!!!!!!!h9o4
-
 
     def  H9getOOOAxis(self,xx,oW):
         # oW = xx[:,outerW-1,:]  # Coordinates of outer water Oxygen
@@ -847,32 +827,32 @@ class molecule (object):
         #tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta, tanPhi, tanChi
 
-    def sphHydrogens(self,xx,atmnm,ocom):
-        if atmnm == 11: #o2
-            at2=13
-            at3=12
-            oxx=2
-        elif atmnm == 12: #o3
-            at2=11
-            at3=13
-            oxx=3
-        elif atmnm == 13: #o1
-            at2=12
-            at3=11
-            oxx=1
-        xax = xx[:,oxx-1] #-ocom, which is 0,0,0
-        zax = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
-        yax = np.cross(zax,xax)
-        xax/=la.norm(xax)
-        yax/=la.norm(yax)
-        zax/=la.norm(zax)
-        xcomp = ((xx[:,atmnm-1]) * xax).sum(axis=1)
-        ycomp = ((xx[:,atmnm-1]) * yax).sum(axis=1)
-        zcomp = ((xx[:,atmnm-1]) * zax).sum(axis=1)
-        rdistOH = la.norm(np.column_stack((xcomp, ycomp, zcomp)), axis=1)
-        thetaOH = np.arccos(zcomp / rdistOH)
-        phiOH = np.arctan2(ycomp, xcomp)
-        return rdistOH,thetaOH,phiOH
+    # def sphHydrogens(self,xx,atmnm,ocom):
+    #     if atmnm == 11: #o2
+    #         at2=13
+    #         at3=12
+    #         oxx=2
+    #     elif atmnm == 12: #o3
+    #         at2=11
+    #         at3=13
+    #         oxx=3
+    #     elif atmnm == 13: #o1
+    #         at2=12
+    #         at3=11
+    #         oxx=1
+    #     xax = xx[:,oxx-1] #-ocom, which is 0,0,0
+    #     zax = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
+    #     yax = np.cross(zax,xax)
+    #     xax/=la.norm(xax)
+    #     yax/=la.norm(yax)
+    #     zax/=la.norm(zax)
+    #     xcomp = ((xx[:,atmnm-1]) * xax).sum(axis=1)
+    #     ycomp = ((xx[:,atmnm-1]) * yax).sum(axis=1)
+    #     zcomp = ((xx[:,atmnm-1]) * zax).sum(axis=1)
+    #     rdistOH = la.norm(np.column_stack((xcomp, ycomp, zcomp)), axis=1)
+    #     thetaOH = np.arccos(zcomp / rdistOH)
+    #     phiOH = np.arctan2(ycomp, xcomp)
+    #     return rdistOH,thetaOH,phiOH
 
     def HDihedral(self,xx):
         if xx.shape[1] == 13:

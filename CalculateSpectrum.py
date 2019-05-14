@@ -9,7 +9,6 @@ import gc
 import sys
 import matplotlib as mpl
 import multiprocessing
-
 mpl.use('agg')
 ProtonatedWaterTrimer = {'H7O3+','O3H7+', 'H7O3plus','H7O3', 'O3H7'}
 ProtonatedWaterTetramer = {'H9O4+','O4H9+', 'H9O4plus','H9O4', 'O4H9'}
