@@ -467,7 +467,6 @@ class HarmonicApproxSpectrum(object):
         print 'Commence Calculate Spectrum Function'
         #dipoleMoments = np.zeros(np.shape(dips))
 
-        print 'getting eckarted dipole moments. . .'
         # com, eckVecs = self.wfn.molecule.eckartRotate(coords)
         #print dips
         if testName == 'oxEck':
@@ -475,6 +474,7 @@ class HarmonicApproxSpectrum(object):
         else:
             justO = False
         if not ecked:
+            print 'getting eckarted dipole moments. . .'
             com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO)
             dips = dips - com  # added this to shift dipole to center of mass before eckart roatation - translation of dipole should NOT matter
             #print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
@@ -488,6 +488,7 @@ class HarmonicApproxSpectrum(object):
             del dips
         else:
             dipoleMoments = dips
+            print 'dips loaded from eckart',dipoleMoments[0]
             del dips
         #dips = dips*ang2bohr
         #First, What is the G Matrix for this set of walkers based on the SymInternals coordinates
@@ -535,7 +536,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             dov = np.diagonal(overlap2)
@@ -574,11 +575,18 @@ class HarmonicApproxSpectrum(object):
         print 'ZPE: average v_0',V_0*au2wn
         print 'Vq', Vq*au2wn
 
-        alpha=q2ave/(np.average(q*q*q*q,weights=dw,axis=0)-q2ave**2) # Equation #11
-        alphaPrime=0.5/q2ave   #Equation in text after #8
+        q4 = q*q*q*q
+        q8 = q4*q4
+        alpha=q2ave/(np.average(q4,weights=dw,axis=0)-q2ave**2) # Equation #11
+        #alphaPrime=0.5/q2ave   #Equation in text after #8
+
+        alphaPrime = np.sqrt(8. * np.average(q4,weights=dw,axis=0) / (np.average(q8,weights=dw,axis=0) - np.average(q4,weights=dw,axis=0) ** 2))
+
         #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
         #kineticEnergy= hbar**2 nquanta alpha/(2 mass)
         Tq=1.0**2*1.0*alpha/(2.0*1.0) #Equation #10
+
+        TqP = 1.0**2*2.0*alphaPrime/(2.0*1.0) #N=2 !!!!!!!!!!
 
         Tq2d=np.zeros((self.nVibs,self.nVibs)) #Tij=Ti+Tj
         #Finish calculate the potential and kinetic energy for the combination and overtone bands 
@@ -593,6 +601,10 @@ class HarmonicApproxSpectrum(object):
             #Vq2d[ivibmode,ivibmode]=Vq2d[ivibmode,ivibmode]/(4.0*alpha[ivibmode]**2*q2ave2d[ivibmode,ivibmode]-4.0*alpha[ivibmode]*q2ave[ivibmode]+1.0)
             #Vq2d[ivibmode, ivibmode] = Vq2d[ivibmode, ivibmode] * 4.0 * alpha[ivibmode] ** 2 - Vq[ivibmode] * 4.0 *alpha[ivibmode] + V_0
             Tq2d[ivibmode,ivibmode]=Tq[ivibmode]*2.0
+
+        T2P = np.copy(Tq2d)
+        np.fill_diagonal(T2P,TqP)
+
         #Let's get overtones set up
         a = np.average(q*q*q / np.average(q*q,axis=0,weights=dw),axis=0,weights=dw) * (1/np.average(q*q,axis=0,weights=dw))
         b = -1/np.average(q*q,axis=0,weights=dw)
@@ -603,6 +615,8 @@ class HarmonicApproxSpectrum(object):
         #Energy is V+T, don't forget to subtract off the ZPE
             #Eq2d=np.zeros((self.nVibs,self.nVibs))
         Eq2d=(Vq2d+Tq2d)-V_0 #related to frequencies later on
+        Eq2dP = (Vq2d + T2P) - V_0  # related to frequencies later on
+
         Eq=(Vq/q2ave+Tq)-V_0
         #noKE_funds = Vq/q2ave - V_0
         #noKE_combos = Vq2d-V_0
@@ -777,6 +791,7 @@ class HarmonicApproxSpectrum(object):
             print Eq2d[i,i]*au2wn , magMu2d[i,i],'overtone bands' , i,i
             comboFile.write(str( Eq2d[i,i]*au2wn)+"   "+str(magMu2d[i,i])+"       "+str(i)+" "+str(i)+"\n")
             comboFile2.write(str( Eq2d[i,i]*au2wn)+"   "+str(magMu2d[i,i])+"       "+str(i)+" "+str(i)+"\n")
+            comboFile2.write(str(Eq2dP[i, i] * au2wn) + "   " + str(magMu2d[i, i]) + "       " + str(i) + " " + str(i) + ' new'+"\n")
 
 
         #np.savetxt("dgnl2",dgnl2)

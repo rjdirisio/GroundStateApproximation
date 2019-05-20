@@ -1417,12 +1417,16 @@ class molecule (object):
         if self.name in ProtonatedWaterTrimer:
             self.refPos = self.pullTrimerRefPos(yz)
         else:
-            self.refPos = self.pullTetramerRefPos(yz)
+            if self.isotope == 'notDeuterated':
+                self.refPos = self.pullTetramerRefPos(yz)
+            else:
+                self.refPos = self.pullTetramerRefPos(True)
         if len(pos.shape)<3:
             pos=np.array([pos])
         #Center of Mass
         print 'getting mass'
         mass=self.get_mass()
+        print 'got mass, here it is', mass
         #com=np.dot(mass,pos)/np.sum(mass)
 
         if self.name in ProtonatedWaterTetramer:
@@ -1463,7 +1467,6 @@ class molecule (object):
             elif hydro:
                 self.refPos = self.refPos[[3 - 1, 9-1,8-1,10-1]]
                 # rotate reference so that Z axis is along OOOO Plane
-
                 com = np.dot(mass[[3-1, 9-1,8-1,10-1]], pos[:, [3-1, 9-1,8-1,10-1]]) / np.sum(
                     mass[[3-1, 9-1,8-1,10-1]])
                 refCOM = np.dot(mass[[3-1, 9-1,8-1,10-1]], self.refPos) / np.sum(
@@ -1495,15 +1498,21 @@ class molecule (object):
             if yz:
                 #myFF[:, 0, 0] = 1.0
                 myFF[:,0]=np.cross(myFF[:,1],myFF[:,2])
+        # test = np.copy(myFF)/1000.
         bigEvals,bigEvecs=la.eigh(myFF)
-        #bigEvals=np.sort(bigEvals,axis=1)
-        #bvec = copy.deepcopy(bigEvecs)
-        #bigEvecs=bigEvecs[:,:,(2,1,0)]
+        # evatest, evetest= la.eigh(test)
         bigEvecsT=np.transpose(bigEvecs,(0,2,1))
         if np.all(np.around(bigEvals[:,0])==0.0) or np.all(np.around(bigEvals[:,1])==0.0) or np.all(np.around(bigEvals[:,2])==0.0):
             print 'DANGER: 0 EIGENVALUE, KILLING'
             stop
+        # if np.sum(np.around(bigEvals[:,0])==0.0)+np.sum(np.around(bigEvals[:,1])==0.0)+np.sum(np.around(bigEvals[:,2])==0.0) != 0 :
+        #     print 'DANGER: 0 EIGENVALUE ONLY SOMEWHERE, KILLING'
+        #     stop
         invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
+        axaxxa=np.where(np.isnan(invRootDiagF2))
+        if len(axaxxa[0]) > 0:
+            kilkilkil
+        # invRootDiagF2Test = 1.0 / np.sqrt(evatest)
         invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
         #print myF
         eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
@@ -1532,85 +1541,6 @@ class molecule (object):
         # print 'Inverted Rotation: ',minus
         killList2=0
         return com, eckVecs2 , killList2
-
-        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        """
-        start2=time.time()
-        plus = 0
-        minus = 0
-        for moli,molecule in enumerate(ShiftedMolecules):
-            Fvec=np.zeros((3,3))
-            for atom,massa,eckatom in zip(molecule,mass,self.refPos):
-                Fvec=Fvec+massa*np.outer(eckatom,atom)
-            #F from eqn 3.4b             - vectorsthat connect the dotz
-            FF=np.dot(Fvec,Fvec.transpose())
-            #Diagonalize FF, R: which is actually F in the paper              
-            sortEigValsF,sortEigVecF=np.linalg.eigh(FF)
-            sortEigVecFT=-sortEigVecF.transpose()
-            #sortEigVecFT=sortEigVecF.transpose() #RYAN: SIGN DOESN"T CHANGE ANYTHING
-            if len(np.where(sortEigValsF<=0)[0])!=0:
-                #sortEigVecFT=np.abs(sortEigVecFT)                                                            
-                sortEigValsF=np.abs(sortEigValsF)
-                invRootDiagF=copy.deepcopy(sortEigValsF)
-                for e,element in enumerate(sortEigValsF):
-                    if element>0:
-                        invRootDiagF[e]=1.0/np.sqrt(element)
-            #Get the inverse sqrt of diagonalized(FF)                                                         
-            else:
-                invRootDiagF=1.0/np.sqrt(sortEigValsF)
-            # F^{-1/2}
-            invRootF=np.dot(invRootDiagF[np.newaxis,:]*-sortEigVecF,sortEigVecFT)
-
-            #invRootF = np.dot(invRootDiagF[np.newaxis, :] * sortEigVecF, sortEigVecFT)
-        
-            #3.4C? ryan
-            eckVecs=np.dot(Fvec.transpose(),invRootF)
-
-            allEckVecs[moli] = eckVecs
-
-            if moli==6:
-                print 'asdf'
-            if not justO:
-                #newCoordRD[moli] = np.dot(eckVecs, molecule.T).T wrong!
-                newCoord[moli] = np.dot(molecule, eckVecs)
-                detEck=la.det(eckVecs)
-                if np.around(detEck)==-1.:
-                    killList.append(moli)
-                    minus+=1
-                elif np.around(detEck)==1.:
-                    plus+=1
-
-            else:
-                detEck = la.det(eckVecs)
-                if np.around(detEck) == -1.:
-                    killList.append(moli)
-                    print moli
-                    minus+=1
-                else:
-                    plus+=1
-        
-            if len(np.where(np.isnan(newCoord[moli]))[0])!=0:
-                print 'whaaaaaT?! nan',np.where(np.isnan(newCoord[moli])),'\ncoords:\n',newCoord[moli]
-                print '   molecule number:',moli,'\n   sortEigValsF: \n', sortEigValsF,'\n   molecule: \n', molecule,
-                print '\n   eckVecs \n', eckVecs
-                octopus
-        #print 'Lindsey: ',time.time()-start
-        
-        print "Whew ! Done with eckart."
-        print 'plus',plus
-        print 'minus',minus
-        #print 'first allEckVecs', allEckVecs[0]
-        #print allEckVecs
-        #ff = open('allHTesting/eckartRotatedMolecule',"w+")
-        #elf.printCoordsToFile(newCoord,ff)
-        #ff.close()
-        #print 'recorded new eckart coordinates'
-        print np.array_equal(np.around(allEckVecs,5),np.around(eckVecs2,5))
-        if self.name in ProtonatedWaterTrimer or self.name in ProtonatedWaterTetramer:
-            return com,allEckVecs,killList
-        else:
-            return newCoord """
-
 
     def getInitialCoordinates(self):
         #looks up the path of the coordinates for the starting positions of the walkers and makes nWalkers copies of them and then returns that as an self.nWalkers,self.nAtoms, 3 dimensional array                      
@@ -1749,6 +1679,7 @@ class molecule (object):
                 print ':)'
             elif self.isotope == 'fullyDeuterated':
                 mass = np.array([massO, massO, massO, massD, massD, massD, massD, massD, massD, massD])
+                self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'D', 'D', 'D']
             elif self.isotope == 'notDeuteratedOnce_eigen':
                 self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'D', 'D', 'H']
                 mass = np.array([massO, massO, massO, massD, massD, massD, massD, massD, massD, massH])
