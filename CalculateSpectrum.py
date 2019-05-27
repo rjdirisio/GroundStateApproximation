@@ -334,68 +334,101 @@ class HarmonicApproxSpectrum(object):
                 print 'lm exists, laoding...'
                 lm=np.load('lm_' + walkerSet + ".npy")
         else:
-            ##memmap
-            print 'smol mem activated'
-            if not os.path.isfile("lmap_"+walkerSet):
-                lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='w+',shape=(nwalkers,lnsize))
-                sumDw = np.sum(dw)
-                nvibs2 = self.nVibs * 2
-                print 'no lm , calculating...'
-                for combo in range(self.nVibs):
-                    if combo == 0:
-                        prev = 0
-                    print prev
-                    print prev + self.nVibs - combo - 1
-                    lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
-                    prev += self.nVibs - 1 - combo
-                lm.flush()
-                del lm
-            lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='r+',shape=(nwalkers,lnsize))
-        splitArs=len(q)
-        qsize = q.shape[1]
-        print 'splitting arrays'
-        #Reshaping for chopping instead of array splits
-        q = np.reshape(q, (splitArs,nwalkers/splitArs,-1))
-        bq2aq1 = np.reshape(bq2aq1, (splitArs,nwalkers/splitArs,-1))
-        potE = np.reshape(potE,(splitArs,nwalkers/splitArs))
-        dw = np.reshape(dw,(splitArs,nwalkers/splitArs))
-        lm = np.reshape(lm,(splitArs,nwalkers/splitArs,-1))
-        cyc = 0
-        fuco = np.zeros((qsize, lnsize))
-        ovco = np.zeros((qsize, lnsize))
-        hfuco = np.zeros((qsize, lnsize))
-        hovco = np.zeros((qsize, lnsize))
-        coco = np.zeros((lnsize, lnsize))
-        hcoco = np.zeros((lnsize, lnsize))
-
-        for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
-            st = time.time()
-            fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-            ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-            hfuco += np.sum(
-                qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-                                                                                              np.newaxis], axis=0)
-            hovco += np.sum(
-                bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-                                                                                              np.newaxis], axis=0)
-            coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-            hcoco += np.sum(
-                ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-                                                                                              np.newaxis], axis=0)
-            cyc += 1
-            if cyc ==1:
-                print 'cyc took', time.time()-st,'secs'
-        ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
-        g = ovlas[0] + nvibs2 + 1
-        h = ovlas[1] + nvibs2 + 1
-        asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
-        overlap2[tuple((g, h))] = coco[asco]/sumDw
-        overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
-        overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
-        ham2[tuple((g, h))] = hcoco[asco] / sumDw
-        ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
-        ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
-        ###PUTBACKHERE
+            print 'smol Mem Activated'
+            lst = []
+            for o, t in itertools.combinations(np.arange(self.nVibs), 2):
+                lst.append((o, t))
+            ct = 0
+            print len(lst)
+            print 'funds and overs with combos'
+            for (i, j) in lst:
+                print ct
+                overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
+                overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
+                ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
+                ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
+                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
+                ct += 1
+            print 'hello'
+            print 'combos with combos'
+            # combos with combos
+            ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
+            g = ovlas[0]
+            h = ovlas[1]
+            g += nvibs2 + 1
+            h += nvibs2 + 1
+            ct = 0
+            for [(w, x), (y, z)] in itertools.combinations(lst, 2):
+                print ct
+                qwxyz = q[:, w] * q[:, x] * q[:, y] * q[:, z]
+                overlap2[tuple((g[ct], h[ct]))] = np.average(qwxyz, weights=dw)
+                ham2[tuple((g[ct], h[ct]))] = np.average(qwxyz * potE, weights=dw)
+                ct += 1
+        # else:
+        #     ##memmap
+        #     print 'smol mem activated'
+        #     if not os.path.isfile("lmap_"+walkerSet):
+        #         lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='w+',shape=(nwalkers,lnsize))
+        #         sumDw = np.sum(dw)
+        #         nvibs2 = self.nVibs * 2
+        #         print 'no lm , calculating...'
+        #         for combo in range(self.nVibs):
+        #             if combo == 0:
+        #                 prev = 0
+        #             print prev
+        #             print prev + self.nVibs - combo - 1
+        #             lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
+        #             prev += self.nVibs - 1 - combo
+        #         lm.flush()
+        #         del lm
+        #     lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='r+',shape=(nwalkers,lnsize))
+        # splitArs=len(q)
+        # qsize = q.shape[1]
+        # print 'splitting arrays'
+        # #Reshaping for chopping instead of array splits
+        # q = np.reshape(q, (splitArs,nwalkers/splitArs,-1))
+        # bq2aq1 = np.reshape(bq2aq1, (splitArs,nwalkers/splitArs,-1))
+        # potE = np.reshape(potE,(splitArs,nwalkers/splitArs))
+        # dw = np.reshape(dw,(splitArs,nwalkers/splitArs))
+        # lm = np.reshape(lm,(splitArs,nwalkers/splitArs,-1))
+        # cyc = 0
+        # fuco = np.zeros((qsize, lnsize))
+        # ovco = np.zeros((qsize, lnsize))
+        # hfuco = np.zeros((qsize, lnsize))
+        # hovco = np.zeros((qsize, lnsize))
+        # coco = np.zeros((lnsize, lnsize))
+        # hcoco = np.zeros((lnsize, lnsize))
+        #
+        # for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
+        #     st = time.time()
+        #     fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+        #     ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+        #     hfuco += np.sum(
+        #         qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+        #                                                                                       np.newaxis], axis=0)
+        #     hovco += np.sum(
+        #         bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+        #                                                                                       np.newaxis], axis=0)
+        #     coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+        #     hcoco += np.sum(
+        #         ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+        #                                                                                       np.newaxis], axis=0)
+        #     cyc += 1
+        #     if cyc ==1:
+        #         print 'cyc took', time.time()-st,'secs'
+        # ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
+        # g = ovlas[0] + nvibs2 + 1
+        # h = ovlas[1] + nvibs2 + 1
+        # asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
+        # overlap2[tuple((g, h))] = coco[asco]/sumDw
+        # overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
+        # overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
+        # ham2[tuple((g, h))] = hcoco[asco] / sumDw
+        # ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
+        # ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
         return ham2,overlap2
 
     def calculateSpectrum(self, coords,dw,GfileName,pe,dips,setOfWalkers,testName,kill,ecked,diPath):
