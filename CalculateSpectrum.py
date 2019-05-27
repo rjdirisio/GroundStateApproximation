@@ -75,15 +75,15 @@ class HarmonicApproxSpectrum(object):
                 cycleTime = time.time()
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
-                deltax[:,2,0]=deltax[:,2,0]+dx #perturbs the x,y,z coordinate of the atom of interest
-                # deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
-                coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False) #true = rotate to frame before adjusting axis coordinates.
+                # deltax[:,2,0]=deltax[:,2,0]+dx #perturbs the x,y,z coordinate of the atom of interest
+                deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
+                coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
                 bigIdx = np.argwhere(partialderv > 10000.)
                 excessCount = 0
-                if len(bigIdx[0] > 0):
-                    print len(bigIdx[0]), 'walkers have large partials for this dx'
+                if bigIdx.size != 0:
+                    print bigIdx.shape, 'walkers have large partials for this dx'
                     for badWalk in bigIdx:
                         if excessCount <= 10:
                             print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]]
