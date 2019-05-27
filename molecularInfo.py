@@ -626,8 +626,31 @@ class molecule (object):
         Y = np.cross(Z, X, axis=1)
 
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
+
+        exx = np.copy(x)
+        x = np.copy(y)
+        y = np.copy(z)
+        z = np.copy(exx)
+
+        # exx = np.copy(x)
+        # x = np.copy(z)
+        # z = np.copy(y)
+        # y = np.copy(exx)
+
+        print 'lets get weird'
+        # exX = np.copy(X)
+        # X = np.copy(Y)
+        # Y = np.copy(Z)
+        # Z = np.copy(exX)
+
+        exX = np.copy(X)
+        X = np.copy(Z)
+        Z = np.copy(Y)
+        Y = np.copy(exX)
+
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
         return Theta,tanPhi, tanChi
+
 
     def  H9getOOOAxis(self,xx,oW):
         # oW = xx[:,outerW-1,:]  # Coordinates of outer water Oxygen
@@ -767,20 +790,11 @@ class molecule (object):
             ze=OC-OB
 
         #at this point, my x axis points the 'wrong' direction.  I will flip the sign
-
-        #xaxisMaybe=np.fliplr(xaxisp)
         xaxis=np.divide((oW-center), la.norm(oW-center, axis=1).reshape(-1,1))
-        #xaxis=np.negative(xaxis)
 
         zaxis = ze / la.norm(ze, axis=1)[:, None]
         sgn = np.where((ZBig*zaxis).sum(axis=1) < 0)[0]
         zaxis[sgn] = np.negative(zaxis[sgn])
-        #I don't think this is correct, I think I should be taking X x Y to get Z
-        #On second thought, I think this is okay
-
-        #let's try this.negZ=np.where(xx[:,4-1,-1]<0)
-        #zaxis[negZ,-1]=np.negative(zaxis[negZ,-1])
-        #xaxis[negZ,-1]=np.negative(xaxis[negZ,-1])
         yaxis = np.cross(zaxis, xaxis, axis=1)
         return xaxis,yaxis,zaxis
 
@@ -790,69 +804,17 @@ class molecule (object):
         #[X]    [. . .][x]
         #[Y] =  [. . .][y]
         #[Z]    [. . .][z]
-        #Formalism, where x,y,z is HOH in outer water. Should be opposite? <-- I don't think it matters
-        x[x==0.0]=0.0
-        y[y == 0.0] = 0.0
-        z[z == 0.0] = 0.0
-        X[X == 0.0] = 0.0
-        Y[Y == 0.0] = 0.0
-        Z[Z == 0.0] = 0.0
-
         zdot=(z * Z).sum(axis=1) / (la.norm(z, axis=1) * la.norm(Z, axis=1))
         Yzdot=(Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1))
         Xzdot=(X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1))
         yZdot=(y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1))
         xZdot=-(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
-
-        #zdot[np.where(np.around(zdot,8)==0.0)]==0.0
-        idx = np.where(np.around(Yzdot,8)==0.0)[0]
-        Yzdot[idx]=0.0
-        idx=np.where(np.around(Xzdot, 8)==0.0)[0]
-        Xzdot[idx]=0.0
-        idx=np.where(np.around(yZdot, 8)==0.0)[0]
-        yZdot[idx]=0.0
-        idx = np.where(np.around(xZdot, 8) == 0.0)[0]
-        xZdot[idx] = 0.0
         Theta = np.arccos(zdot)
         tanPhi = np.arctan2(Yzdot,Xzdot)
         tanChi = np.arctan2(yZdot,xZdot) #negative baked in
-
-
-        # Theta = np.arccos((z*Z).sum(axis=1)/(la.norm(z,axis=1) * la.norm(Z,axis=1)))
-        # tanPhi = np.arctan2((Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1)),
-        #                     (X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1)))
-        # tanChi = np.arctan2((y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1)),
-        #                      -(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1)))
-        #tanChi[tanChi < 0]+=(2*np.pi)
-        #tanPhi[tanPhi < 0]+=(2*np.pi)
+        # tanChi[tanChi < 0]+=(2*np.pi)
+        # tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta, tanPhi, tanChi
-
-    # def sphHydrogens(self,xx,atmnm,ocom):
-    #     if atmnm == 11: #o2
-    #         at2=13
-    #         at3=12
-    #         oxx=2
-    #     elif atmnm == 12: #o3
-    #         at2=11
-    #         at3=13
-    #         oxx=3
-    #     elif atmnm == 13: #o1
-    #         at2=12
-    #         at3=11
-    #         oxx=1
-    #     xax = xx[:,oxx-1] #-ocom, which is 0,0,0
-    #     zax = np.cross(xx[:,at2-1],xx[:,at3-1],axis=1)
-    #     yax = np.cross(zax,xax)
-    #     xax/=la.norm(xax)
-    #     yax/=la.norm(yax)
-    #     zax/=la.norm(zax)
-    #     xcomp = ((xx[:,atmnm-1]) * xax).sum(axis=1)
-    #     ycomp = ((xx[:,atmnm-1]) * yax).sum(axis=1)
-    #     zcomp = ((xx[:,atmnm-1]) * zax).sum(axis=1)
-    #     rdistOH = la.norm(np.column_stack((xcomp, ycomp, zcomp)), axis=1)
-    #     thetaOH = np.arccos(zcomp / rdistOH)
-    #     phiOH = np.arctan2(ycomp, xcomp)
-    #     return rdistOH,thetaOH,phiOH
 
     def HDihedral(self,xx):
         if xx.shape[1] == 13:
@@ -871,21 +833,8 @@ class molecule (object):
         di3 = self.fwiki_dihedral(addedX,c-1,a-1)
         return di1,di2,di3
 
-
-    # def wiki_dihedral(self,b1, b2, b3):
-    #     """Passed vectors"""
-    #     # https://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python
-    #     b1xb2 = np.cross(b1, b2)
-    #     b2xb3 = np.cross(b2, b3)
-    #
-    #     b1xb2_x_b2xb3 = np.cross(b1xb2, b2xb3)
-    #
-    #     y = np.dot(b1xb2_x_b2xb3, b2) * (1.0 / la.norm(b2))
-    #     x = np.dot(b1xb2, b2xb3)
-    #
-    #     return np.degrees(np.arctan2(y, x))
-
     def fwiki_dihedral(self,xx,b1A,b2A):
+        # https://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python
         b1=xx[:,b1A]-xx[:,-1]
         b2=xx[:,b2A]-xx[:,-1]
         if xx.shape[1] == 13+1:
@@ -943,7 +892,6 @@ class molecule (object):
         # xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
         # ycomp11 = ((xx[:,atmnm-1]-mp)*Y).sum(axis=1)
         # zcomp11 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
-        #
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th11,phi11,xi11 = self.eulerMatrix(x,y,z,X,Y,Z)
 
@@ -1140,7 +1088,7 @@ class molecule (object):
     def finalTrimerHydEuler(self,xx):
         print 'eckarting...'
         ocom, eVecs,kil=self.eckartRotate(xx,cart=True)
-        print 'got matrix'
+        print 'got Cart matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
         print 'b4'
@@ -1150,10 +1098,12 @@ class molecule (object):
         print xx[0]
         print 'fully rotated'
         ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+        print 'got Hydro matrix'
         # xxp=np.copy(xx)-ocomH[:,np.newaxis,:]
         # xxp = np.einsum('knj,kij->kni', eVecsH.transpose(0, 2, 1), xx).transpose(0, 2, 1)
         eVecsH=eVecsH.transpose(0,2,1)
         thH,phiH,xiH=self.extractEulers(eVecsH)
+        phiH[phiH<0.0]+=(2*np.pi)
         return thH,phiH,xiH
 
     def SymInternalsH7O3plus(self,x):
@@ -1176,6 +1126,7 @@ class molecule (object):
         print 'done with Euler2'
 
         thH,phiH,xiH = self.finalTrimerHydEuler(x)
+        # print "phiH 25614!!!",np.degrees(phiH[25614])
         rOH1 = self.bL(x,1-1,4-1)
         rOH2 = self.bL(x,1-1,5-1)
         aHOH1= self.ba(x,5-1,1-1,4-1)
@@ -1191,15 +1142,15 @@ class molecule (object):
         #asymmHB = (1/np.sqrt(2)) * (xyzO9[0]-xyz10[0])
         #print 'first symm', symmHB[0]
         #print 'first asymm', asymmHB[0]
-        print 'first O1H4 bond length: ', rOH1[0]
+        'xi_514'
+        print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
         print 'first Angle: ',np.degrees(aOOO[0])
         internal = np.array((rOH9, rOH10, spHOH, rthphi[0], rthphi[1], rthphi[2], thH,phiH,xiH,
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
                 , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-        self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH', 'th_627', 'phi_627',
-                             'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41', 'rOH_51', 'aHOH_451', 'rOH_26',
-                             'rOH_27', 'aHOH_267',
-                             'rOO_1', 'rOO_2', 'aOOO']
+        self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH',
+                             'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+                             'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
         # internal = np.array((xyzO9[0], xyzO9[1], xyzO9[2], xyz10[0], xyz10[1], xyz10[2], umb,di1,di2,
         #         thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
         #         , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
@@ -1316,7 +1267,7 @@ class molecule (object):
                  [-9.76751990e-01,  1.69178407e+00, -0.00000000e+00],
                  [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
 
-        print self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
+        # print self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
         if yz:
             rotM = np.array([[0.,0.,1.],
                          [0, 1, 0],

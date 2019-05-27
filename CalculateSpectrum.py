@@ -27,7 +27,7 @@ massO=15.99491561957
 massO*=massConversionFactor
 
 
-verbose=False
+verbose=True
 
 
 
@@ -61,108 +61,81 @@ class HarmonicApproxSpectrum(object):
         #output is the G matrix, which is a self.nVibs*self.nVibs sized array (there are self.nVibs internals)
         #(3N-6 x 3N-6)
         dx=1e-4
-        gnm=np.zeros((self.nVibs,self.nVibs))
         start=time.time()
         sumDescendants=0
         mass=self.wfn.molecule.get_mass()
         print 'Start calculating G'
-        #ocom, eVecs, kil = self.wfn.molecule.eckartRotate(eckartRotatedCoords)
-        #eckartRotatedCoords = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), eckartRotatedCoords).transpose(0, 2, 1)
-
-        threwOut=0
+        # threwOut=0
         print 'summing up the descendants', np.sum(descendantWeights)
         sumDescendants=sumDescendants+np.sum(descendantWeights)
+        mwpartialderv_all = np.zeros((len(descendantWeights),self.nVibs,self.nVibs))
         for atom in range(self.wfn.molecule.nAtoms):
             for coordinate in range(3):
                 """WHERE INTERNAL COORDINATES ARE USED"""
+                cycleTime = time.time()
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
-                deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
-                #ECKART ROTATION DOES NOT NEED TO HAPPEN YET
-
+                deltax[:,2,0]=deltax[:,2,0]+dx #perturbs the x,y,z coordinate of the atom of interest
+                # deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False) #true = rotate to frame before adjusting axis coordinates.
-
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
-
-                timegnm=time.time()
-                #wf = open("shittyCoordinates.xyz","w+")
-                LastPartialDerv2MassWeighted=0
-                for i, pd in enumerate(partialderv):
-                    partialderv2 = np.outer(pd, pd)
-                    # print 'zeros ?',partialderv2prime[i*self.nVibs:(i+1)*self.nVibs,i*self.nVibs:(i+1)*self.nVibs]-partialderv2
-                    tempPartialDerv2MassWeighted = partialderv2 * descendantWeights[i] / mass[atom]
-
-                    if np.any(tempPartialDerv2MassWeighted > 1000000.0 * dx):  # (gnm[9,9]/(np.sum(self.Descendants[:i]))): $$$$$ BIGGER THAN 100!!
-                        print 'atom', atom, 'coordinate', coordinate, i, 'temp', np.transpose(
-                            np.where(tempPartialDerv2MassWeighted > 10000.0 * dx)), 'is too big'
-
-                        # print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', \
-                        # descendantWeights[i]
-                        # print 'coordinates \n', eckartRotatedCoords[i], '\n', eckartRotatedCoords[i] + deltax[i], '\n', \
-                        # eckartRotatedCoords[i] - deltax[i]
-                        # #print 'eckart rotate \n', coordPlus[i], coordMinus[i]
-                        # print 'pd \n', pd
-                        #wf.write("13\n%5.12f 0.0 0.0 0.0 0.0\n" % descendantWeights[i])
-                        #ats = ["O","O","O","O","H","H","H","H","H","H","H","H","H"]
-                        #for h in range(len(ats)):
-                        #	wf.write("%s %5.12f %5.12f %5.12f\n" % (ats[h],eckartRotatedCoords[i,h,0],eckartRotatedCoords[i,h,1],eckartRotatedCoords[i,h,2]))
-                        #wf.write("\n")
-                        #wf.write("13\n%5.12f 0.0 0.0 0.0 0.0\n" % descendantWeights[i])
-                        #eckartRotatedCoords[i]+=deltax[i]
-                        #ats = ["O","O","O","O","H","H","H","H","H","H","H","H","H"]
-                        #for h in range(len(ats)):
-                        #	wf.write("%s %5.12f %5.12f %5.12f\n" % (ats[h],eckartRotatedCoords[i,h,0],eckartRotatedCoords[i,h,1],eckartRotatedCoords[i,h,2]))
-                        #wf.write("\n")
-                        #wf.write("13\n%5.12f 0.0 0.0 0.0 0.0\n" % descendantWeights[i])
-                        #eckartRotatedCoords[i]-=deltax[i]
-                        #eckartRotatedCoords[i]-=deltax[i]
-                        #ats = ["O","O","O","O","H","H","H","H","H","H","H","H","H"]
-                        #for h in range(len(ats)):
-                        #	wf.write("%s %5.12f %5.12f %5.12f\n" % (ats[h],eckartRotatedCoords[i,h,0],eckartRotatedCoords[i,h,1],eckartRotatedCoords[i,h,2]))
-                        #wf.write("\n")
-                        #eckartRotatedCoords[i]+=deltax[i]
-                        gnm = gnm + LastPartialDerv2MassWeighted
-                        threwOut = threwOut + 1
-                    else:
-                        gnm = gnm + tempPartialDerv2MassWeighted
-                        LastPartialDerv2MassWeighted = 1.0 * tempPartialDerv2MassWeighted
-                # for i,pd in enumerate(partialderv): #i = enum num
-                #     partialderv2=np.outer(pd,pd)
-                #     #print 'zeros ?',partialderv2prime[i*self.nVibs:(i+1)*self.nVibs,i*self.nVibs:(i+1)*self.nVibs]-partialderv2
-                #     tempPartialDerv2MassWeighted=partialderv2*descendantWeights[i]/mass[atom] #24x24
-                #     if np.any(tempPartialDerv2MassWeighted>1000000.0*dx):#(gnm[9,9]/(np.sum(self.Descendants[:i]))): $$$$$
-                #         print 'Problem!'z
-                #         listOfpartials = np.transpose(np.where(tempPartialDerv2MassWeighted > 1000000.0 * dx))
-                #         print tempPartialDerv2MassWeighted[np.where((tempPartialDerv2MassWeighted > 1000000.0 * dx))]
-                #         print 'atom',atom, 'coordinate',coordinate, i,'temp',np.transpose(np.where(tempPartialDerv2MassWeighted>10000.0*dx)),'is too big'
-                #         print 'walker',i
-                #         for ptls in range(len(listOfpartials)):
-                #            print listOfpartials[ptls,0],listOfpartials[ptls,1]
-                #            print self.wfn.molecule.internalName[listOfpartials[ptls,0]],self.wfn.molecule.internalName[listOfpartials[ptls,1]]
-                #            cdm=coordMinus[i,listOfpartials[ptls,0]],coordMinus[i,listOfpartials[ptls,1]]
-                #            cdp=coordPlus[i,listOfpartials[ptls,0]],coordPlus[i,listOfpartials[ptls,1]]
-                #            #print 'Minus: ',cdm
-                #            #print 'Plus: ',cdp
-                #            print "Thing that's >100",tempPartialDerv2MassWeighted[listOfpartials[ptls,0],listOfpartials[ptls,1]],self.wfn.molecule.internalName[coordinate]
-                #         print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', descendantWeights[i]
-                #         print 'max = ', np.amax(tempPartialDerv2MassWeighted)
-                #         print 'coordinates \n', eckartRotatedCoords[i],'\n', eckartRotatedCoords[i]+deltax[i],'\n',eckartRotatedCoords[i]-deltax[i]
-                #         print 'eckart rotate \n', coordPlus[i], coordMinus[i]
-                #         print 'pd \n',pd
-                #         gnm=gnm+LastPartialDerv2MassWeighted
-                #         threwOut=threwOut+1
-                #     else:
-                #         gnm=gnm+tempPartialDerv2MassWeighted
-                #         #LastPartialDerv2MassWEighted=1.0*tempPartialDerv2MassWeighted
-		#wf.close()
-		#stoppppp
-            print 'gnmtiminging:',time.time()-timegnm
-        print "THREW OUT ", threwOut, " walkers :-("
+                bigIdx = np.argwhere(partialderv > 10000.)
+                excessCount = 0
+                if len(bigIdx[0] > 0):
+                    print len(bigIdx[0]), 'walkers have large partials for this dx'
+                    for badWalk in bigIdx:
+                        if excessCount <= 10:
+                            print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]]
+                        elif excessCount == 11:
+                            print 'excess count reached, not printing the rest of the bad walkers'
+                        if (coordPlus[badWalk[0],badWalk[1]] < 0) or (coordMinus[badWalk[0],badWalk[1]] < 0): #if it's something defined from -180 to 180
+                            if partialderv[badWalk[0],badWalk[1]]  < 0:
+                                coordPlus[badWalk[0],badWalk[1]] += (np.pi * 2.0)
+                                #angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
+                                partialderv[badWalk[0],badWalk[1]] = -1.0*(coordPlus[badWalk[0],badWalk[1]] - coordMinus[badWalk[0],badWalk[1]])/(2.0 * dx)
+                            elif partialderv[badWalk[0],badWalk[1]]  > 0:
+                                coordMinus[badWalk[0],badWalk[1]] += (np.pi * 2.0)
+                                #angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
+                                partialderv[badWalk[0],badWalk[1]] = -1.0*(coordPlus[badWalk[0],badWalk[1]] - coordMinus[badWalk[0],badWalk[1]])/(2.0 * dx)
+                        else: #defined from either 0 to 360 or 0 to 180
+                            if (np.abs(coordPlus[badWalk[0],badWalk[1]]) > np.pi+1.0) or (np.abs(coordMinus[badWalk[0],badWalk[1]]) > np.pi+1.0):
+                                #then we are 0 to 360
+                                if partialderv[badWalk[0], badWalk[1]] < np.deg2rad(10):
+                                    coordPlus[badWalk[0], badWalk[1]] += (np.pi * 2.0)
+                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
+                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
+                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
+                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
+                                elif partialderv[badWalk[0], badWalk[1]] >np.deg2rad(10):
+                                    coordMinus[badWalk[0], badWalk[1]] += (np.pi * 2.0)
+                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
+                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
+                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
+                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
+                            else:
+                                #then we are 0 to 180
+                                if partialderv[badWalk[0], badWalk[1]] < np.deg2rad(10):
+                                    coordPlus[badWalk[0], badWalk[1]] += (np.pi)
+                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
+                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
+                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
+                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
+                                elif partialderv[badWalk[0], badWalk[1]] > np.deg2rad(10):
+                                    coordMinus[badWalk[0], badWalk[1]] += (np.pi)
+                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
+                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
+                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
+                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
+                        excessCount+=1
+                mwpd2 = partialderv[:,:,np.newaxis]*partialderv[:,np.newaxis,:]/mass[atom]
+                mwpartialderv_all += mwpd2
+                print 'dx timing: ', str(time.time()-cycleTime), 'secs'
         print 'timing for G matrix', time.time()-start
         print 'dividing by ',sumDescendants
-        gnm=gnm/sumDescendants
-        return gnm
+        # gnm=gnm/sumDescendants
+        gmat = np.average(mwpartialderv_all, axis=0, weights=descendantWeights)
+        return gmat
 
     def diagonalizeRootG(self,G):
         w,v=np.linalg.eigh(G)
@@ -245,6 +218,7 @@ class HarmonicApproxSpectrum(object):
         bq2aq1 = 1 + a * q + b * q * q
         #Construct Overlap Matrix
         #Construct diagonal elements
+        start = time.time()
         lg.write('Construct Diagonal Elements\n')
         if not os.path.isfile('ezOvMat_'+walkerSet+".npy"):
             print 'ez part of overlap matrix doesnt exist'
@@ -279,7 +253,6 @@ class HarmonicApproxSpectrum(object):
             ############Off diagonal Elements#############################
             #q
             # bq^2+aq+1 ASDF
-            start = time.time()
             del a
             del b
             gc.collect()
@@ -337,6 +310,9 @@ class HarmonicApproxSpectrum(object):
             ham2 = np.load('ezHamMat_'+walkerSet+".npy")
         # funds with combos and overtones with combos
         ####PUT BACK HERE
+
+        #HEFTY BOI
+        lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
         bigMem = True
         if bigMem:
             sumDw = np.sum(dw)
@@ -357,105 +333,68 @@ class HarmonicApproxSpectrum(object):
             else:
                 print 'lm exists, laoding...'
                 lm=np.load('lm_' + walkerSet + ".npy")
-            if walkerSet == 'fSymtet_allH':
-                splitArs = len(q) #for my fully symmeytized tetramer
-            elif walkerSet == 'final_allH': #trimer
-                splitArs = 192
-            else:
-                splitArs=100
-            #splitArs=10
-            qsize = q.shape[1]
-            print 'splitting arrays'
-
-            if len(dw) % splitArs != 0.0:
-                print 'not divisible~!!!'
-                octopus
-
-            #Reshaping for chopping instead of array splits
-            q = np.reshape(q, (splitArs,nwalkers/splitArs,-1))
-            bq2aq1 = np.reshape(bq2aq1, (splitArs,nwalkers/splitArs,-1))
-            potE = np.reshape(potE,(splitArs,nwalkers/splitArs))
-            dw = np.reshape(dw,(splitArs,nwalkers/splitArs))
-            lm = np.reshape(lm,(splitArs,nwalkers/splitArs,-1))
-
-            # q = np.array_split(q, splitArs)
-            # bq2aq1 = np.array_split(bq2aq1, splitArs)
-            # potE = np.array_split(potE, splitArs)
-            # dw = np.array_split(dw, splitArs)
-            # lm = np.array_split(lm, splitArs)
-
-
-            cyc = 0
-            fuco = np.zeros((qsize, lnsize))
-            ovco = np.zeros((qsize, lnsize))
-            hfuco = np.zeros((qsize, lnsize))
-            hovco = np.zeros((qsize, lnsize))
-            coco = np.zeros((lnsize, lnsize))
-            hcoco = np.zeros((lnsize, lnsize))
-
-            for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
-                #st = time.time()
-                #print 'cycle', cyc, 'out of ', splitArs
-                #print qq.shape
-                #print ll.shape
-                fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-                ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-                hfuco += np.sum(
-                    qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-                                                                                                  np.newaxis], axis=0)
-                hovco += np.sum(
-                    bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-                                                                                                  np.newaxis], axis=0)
-                coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-                hcoco += np.sum(
-                    ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-                                                                                                  np.newaxis], axis=0)
-                cyc += 1
-                #print 'cyc took', time.time()-st
-            # stop
-            ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
-            g = ovlas[0] + nvibs2 + 1
-            h = ovlas[1] + nvibs2 + 1
-            asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
-            overlap2[tuple((g, h))] = coco[asco]/sumDw
-            overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
-            overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
-            ham2[tuple((g, h))] = hcoco[asco] / sumDw
-            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
-            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
         else:
-            print 'smol Mem Activated'
-            lst = []
-            for o, t in itertools.combinations(np.arange(self.nVibs), 2):
-                lst.append((o, t))
-            ct = 0
-            print len(lst)
-            lg.write('funds and overs with combos\n')
-            for (i, j) in lst:
-                print ct
-                overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
-                overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
-                ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
-                ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
-                ct += 1
-            print 'hello'
-            lg.write('combos with combos\n')
-            # combos with combos
-            ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
-            g = ovlas[0]
-            h = ovlas[1]
-            g += nvibs2 + 1
-            h += nvibs2 + 1
-            ct = 0
-            for [(w, x), (y, z)] in itertools.combinations(lst, 2):
-                overlap2[tuple((g[ct], h[ct]))] = np.average(q[:, w] * q[:, x] * q[:, y] * q[:, z], weights=dw)
-                ham2[tuple((g[ct], h[ct]))] = np.average(q[:, w] * q[:, x] * q[:, y] * q[:, z] * potE, weights=dw)
-                ct += 1
-            print 'total time off diags', time.time() - start
+            ##memmap
+            print 'smol mem activated'
+            if not os.path.isfile("lmap_"+walkerSet):
+                lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='w+',shape=(nwalkers,lnsize))
+                sumDw = np.sum(dw)
+                nvibs2 = self.nVibs * 2
+                print 'no lm , calculating...'
+                for combo in range(self.nVibs):
+                    if combo == 0:
+                        prev = 0
+                    print prev
+                    print prev + self.nVibs - combo - 1
+                    lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
+                    prev += self.nVibs - 1 - combo
+                lm.flush()
+                del lm
+            lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='r+',shape=(nwalkers,lnsize))
+        splitArs=len(q)
+        qsize = q.shape[1]
+        print 'splitting arrays'
+        #Reshaping for chopping instead of array splits
+        q = np.reshape(q, (splitArs,nwalkers/splitArs,-1))
+        bq2aq1 = np.reshape(bq2aq1, (splitArs,nwalkers/splitArs,-1))
+        potE = np.reshape(potE,(splitArs,nwalkers/splitArs))
+        dw = np.reshape(dw,(splitArs,nwalkers/splitArs))
+        lm = np.reshape(lm,(splitArs,nwalkers/splitArs,-1))
+        cyc = 0
+        fuco = np.zeros((qsize, lnsize))
+        ovco = np.zeros((qsize, lnsize))
+        hfuco = np.zeros((qsize, lnsize))
+        hovco = np.zeros((qsize, lnsize))
+        coco = np.zeros((lnsize, lnsize))
+        hcoco = np.zeros((lnsize, lnsize))
+
+        for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
+            st = time.time()
+            fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+            ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+            hfuco += np.sum(
+                qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+                                                                                              np.newaxis], axis=0)
+            hovco += np.sum(
+                bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+                                                                                              np.newaxis], axis=0)
+            coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+            hcoco += np.sum(
+                ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
+                                                                                              np.newaxis], axis=0)
+            cyc += 1
+            if cyc ==1:
+                print 'cyc took', time.time()-st,'secs'
+        ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
+        g = ovlas[0] + nvibs2 + 1
+        h = ovlas[1] + nvibs2 + 1
+        asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
+        overlap2[tuple((g, h))] = coco[asco]/sumDw
+        overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
+        overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
+        ham2[tuple((g, h))] = hcoco[asco] / sumDw
+        ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
+        ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
         ###PUTBACKHERE
         return ham2,overlap2
 
@@ -536,7 +475,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             dov = np.diagonal(overlap2)
@@ -790,15 +729,11 @@ class HarmonicApproxSpectrum(object):
         for i in range(self.nVibs):
             print Eq2d[i,i]*au2wn , magMu2d[i,i],'overtone bands' , i,i
             comboFile.write(str( Eq2d[i,i]*au2wn)+"   "+str(magMu2d[i,i])+"       "+str(i)+" "+str(i)+"\n")
-            comboFile2.write(str( Eq2d[i,i]*au2wn)+"   "+str(magMu2d[i,i])+"       "+str(i)+" "+str(i)+"\n")
-            comboFile2.write(str(Eq2dP[i, i] * au2wn) + "   " + str(magMu2d[i, i]) + "       " + str(i) + " " + str(i) + ' new'+"\n")
-
-
-        #np.savetxt("dgnl2",dgnl2)
-        #fundamentalFile.close()
+            #comboFile2.write(str( Eq2d[i,i]*au2wn)+"   "+str(magMu2d[i,i])+"       "+str(i)+" "+str(i)+"\n")
+            comboFile2.write(str(Eq2dP[i, i] * au2wn) + "   " + str(magMu2d[i, i]) + "       " + str(i) + " " + str(i)+"\n")
         comboFile.close()
-        #justVComboFile.close()
-        return Eq*au2wn,magAvgMu, Eq2d*au2wn,magMu2d
+        comboFile2.close()
+        return Eq*au2wn,magAvgMu, Eq2dP*au2wn,magMu2d
 
 
     def calculatePotentialEnergy(self,coords,pe):
@@ -916,7 +851,7 @@ class HarmonicApproxSpectrum(object):
         #                     'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
         #                     'HOH516', 'rOH7', 'rOH8', 'HOH728',
         #                     'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
-        print 'test'
+        #print 'test'
         """testVect = np.dot(self.G,vects)
         testest = np.dot(np.dot(vects.conj(),self.G),vects)
         testest2 = np.dot(np.dot(vects, mu2Ave), vects)
