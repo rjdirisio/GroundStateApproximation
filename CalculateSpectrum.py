@@ -27,7 +27,7 @@ massO=15.99491561957
 massO*=massConversionFactor
 
 
-verbose=True
+verbose=False
 
 
 
@@ -80,7 +80,7 @@ class HarmonicApproxSpectrum(object):
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
-                bigIdx = np.argwhere(partialderv > 10000.)
+                bigIdx = np.argwhere(np.abs(partialderv) > 10000.)
                 excessCount = 0
                 if bigIdx.size != 0:
                     print bigIdx.shape, 'walkers have large partials for this dx'
@@ -99,7 +99,7 @@ class HarmonicApproxSpectrum(object):
                                 #angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
                                 partialderv[badWalk[0],badWalk[1]] = -1.0*(coordPlus[badWalk[0],badWalk[1]] - coordMinus[badWalk[0],badWalk[1]])/(2.0 * dx)
                         else: #defined from either 0 to 360 or 0 to 180
-                            if (np.abs(coordPlus[badWalk[0],badWalk[1]]) > np.pi+1.0) or (np.abs(coordMinus[badWalk[0],badWalk[1]]) > np.pi+1.0):
+                            if (np.abs(coordPlus[badWalk[0],badWalk[1]]) > (np.pi+1.0)) or (np.abs(coordMinus[badWalk[0],badWalk[1]]) > (np.pi+1.0)):
                                 #then we are 0 to 360
                                 if partialderv[badWalk[0], badWalk[1]] < np.deg2rad(10):
                                     coordPlus[badWalk[0], badWalk[1]] += (np.pi * 2.0)
