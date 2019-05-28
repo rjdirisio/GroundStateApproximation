@@ -88,7 +88,7 @@ class HarmonicApproxSpectrum(object):
                         if excessCount <= 10:
                             print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]]
                         elif excessCount == 11:
-                            print 'excess count reached, not printing the rest of the bad walkers'
+                            print 'excess count reached, not printing the rest of the bad walkers!'
                         if (coordPlus[badWalk[0],badWalk[1]] < 0) or (coordMinus[badWalk[0],badWalk[1]] < 0): #if it's something defined from -180 to 180
                             if partialderv[badWalk[0],badWalk[1]]  < 0:
                                 coordPlus[badWalk[0],badWalk[1]] += (np.pi * 2.0)
