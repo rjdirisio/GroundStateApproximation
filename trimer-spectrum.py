@@ -19,6 +19,18 @@ def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     mP = Plot.myPlot(cfg, '1d', bnd, bnd, xl, yl, overly, inin, theLen,(xx[1:]+xx[:-1])/2)
     mP.plotIt()
 
+def PltHists2D(cfg,thing1,thing2,bound1,bound2,yl,xl,overly,weits,bins):
+    white=False
+    theLen, xx,yy = np.histogram2d(thing1,thing2,bins=bins,range=(bound1,bound2),normed=True,weights=weits) #WEIGHTS=WEIGHTARRAY
+    inin=True
+    overlay=False
+    X = (xx[1:] + xx[:-1]) / 2
+    Y = (yy[1:] + yy[:-1]) / 2
+    bnd1 = str(bound1[0]).replace(".","").replace("-","")+str(bound1[1]).replace(".","").replace("-","")
+    bnd2 = str(bound2[0]).replace(".","").replace("-","")+str(bound2[1]).replace(".","").replace("-","")
+    mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,xl,yl,overly,inin,theLen,X,Y,white)
+    mP.plotIt()
+
 def plotStuff(symEckRotCoords):
     # if os.path.isfile("q_" + coordinateSet + ".npy"):
     #     print 'plotQs'
@@ -113,19 +125,19 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH', np.rad2deg(internals[:, 17]), (0, 360), nm[17],
                'trimerInternals/Probability Density', False, symDw)
 
-    PltHists1D('allH', internals[:, 18]*angstr,(1,3), nm[18], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', internals[:, 18]*angstr,(0,3), nm[18], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', internals[:, 19]*angstr, (1,3), nm[19], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', internals[:, 19]*angstr, (0,3), nm[19], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 20]), (70,180), nm[20], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', internals[:, 21]*angstr, (1,3), nm[21], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', internals[:, 21]*angstr, (0,3), nm[21], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', internals[:, 22]*angstr, (1,3), nm[22], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', internals[:, 22]*angstr, (0,3), nm[22], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 23]), (70,180), nm[23], 'trimerInternals/Probability Density', False,
                symDw)
-
+    PltHists2D('allH',np.degrees(internals[:,14]),np.degrees(internals[:,11]),(-180,180),(-180,180),'Xi1','Xi2',False,symDw,30)
 
 # H E R M I T E  P O L Y N O M I A L  A P P R O X I M A T I O N
 au2wn=219474.63
@@ -224,7 +236,6 @@ symEckRotCoords = symCoords
 iwantToPlotStuff=False
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)
-    stop
 else:
     eckt=False
     if os.path.isfile(dipPath+'eng_dip_'+coordinateSet+'_eckart.npy'):

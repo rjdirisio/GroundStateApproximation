@@ -82,8 +82,8 @@ class myPlot:
                 else:
                     print 'white BG activated)'
                     cmap = mpl.cm.Greys
-                    norm = mpl.colors.Normalize(vmin=np.amin(self.pltdata) + 3, vmax=maxDat)
-                    ax = plt.contourf(self.binCenters1, self.binCenters2, i, norm=norm, cmap=cmap)
+                    norm = mpl.colors.Normalize(vmin=np.amin(self.pltdata), vmax=np.amax(self.pltdata))
+                    ax = plt.contourf(self.binCenters1, self.binCenters2, self.pltdata, norm=norm, cmap=cmap)
                     ax.cmap.set_under("w")
                     plt.colorbar(ax)
                 plt.xlabel(self.xl)

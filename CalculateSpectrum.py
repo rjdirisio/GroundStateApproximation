@@ -44,9 +44,15 @@ class HarmonicApproxSpectrum(object):
         print 'does ', GfileName, 'exist?'
         if not os.path.isfile(GfileName):
                 print 'no!'
-                gnm=self.calculateG(self.coords,self.dw)
-                if 'test' not in GfileName and 'topWalk' not in GfileName:
+                allGs,gnm=self.calculateG(self.coords,self.dw)
+                # if 'test' not in GfileName and 'topWalk' not in GfileName:
+                if 'topWalk' not in GfileName:
                     np.savetxt(GfileName,gnm)
+                    if not os.path.isdir("allGs"):
+                        os.makedirs("allGs")
+                    gspl = GfileName.split("/")
+                    walkSet,_ = gspl[-1].split(".")
+                    np.save("allGs/allGM"+walkSet+".npy",allGs)
                 else:
                     return gnm
         else:
@@ -133,9 +139,9 @@ class HarmonicApproxSpectrum(object):
                 print 'dx timing: ', str(time.time()-cycleTime), 'secs'
         print 'timing for G matrix', time.time()-start
         print 'dividing by ',sumDescendants
-        # gnm=gnm/sumDescendants
+
         gmat = np.average(mwpartialderv_all, axis=0, weights=descendantWeights)
-        return gmat
+        return mwpartialderv_all,gmat
 
     def diagonalizeRootG(self,G):
         w,v=np.linalg.eigh(G)
@@ -219,6 +225,7 @@ class HarmonicApproxSpectrum(object):
         #Construct Overlap Matrix
         #Construct diagonal elements
         start = time.time()
+        nvibs2 = self.nVibs * 2
         lg.write('Construct Diagonal Elements\n')
         if not os.path.isfile('ezOvMat_'+walkerSet+".npy"):
             print 'ez part of overlap matrix doesnt exist'
@@ -280,19 +287,59 @@ class HarmonicApproxSpectrum(object):
             af=pst[0]+1
             bf=pst[1]+1
             overlap2[tuple((af,bf))] = np.copy(overlap2[0,nvibs2+1:])
-            ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
-            lg.write("done\n")
+            # ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
+            ########KINETIC COUPLING#######
+            if 'final' in walkerSet:
+                gmatz = np.load("allGs/allGM"+walkerSet+".npy")
+            elif 'fSym' in walkerSet:
+                gmatz = np.load("allGs/allGM"+walkerSet+".npy")
+            elif 'test_' in walkerSet:
+                gmatz = np.load("allGs/allGM"+ walkerSet + ".npy")
+            else:
+                print 'bad boi'
+                for combo in range(self.nVibs):
+                    ham2[combo+1,combo+2:self.nVibs+1] = np.average(q[:, combo, np.newaxis]*q[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
+            tmat = np.loadtxt("TransformationMatrix"+walkerSet+".datatest")
+            tmatz = np.copy(gmatz)
+            gmatz = np.matmul(tmat,gmatz)
+            testingTheKinetic=False
+            if not testingTheKinetic:
+                for combo in range(self.nVibs-1):
+                    # <2,0|gab|0,2>
+                    # <0,0|gab|0,0>
+                    # <1,1|gab|1,1>
+                    # <2,0|gab|0,0>
+                    # <0,0|gab|0,2>
+                    # <1,0|V|0,1>
+                    # aa1=np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)
+                    # aa2=np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)
+                    # aa3=np.average((q[:, combo, np.newaxis])**2 * (q[:, (combo + 1):])**2 *gmatz[:,combo,(combo+1):],axis=0,weights=dw)
+                    # aa4=np.average(bq2aq1[:, combo, np.newaxis] * gmatz[:, combo, (combo + 1):], axis=0, weights=dw)
+                    # aa5=np.average(gmatz[:, combo, (combo + 1):] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
+                    # # aa6=np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis], axis=0, weights=dw)
+                    # print aa1+aa2+aa3+aa4+aa5
+                    ham2[combo + 1, combo + 2:self.nVibs + 1] = \
+                        0.25*(np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)\
+                        +np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)\
+                        +np.average((q[:, combo, np.newaxis])**2 * (q[:, (combo + 1):])**2 *gmatz[:,combo,(combo+1):],axis=0,weights=dw)\
+                        -np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):],axis=0, weights=dw)\
+                        -np.average(gmatz[:,combo,(combo+1):]*bq2aq1[:,(combo+1):], axis=0,weights=dw))\
+                        +np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis], axis=0, weights=dw)
+                ###############
+            else:
+                walkerSet = walkerSet + 'testingTheKinetic'
+                ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
+
             ##Funds with overtones
             ##MEMMAPS
             # overtones with other overtones
-            lg.write("Ovs with Ovs\n")
+            print "Ovs with Ovs"
             for combo in range(self.nVibs):
-                lg.write('combo_'+str(combo))
+                print combo
                 #asdf=np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
                 overlap2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
                 ham2[self.nVibs + combo + 1, self.nVibs + combo + 2:nvibs2 + 1] = np.average(bq2aq1[:, combo, np.newaxis]*bq2aq1[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
-                lg.write('loop')
-            lg.write('done. overs with themselves\n')
+            print 'done. overs with themselves'
 
             #Funds with Overtones
             hav = np.zeros((self.nVibs,self.nVibs))
@@ -302,8 +349,9 @@ class HarmonicApproxSpectrum(object):
                 hamhav[ind,:]=np.average(q[:,ind,np.newaxis]*bq2aq1*potE[:,np.newaxis],weights=dw,axis=0)
             overlap2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav
             ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
-            np.save("ezOvMat_"+walkerSet+".npy",overlap2)
-            np.save("ezHamMat_"+walkerSet+".npy",ham2)
+            if 'test' not in walkerSet:
+                np.save("ezOvMat_"+walkerSet+".npy",overlap2)
+                np.save("ezHamMat_"+walkerSet+".npy",ham2)
         else:
             print 'ez overlap and ham already exist! loading...'
             overlap2 = np.load('ezOvMat_'+walkerSet+".npy")
@@ -315,8 +363,6 @@ class HarmonicApproxSpectrum(object):
         lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
         bigMem = True
         if bigMem:
-            sumDw = np.sum(dw)
-            nvibs2 = self.nVibs * 2
             print 'bigMemActivated'
             lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
             if not os.path.isfile('lm_' + walkerSet + ".npy"):
@@ -343,14 +389,12 @@ class HarmonicApproxSpectrum(object):
             print 'funds and overs with combos'
             for (i, j) in lst:
                 print ct
-                overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
-                overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis], weights=dw, axis=0)
-                ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    q * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
-                ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(
-                    bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis] * potE[:, np.newaxis], weights=dw, axis=0)
+                qqiqj = q * q[:, i, np.newaxis] * q[:, j, np.newaxis]
+                bqq = bq2aq1 * q[:, i, np.newaxis] * q[:, j, np.newaxis]
+                overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(qqiqj, weights=dw, axis=0)
+                overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(bqq, weights=dw, axis=0)
+                ham2[1:self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(qqiqj* potE[:, np.newaxis], weights=dw, axis=0)
+                ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1 + ct] = np.average(bqq* potE[:, np.newaxis], weights=dw, axis=0)
                 ct += 1
             print 'hello'
             print 'combos with combos'
@@ -367,68 +411,15 @@ class HarmonicApproxSpectrum(object):
                 overlap2[tuple((g[ct], h[ct]))] = np.average(qwxyz, weights=dw)
                 ham2[tuple((g[ct], h[ct]))] = np.average(qwxyz * potE, weights=dw)
                 ct += 1
-        # else:
-        #     ##memmap
-        #     print 'smol mem activated'
-        #     if not os.path.isfile("lmap_"+walkerSet):
-        #         lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='w+',shape=(nwalkers,lnsize))
-        #         sumDw = np.sum(dw)
-        #         nvibs2 = self.nVibs * 2
-        #         print 'no lm , calculating...'
-        #         for combo in range(self.nVibs):
-        #             if combo == 0:
-        #                 prev = 0
-        #             print prev
-        #             print prev + self.nVibs - combo - 1
-        #             lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
-        #             prev += self.nVibs - 1 - combo
-        #         lm.flush()
-        #         del lm
-        #     lm = np.memmap('lmap_'+walkerSet,dtype='float64',mode='r+',shape=(nwalkers,lnsize))
-        # splitArs=len(q)
-        # qsize = q.shape[1]
-        # print 'splitting arrays'
-        # #Reshaping for chopping instead of array splits
-        # q = np.reshape(q, (splitArs,nwalkers/splitArs,-1))
-        # bq2aq1 = np.reshape(bq2aq1, (splitArs,nwalkers/splitArs,-1))
-        # potE = np.reshape(potE,(splitArs,nwalkers/splitArs))
-        # dw = np.reshape(dw,(splitArs,nwalkers/splitArs))
-        # lm = np.reshape(lm,(splitArs,nwalkers/splitArs,-1))
-        # cyc = 0
-        # fuco = np.zeros((qsize, lnsize))
-        # ovco = np.zeros((qsize, lnsize))
-        # hfuco = np.zeros((qsize, lnsize))
-        # hovco = np.zeros((qsize, lnsize))
-        # coco = np.zeros((lnsize, lnsize))
-        # hcoco = np.zeros((lnsize, lnsize))
-        #
-        # for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
-        #     st = time.time()
-        #     fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-        #     ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-        #     hfuco += np.sum(
-        #         qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-        #                                                                                       np.newaxis], axis=0)
-        #     hovco += np.sum(
-        #         bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-        #                                                                                       np.newaxis], axis=0)
-        #     coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-        #     hcoco += np.sum(
-        #         ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,
-        #                                                                                       np.newaxis], axis=0)
-        #     cyc += 1
-        #     if cyc ==1:
-        #         print 'cyc took', time.time()-st,'secs'
-        # ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
-        # g = ovlas[0] + nvibs2 + 1
-        # h = ovlas[1] + nvibs2 + 1
-        # asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
-        # overlap2[tuple((g, h))] = coco[asco]/sumDw
-        # overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
-        # overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
-        # ham2[tuple((g, h))] = hcoco[asco] / sumDw
-        # ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
-        # ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
+        dov = np.diagonal(overlap2)
+        overlap2 = overlap2 / np.sqrt(dov[:, None])
+        overlap2 = overlap2 / np.sqrt(dov)
+        ham2 = ham2 / np.sqrt(dov[:, None])
+        ham2 = ham2 / np.sqrt(dov)
+        overlap2 = overlap2 + overlap2.T - np.eye(len(overlap2))
+        print 'Hammie and Overlap Man are Constructed. Nearing the end...'
+        print 'abs overlap Max Min', np.amax(np.abs(overlap2)), np.amin(np.abs(overlap2))
+        ham2 = ham2 + ham2.T  # nothing on diagonal
         return ham2,overlap2
 
     def calculateSpectrum(self, coords,dw,GfileName,pe,dips,setOfWalkers,testName,kill,ecked,diPath):
@@ -511,18 +502,9 @@ class HarmonicApproxSpectrum(object):
         overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
-            dov = np.diagonal(overlap2)
-            overlap2 = overlap2 / np.sqrt(dov[:,None])
-            overlap2 = overlap2 / np.sqrt(dov)
-            ham2 = ham2 / np.sqrt(dov[:,None])
-            ham2 = ham2 / np.sqrt(dov)
-            overlap2 = overlap2+overlap2.T-np.eye(len(overlap2))
-            print 'Hammie and Overlap Man are Constructed. Nearing the end...'
-            print 'abs overlap Max Min', np.amax(np.abs(overlap2)),np.amin(np.abs(overlap2))
-            ham2 = ham2+ham2.T #nothing on diagonal
-            overlapMs = self.path+'redH/'
-            np.savetxt(overlapMs+'overlapMatrix2_' + setOfWalkers + testName + kill + '.dat', overlap2)
-            np.savetxt(overlapMs+'offDiagonalCouplingsInPotential2_' + setOfWalkers + testName + kill + '.dat', ham2)
+            overlapMs = self.path + 'redH/'
+            np.savetxt(overlapMs + 'overlapMatrix2_' + setOfWalkers + testName + kill + '.dat', overlap2)
+            np.savetxt(overlapMs + 'offDiagonalCouplingsInPotential2_' + setOfWalkers + testName + kill + '.dat', ham2)
         #V_0=<0|V|0>
         print 'overlap matrix done or skipped'
         print 'Potential Energy',potentialEnergy
