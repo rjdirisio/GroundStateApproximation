@@ -219,13 +219,13 @@ elif 'Rotated' in coordinateSet:
     np.save("../coordinates/trimer/final_"+coordinateSet[-4:],symCoords)
     np.save("../coordinates/trimer/final_"+coordinateSet[-4:]+"_dw",symDw)
     print 'npy saved finalcds'
-    for wI, walker in enumerate(symCoords):
-        wf.write("13 0\n")
-        wf.write("%5.12f\n" % symDw[wI])
-        for aI, atm in enumerate(walker):
-            wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
-        wf.write("\n")
-    wf.close()
+    #for wI, walker in enumerate(symCoords):
+    #    wf.write("13 0\n")
+    #    wf.write("%5.12f\n" % symDw[wI])
+    #    for aI, atm in enumerate(walker):
+    #        wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
+    #    wf.write("\n")
+    #wf.close()
     stop
 
 print 'Symcoords shape',symCoords.shape

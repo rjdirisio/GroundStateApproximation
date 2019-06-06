@@ -115,7 +115,7 @@ def swapLobe(group1,group2,walkersToSwap):
     return newWalkers
 
 def swapStuff():
-    if 'llH' in config or 'llD' in config or '1Hh' in config or '1Dh' in config:
+    if 'llH' in config or 'llD' in config or '1Hh' in config or '1Dh' in config or '1He' in config or '1De' in config:
         print 'Full symmetrize'
         # H4H5Only
         H4H5 = swapTwoCoordinates(4,5,myWalkers)
@@ -133,17 +133,17 @@ def swapStuff():
             new4_45_67[swappedBoy] = swapLobe([5,4,1,9],[6,7,2,10],big4[swappedBoy])
         return big4+new4_45_67+negZ(copy.deepcopy(big4))+negZ(copy.deepcopy(new4_45_67))
 
-    elif '1He' in config or '1De' in config:
-        print "Eigen Symmetrized"
-        # H4H5Only
-        H4H5 = swapTwoCoordinates(4,5,myWalkers)
-        # H6H7Only
-        H6H7 = swapTwoCoordinates(6,7,myWalkers)
-        #SwapTwoAtOnce
-        H4H5H6H7 = swapTwoCoordinates(6,7,H4H5)
+    #elif '1He' in config or '1De' in config:
+    #    print "Eigen Symmetrized"
+    #    # H4H5Only
+    #    H4H5 = swapTwoCoordinates(4,5,myWalkers)
+    #    # H6H7Only
+    #    H6H7 = swapTwoCoordinates(6,7,myWalkers)
+    #    #SwapTwoAtOnce
+    #    H4H5H6H7 = swapTwoCoordinates(6,7,H4H5)
 
-        big4 = [myWalkers,H4H5,H6H7,H4H5H6H7]
-        return big4+negZ(copy.deepcopy(big4))
+    #    big4 = [myWalkers,H4H5,H6H7,H4H5H6H7]
+    #    return big4+negZ(copy.deepcopy(big4))
 
     elif '1Hw' in config or '1Dw' in config:
         # H4H5Only

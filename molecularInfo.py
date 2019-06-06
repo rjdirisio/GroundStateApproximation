@@ -627,26 +627,26 @@ class molecule (object):
 
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
 
-        exx = np.copy(x)
-        x = np.copy(y)
-        y = np.copy(z)
-        z = np.copy(exx)
-
         # exx = np.copy(x)
-        # x = np.copy(z)
-        # z = np.copy(y)
-        # y = np.copy(exx)
-
-        print 'lets get weird'
+        # x = np.copy(y)
+        # y = np.copy(z)
+        # z = np.copy(exx)
+        #
+        # # exx = np.copy(x)
+        # # x = np.copy(z)
+        # # z = np.copy(y)
+        # # y = np.copy(exx)
+        #
+        # print 'lets get weird'
+        # # exX = np.copy(X)
+        # # X = np.copy(Y)
+        # # Y = np.copy(Z)
+        # # Z = np.copy(exX)
+        #
         # exX = np.copy(X)
-        # X = np.copy(Y)
-        # Y = np.copy(Z)
-        # Z = np.copy(exX)
-
-        exX = np.copy(X)
-        X = np.copy(Z)
-        Z = np.copy(Y)
-        Y = np.copy(exX)
+        # X = np.copy(Z)
+        # Z = np.copy(Y)
+        # Y = np.copy(exX)
 
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
         return Theta,tanPhi, tanChi
@@ -1072,11 +1072,9 @@ class molecule (object):
         if self.name in DeprotonatedWaterDimer:
             self.internalName=[]
         elif self.name in ProtonatedWaterTrimer:
-            self.internalName = ['xH9', 'yH9', 'zH9', 'xH10', 'yh10', 'zh10', 'rH8', 'thH8', 'phiH8', 'th_627',
-                                 'phi_627',
-                                 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41', 'rOH_51', 'aHOH_451', 'rOH_26',
-                                 'rOH_27', 'aHOH_267',
-                                 'rOO_1', 'rOO_2', 'aOOO']
+            self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH',
+                                 'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+                                 'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
         elif self.name in ProtonatedWaterTetramer:
             self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH',
                                  'theta651',

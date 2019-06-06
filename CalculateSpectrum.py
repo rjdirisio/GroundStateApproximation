@@ -45,8 +45,8 @@ class HarmonicApproxSpectrum(object):
         if not os.path.isfile(GfileName):
                 print 'no!'
                 allGs,gnm=self.calculateG(self.coords,self.dw)
-                # if 'test' not in GfileName and 'topWalk' not in GfileName:
-                if 'topWalk' not in GfileName:
+                if 'test' not in GfileName and 'topWalk' not in GfileName:
+                # if 'topWalk' not in GfileName:
                     np.savetxt(GfileName,gnm)
                     if not os.path.isdir("allGs"):
                         os.makedirs("allGs")
@@ -85,56 +85,18 @@ class HarmonicApproxSpectrum(object):
                 deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
+                bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
+                #Add 2pi
+                coordPlus[np.abs(coordPlus-coordMinus) > 1.]+=(-1.0*2*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > 1.])
+                #Set DW to Zero
+                # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
-                bigIdx = np.argwhere(np.abs(partialderv) > 10000.)
-                excessCount = 0
-                if bigIdx.size != 0:
-                    print bigIdx.shape, 'walkers have large partials for this dx'
-                    for badWalk in bigIdx:
-                        if excessCount <= 10:
-                            print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]]
-                        elif excessCount == 11:
-                            print 'excess count reached, not printing the rest of the bad walkers!'
-                        if (coordPlus[badWalk[0],badWalk[1]] < 0) or (coordMinus[badWalk[0],badWalk[1]] < 0): #if it's something defined from -180 to 180
-                            if partialderv[badWalk[0],badWalk[1]]  < 0:
-                                coordPlus[badWalk[0],badWalk[1]] += (np.pi * 2.0)
-                                #angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
-                                partialderv[badWalk[0],badWalk[1]] = -1.0*(coordPlus[badWalk[0],badWalk[1]] - coordMinus[badWalk[0],badWalk[1]])/(2.0 * dx)
-                            elif partialderv[badWalk[0],badWalk[1]]  > 0:
-                                coordMinus[badWalk[0],badWalk[1]] += (np.pi * 2.0)
-                                #angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
-                                partialderv[badWalk[0],badWalk[1]] = -1.0*(coordPlus[badWalk[0],badWalk[1]] - coordMinus[badWalk[0],badWalk[1]])/(2.0 * dx)
-                        else: #defined from either 0 to 360 or 0 to 180
-                            if (np.abs(coordPlus[badWalk[0],badWalk[1]]) > (np.pi+1.0)) or (np.abs(coordMinus[badWalk[0],badWalk[1]]) > (np.pi+1.0)):
-                                #then we are 0 to 360
-                                if partialderv[badWalk[0], badWalk[1]] < np.deg2rad(10):
-                                    coordPlus[badWalk[0], badWalk[1]] += (np.pi * 2.0)
-                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
-                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
-                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
-                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
-                                elif partialderv[badWalk[0], badWalk[1]] >np.deg2rad(10):
-                                    coordMinus[badWalk[0], badWalk[1]] += (np.pi * 2.0)
-                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
-                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
-                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
-                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
-                            else:
-                                #then we are 0 to 180
-                                if partialderv[badWalk[0], badWalk[1]] < np.deg2rad(10):
-                                    coordPlus[badWalk[0], badWalk[1]] += (np.pi)
-                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
-                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
-                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
-                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
-                                elif partialderv[badWalk[0], badWalk[1]] > np.deg2rad(10):
-                                    coordMinus[badWalk[0], badWalk[1]] += (np.pi)
-                                    # angle has technically gotten "smaller", so multiply by -1 to get sign to be negative
-                                    partialderv[badWalk[0], badWalk[1]] = -1.0 * (
-                                                coordPlus[badWalk[0], badWalk[1]] - coordMinus[
-                                            badWalk[0], badWalk[1]]) / (2.0 * dx)
-                        excessCount+=1
-                mwpd2 = partialderv[:,:,np.newaxis]*partialderv[:,np.newaxis,:]/mass[atom]
+                excessCount = len(bigIdx[0])
+                print excessCount, 'walkers have bad stuff'
+                if len(bigIdx[0])!=0:
+                    for badWalk in np.column_stack(bigIdx):
+                        print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]]
+                mwpd2 = (partialderv[:,:,np.newaxis]*partialderv[:,np.newaxis,:])/mass[atom]
                 mwpartialderv_all += mwpd2
                 print 'dx timing: ', str(time.time()-cycleTime), 'secs'
         print 'timing for G matrix', time.time()-start
@@ -310,14 +272,21 @@ class HarmonicApproxSpectrum(object):
                     # <1,1|gab|1,1>
                     # <2,0|gab|0,0>
                     # <0,0|gab|0,2>
-                    # <1,0|V|0,1>
-                    # aa1=np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)
-                    # aa2=np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)
-                    # aa3=np.average((q[:, combo, np.newaxis])**2 * (q[:, (combo + 1):])**2 *gmatz[:,combo,(combo+1):],axis=0,weights=dw)
-                    # aa4=np.average(bq2aq1[:, combo, np.newaxis] * gmatz[:, combo, (combo + 1):], axis=0, weights=dw)
-                    # aa5=np.average(gmatz[:, combo, (combo + 1):] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
-                    # # aa6=np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis], axis=0, weights=dw)
-                    # print aa1+aa2+aa3+aa4+aa5
+                    # <1,0| V |0,1>
+                    aa1=np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)
+                    aa2=np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)
+                    aa3=np.average((q[:, combo, np.newaxis])**2 * (q[:, (combo + 1):])**2 *gmatz[:,combo,(combo+1):],axis=0,weights=dw)
+                    aa4=np.average(bq2aq1[:, combo, np.newaxis] * gmatz[:, combo, (combo + 1):], axis=0, weights=dw)
+                    aa5=np.average(gmatz[:, combo, (combo + 1):] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
+                    aa6=np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis], axis=0, weights=dw)
+                    print '<2,0|gab|0,2>',aa1*au2wn
+                    print '<0,0|gab|0,0>',aa2*au2wn
+                    print '<1,1|gab|1,1>',aa3*au2wn
+                    print '<2,0|gab|0,0> (subtract this #)',aa4*au2wn
+                    print '<0,0|gab|0,2> (subtract this #)',aa5*au2wn
+                    print '1/4(2,2 + 0,0 + 1,1 - 2,0 - 0,2)',0.25*(aa1+aa2+aa3-aa4-aa5)*au2wn
+                    print 'potential energy avg',aa6*au2wn
+                    print 'total',(0.25*(aa1+aa2+aa3-aa4-aa5)+aa6)*au2wn
                     ham2[combo + 1, combo + 2:self.nVibs + 1] = \
                         0.25*(np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)\
                         +np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)\
@@ -499,7 +468,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             overlapMs = self.path + 'redH/'
