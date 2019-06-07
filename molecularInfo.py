@@ -1124,7 +1124,6 @@ class molecule (object):
         print 'done with Euler2'
 
         thH,phiH,xiH = self.finalTrimerHydEuler(x)
-        # print "phiH 25614!!!",np.degrees(phiH[25614])
         rOH1 = self.bL(x,1-1,4-1)
         rOH2 = self.bL(x,1-1,5-1)
         aHOH1= self.ba(x,5-1,1-1,4-1)
@@ -1134,13 +1133,6 @@ class molecule (object):
         rOO1 = self.bL(x,1-1,3-1)
         rOO2 = self.bL(x,2-1,3-1)
         aOOO = self.ba(x,1-1,3-1,2-1)
-        #Symmetric & asymmetric stretch
-        #h9/h10 sym-asymm
-        #symmHB = (1/np.sqrt(2)) * (xyzO9[0]+xyz10[0])
-        #asymmHB = (1/np.sqrt(2)) * (xyzO9[0]-xyz10[0])
-        #print 'first symm', symmHB[0]
-        #print 'first asymm', asymmHB[0]
-        'xi_514'
         print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
         print 'first Angle: ',np.degrees(aOOO[0])
         internal = np.array((rOH9, rOH10, spHOH, rthphi[0], rthphi[1], rthphi[2], thH,phiH,xiH,
@@ -1150,30 +1142,6 @@ class molecule (object):
         self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH',
                              'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                              'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
-        # internal = np.array((xyzO9[0], xyzO9[1], xyzO9[2], xyz10[0], xyz10[1], xyz10[2], umb,di1,di2,
-        #         thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
-        #         , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-        # self.internalName = ['xH9', 'yH9', 'zH9', 'xH10', 'yh10', 'zh10', 'umb', 'di1', 'di2', 'th_627', 'phi_627',
-        #                      'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41', 'rOH_51', 'aHOH_451', 'rOH_26',
-        #                      'rOH_27', 'aHOH_267',
-        #                      'rOO_1', 'rOO_2', 'aOOO']
-
-        # self.internalName = ['xH9', 'yH9', 'zH9', 'xH10', 'yh10', 'zh10', 'rH8', 'thH8', 'phiH8', 'th_627', 'phi_627',
-        #                      'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41', 'rOH_51', 'aHOH_451', 'rOH_26',
-        #                      'rOH_27', 'aHOH_267',
-        #                      'rOO_1', 'rOO_2', 'aOOO']
-
-        # internal = np.array(
-        #     (rOH9, rOH10, di1, di2, zcomp9, zcomp10, rthphi[0], rthphi[1], rthphi[2],
-        #      thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
-        #      , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-        # self.internalName = ['rOH9', 'rOH10', 'dihed1', 'dihed2', 'zc9', 'zc10', 'rH8', 'thH8', 'phiH8','th_627','phi_627',
-        #                      'xi_627','th_514','phi_514','xi_514','rOH_41','rOH_51','aHOH_451','rOH_26','rOH_27','aHOH_267',
-        #                      'rOO_1','rOO_2','aOOO']
-
-        # self.internalName = ['xH9', 'yH9', 'zH9', 'xH10', 'yh10', 'zh10', 'rH8', 'thH8', 'phiH8','th_627','phi_627',
-        #                      'xi_627','th_514','phi_514','xi_514','rOH_41','rOH_51','aHOH_451','rOH_26','rOH_27','aHOH_267',
-        #                      'rOO_1','rOO_2','aOOO']
         return internal
 
 
