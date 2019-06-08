@@ -105,9 +105,9 @@ class HarmonicApproxSpectrum(object):
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
-                # coordPlus[np.abs(coordPlus-coordMinus) > 1.]+=(-1.0*2.*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > 1.])
+                coordPlus[np.abs(coordPlus-coordMinus) > 1.]+=(-1.0*2.*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > 1.])
                 #Set DW to Zero
-                descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
+                # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
                 if len(coordPlus[np.abs(coordPlus-coordMinus) > 1.])>1.0 :
                     fuckyouuuu
