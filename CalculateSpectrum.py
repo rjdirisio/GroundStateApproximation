@@ -40,6 +40,25 @@ class HarmonicApproxSpectrum(object):
         self.path=path
         self.testname = testName
 
+
+    """def LoadG(self,GfileName):
+        print 'does ', GfileName, 'exist?'
+        if not os.path.isfile(GfileName):
+                print 'no!'
+                gnm=self.calculateG(self.coords,self.dw)
+                if 'test' not in GfileName and 'topWalk' not in GfileName:
+                # if 'topWalk' not in GfileName:
+                    np.savetxt(GfileName,gnm)
+                    if not os.path.isdir("allGs"):
+                        os.makedirs("allGs")
+                    gspl = GfileName.split("/")
+                    walkSet,_ = gspl[-1].split(".")
+                else:
+                    return gnm
+        else:
+            print 'yes! ^-^'
+        G=np.loadtxt(GfileName)
+        return G"""
     def LoadG(self,GfileName):
         print 'does ', GfileName, 'exist?'
         if not os.path.isfile(GfileName):
@@ -68,29 +87,30 @@ class HarmonicApproxSpectrum(object):
         #(3N-6 x 3N-6)
         dx=1e-4
         start=time.time()
-        sumDescendants=0
         mass=self.wfn.molecule.get_mass()
         print 'Start calculating G'
         # threwOut=0
         print 'summing up the descendants', np.sum(descendantWeights)
-        sumDescendants=sumDescendants+np.sum(descendantWeights)
+        sumDescendants=np.sum(descendantWeights)
         mwpartialderv_all = np.zeros((len(descendantWeights),self.nVibs,self.nVibs))
         for atom in range(self.wfn.molecule.nAtoms):
             for coordinate in range(3):
-                """WHERE INTERNAL COORDINATES ARE USED"""
+                #WHERE INTERNAL COORDINATES ARE USED
                 cycleTime = time.time()
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
-                # deltax[:,2,0]=deltax[:,2,0]+dx #perturbs the x,y,z coordinate of the atom of interest
+                # deltax[:,3,2]=deltax[:,3,2]+dx #perturbs the x,y,z coordinate of the atom of interest
                 deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
-                coordPlus[np.abs(coordPlus-coordMinus) > 1.]+=(-1.0*2*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > 1.])
+                # coordPlus[np.abs(coordPlus-coordMinus) > 1.]+=(-1.0*2.*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > 1.])
                 #Set DW to Zero
-                # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
+                descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
+                if len(coordPlus[np.abs(coordPlus-coordMinus) > 1.])>1.0 :
+                    fuckyouuuu
                 excessCount = len(bigIdx[0])
                 print excessCount, 'walkers have bad stuff'
                 if len(bigIdx[0])!=0:
@@ -104,6 +124,65 @@ class HarmonicApproxSpectrum(object):
 
         gmat = np.average(mwpartialderv_all, axis=0, weights=descendantWeights)
         return mwpartialderv_all,gmat
+
+    """def calculateG(self, eckartRotatedCoords, descendantWeights):
+        # Input is x which is a NAtoms x 3(coordinates) sized array
+        # input is also dx, the perturbation size, usually .001
+        # output is the G matrix, which is a self.nVibs*self.nVibs sized array (there are self.nVibs internals)
+
+        dx = 1e-4
+
+        gnm = np.zeros((self.nVibs, self.nVibs))
+        start = time.time()
+        sumDescendants = 0
+        mass = self.wfn.molecule.get_mass()
+
+        # internal = self.wfn.molecule.SymInternals(eckartRotatedCoords)
+
+        # print 'some internals that you might care about!', np.average(internal, weights=descendantWeights,
+        #                                                               axis=0), '\n std', np.std(internal, axis=0)
+
+        threwOut = 0
+        print 'summing up the descendants', np.sum(descendantWeights)
+        sumDescendants = sumDescendants + np.sum(descendantWeights)
+        for atom in range(self.wfn.molecule.nAtoms):
+            for coordinate in range(3):
+                print 'dx number', atom * 3 + (coordinate + 1), 'atom:', atom, 'coordinate', coordinate
+                deltax = np.zeros((eckartRotatedCoords.shape))
+                deltax[:, atom, coordinate] = deltax[:, atom,coordinate] + dx  # perturbs the x,y,z coordinate of the atom of interest
+                coordPlus = self.wfn.molecule.SymInternals(eckartRotatedCoords + deltax)
+                coordMinus = self.wfn.molecule.SymInternals(eckartRotatedCoords - deltax)
+                partialderv = (coordPlus - coordMinus) / (2.0 * dx)
+                timegnm = time.time()
+                LastPartialDerv2MassWeighted = 0
+                for i, pd in enumerate(partialderv):
+                    partialderv2 = np.outer(pd, pd)
+                    # print 'zeros ?',partialderv2prime[i*self.nVibs:(i+1)*self.nVibs,i*self.nVibs:(i+1)*self.nVibs]-partialderv2
+                    tempPartialDerv2MassWeighted = partialderv2 * descendantWeights[i] / mass[atom]
+
+                    if np.any(tempPartialDerv2MassWeighted > 1000000.0 * dx):  # (gnm[9,9]/(np.sum(self.Descendants[:i]))): $$$$$
+                        # print 'atom', atom, 'coordinate', coordinate, i, 'temp', np.transpose(
+                        #     np.where(tempPartialDerv2MassWeighted > 10000.0 * dx)), 'is too big'
+                        #
+                        # print 'tempPartialDerv2MassWeighted', tempPartialDerv2MassWeighted, '\n Descendants', \
+                        # descendantWeights[i]
+                        # print 'coordinates \n', eckartRotatedCoords[i], '\n', eckartRotatedCoords[i] + deltax[i], '\n', \
+                        # eckartRotatedCoords[i] - deltax[i]
+                        # print 'eckart rotate \n', coordPlus[i], coordMinus[i]
+                        # print 'pd \n', pd
+
+                        gnm = gnm + LastPartialDerv2MassWeighted
+                        threwOut = threwOut + 1
+                    else:
+                        gnm = gnm + tempPartialDerv2MassWeighted
+                        LastPartialDerv2MassWeighted = 1.0 * tempPartialDerv2MassWeighted
+                        #LastPartialDerv2MassWEighted = 1.0 * tempPartialDerv2MassWeighted
+            print 'gnmtiminging:', time.time() - timegnm
+        print "THREW OUT ", threwOut, " coordinates :-("
+        print 'timing for G matrix', time.time() - start
+        print 'dividing by ', sumDescendants
+        gnm = gnm / sumDescendants
+        return gnm"""
 
     def diagonalizeRootG(self,G):
         w,v=np.linalg.eigh(G)

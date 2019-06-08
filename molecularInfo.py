@@ -1101,7 +1101,7 @@ class molecule (object):
         # xxp = np.einsum('knj,kij->kni', eVecsH.transpose(0, 2, 1), xx).transpose(0, 2, 1)
         eVecsH=eVecsH.transpose(0,2,1)
         thH,phiH,xiH=self.extractEulers(eVecsH)
-        phiH[phiH<0.0]+=(2*np.pi)
+        # phiH[phiH<0.0]+=(2*np.pi)
         return thH,phiH,xiH
 
     def SymInternalsH7O3plus(self,x):
@@ -1234,7 +1234,7 @@ class molecule (object):
                  [-9.76751990e-01,  1.69178407e+00, -0.00000000e+00],
                  [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
 
-        # print self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
+        print self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
         if yz:
             rotM = np.array([[0.,0.,1.],
                          [0, 1, 0],
