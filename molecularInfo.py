@@ -626,27 +626,27 @@ class molecule (object):
         Y = np.cross(Z, X, axis=1)
 
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
-
+        #I EDITED THIS ON SATURDAY AFTER I RAN THE MOST RECENT RESULTS _ CAN RUN AGAIN ON MONDAY WITH THIS ADDITION.
+        exx = np.copy(x)
+        x = np.copy(y)
+        y = np.copy(z)
+        z = np.copy(exx)
+        #
         # exx = np.copy(x)
-        # x = np.copy(y)
-        # y = np.copy(z)
-        # z = np.copy(exx)
+        # x = np.copy(z)
+        # z = np.copy(y)
+        # y = np.copy(exx)
         #
-        # # exx = np.copy(x)
-        # # x = np.copy(z)
-        # # z = np.copy(y)
-        # # y = np.copy(exx)
-        #
-        # print 'lets get weird'
-        # # exX = np.copy(X)
-        # # X = np.copy(Y)
-        # # Y = np.copy(Z)
-        # # Z = np.copy(exX)
-        #
+        print 'lets get weird'
         # exX = np.copy(X)
-        # X = np.copy(Z)
-        # Z = np.copy(Y)
-        # Y = np.copy(exX)
+        # X = np.copy(Y)
+        # Y = np.copy(Z)
+        # Z = np.copy(exX)
+        #
+        exX = np.copy(X)
+        X = np.copy(Z)
+        Z = np.copy(Y)
+        Y = np.copy(exX)
 
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
         return Theta,tanPhi, tanChi
