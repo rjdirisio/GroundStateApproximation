@@ -878,20 +878,12 @@ class molecule (object):
         return Theta,tanPhi,tanChi
 
     def finalPlaneShareEuler(self,xx):
-        #For any geometry, use reference to determine xyz compz
-        #xxp=np.copy(xx[:,:4])
         print 'get carts & eulers pre eckart'
         atmnm=11
         h1 = 8
         h2 = 7
         o  = 2
-        # #mp = 0.5*(xx[:,o-1]+xx[:,4-1])
-        # mp = xx[:,4-1]
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
-        # #asdfasdf=(X*Z).sum(axis=1)
-        # xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
-        # ycomp11 = ((xx[:,atmnm-1]-mp)*Y).sum(axis=1)
-        # zcomp11 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th11,phi11,xi11 = self.eulerMatrix(x,y,z,X,Y,Z)
 
@@ -899,12 +891,7 @@ class molecule (object):
         h1 = 9
         h2 = 10
         o = 3
-        # # mp = 0.5 * (xx[:, o - 1] + xx[:, 4 - 1])
-        # mp = xx[:,4-1]
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
-        # xcomp12 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
-        # ycomp12 = ((xx[:,atmnm-1]-mp)*Y).sum(axis=1)
-        # zcomp12 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th12,phi12,xi12 = self.eulerMatrix(x,y,z,X,Y,Z)
 
@@ -912,12 +899,7 @@ class molecule (object):
         h1 = 6
         h2 = 5
         o = 1
-        # # mp = 0.5 * (xx[:, o - 1] + xx[:, 4 - 1])
-        # mp = xx[:,4-1]
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
-        # xcomp13 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
-        # ycomp13 = ((xx[:,atmnm-1]-mp)*Y).sum(axis=1)
-        # zcomp13 = ((xx[:,atmnm-1]-mp)*Z).sum(axis=1)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
 
@@ -947,16 +929,12 @@ class molecule (object):
         xx-=ocom[:,np.newaxis,:]
         print 'done'
         print 'b4'
-        # evForMe = eVecs.transpose(0,2,1)
         print xx[0]
         xx = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
         print 'af'
         print xx[0]
-        # xx = np.einsum('knj,kij->kni',asdf,xx).transpose(0,2,1)
         print 'fully rotated'
         ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
-        # xxp=np.copy(xx)-ocomH[:,np.newaxis,:]
-        # xxp = np.einsum('knj,kij->kni', eVecsH.transpose(0, 2, 1), xx).transpose(0, 2, 1)
         eVecsH=eVecsH.transpose(0,2,1)
         thH,phiH,xiH=self.extractEulers(eVecsH)
         return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
@@ -998,14 +976,9 @@ class molecule (object):
         print 'Commence getting internal coordinates for tetramer'
         start = time.time()
         all = self.finalPlaneShareEuler(x)
-
         rOHHyd = all[3:6]
         umbDi = all[6:9]
         eulHyd = all[9:12]
-        # xyz11 = all[3:6]
-        # xyz12 = all[6:9]
-        # xyz13 = all[9:12]
-
         thphixi1=all[12:15]
         thphixi2=all[15:18]
         thphixi3=all[18:21]
@@ -1025,11 +998,8 @@ class molecule (object):
         rO1O2 = self.bL(x,2-1,1-1)
         rO1O3 = self.bL(x,1-1,3-1)
         rO2O3 = self.bL(x,2-1,3-1)
-        #fourth = time.time()
-        #xyzO4 = self.finalPlanarXyz(x)
         print 'time for rOO/rOH', str(time.time() - third)
         print 'Done with all internals'
-
         internal= np.array(
             (rOHHyd[0], rOHHyd[1], rOHHyd[2], umbDi[0], umbDi[1], umbDi[2], eulHyd[0], eulHyd[1], eulHyd[2],
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
@@ -1040,34 +1010,10 @@ class molecule (object):
                             'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
                             'HOH516', 'rOH7', 'rOH8', 'HOH728',
                             'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
-
-        # internal = np.array(
-        #     zip(xyz11[0], xyz11[1], xyz11[2], xyz12[0], xyz12[1], xyz12[2], xyz13[0], xyz13[1], xyz13[2],
-        #         thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
-        #         thphixi3[2],rOH5, rOH6, HOH516, rOH7, rOH8, HOH728, rOH9, rOH10, HOH9310, rO1O2,rO1O3,rO2O3,xyzO4[0],xyzO4[1],xyzO4[2]))
-
         print 'internal shape: ',np.shape(internal)
         print 'internal[0] shape: ',np.shape(internal[0])
-        #RYAN COMMENTED THIS OUT self.internalConversion=[bohr2ang,bohr2ang,bohr2ang,rad2deg,rad2deg,rad2deg,bohr2ang,bohr2ang,bohr2ang]
-        #self.internalName = ['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
-        #                     'phi651', 'Chi651',
-        #                     'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-        #                     'HOH516', 'rOH7', 'rOH8', 'HOH728',
-        #                     'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'umbrella', '2*1th-2th-3th', '2th-3th']
-	    # self.internalName = ['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
-        #                      'phi651', 'Chi651',
-        #                      'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-        #                      'HOH516', 'rOH7', 'rOH8', 'HOH728',
-        #                      'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xO4', 'yO4', 'zO4']
-
-
-        # self.internalName = ['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
-        #                  'phi651', 'Chi651',
-        #                  'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-        #                  'HOH516', 'rOH7', 'rOH8', 'HOH728',
-        #                  'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'dh1', 'dh2', 'dh3']
-
         return internal
+
     def setInternalName(self):
         if self.name in DeprotonatedWaterDimer:
             self.internalName=[]
@@ -1106,23 +1052,16 @@ class molecule (object):
 
     def SymInternalsH7O3plus(self,x):
         print 'Commence getting internal coordinates for trimer'
-        # xyzO9 = self.xyzTrimerSharedHydrogens(9, x)  # *ang2bohr  #Cartesian shared hydrogen 3xnwalkers
-        # print 'done with xyzO9'
-        # xyz10 = self.xyzTrimerSharedHydrogens(10, x)  # *ang2bohr  #Cartesian shared hydrogen 3xnwalkers
-        # print 'done with xyz10'
-
         #Hydronium
         rOH9 = self.bL(x,3-1,9-1)
         rOH10 = self.bL(x,3-1,10-1)
         spHOH = self.ba(x,9-1,3-1,10-1)
         rthphi = self.xyzFreeHydronium(x)  # *ang2bohr     #Spherical free hydrogen 3xnwalkers in degrees
-
         print 'done with FH'
         thphixi1= self.finalTrimerEuler(x,2,7,6)
         print 'done with Euler1'
         thphixi2 = self.finalTrimerEuler(x,1,4,5)
         print 'done with Euler2'
-
         thH,phiH,xiH = self.finalTrimerHydEuler(x)
         rOH1 = self.bL(x,1-1,4-1)
         rOH2 = self.bL(x,1-1,5-1)
@@ -1138,7 +1077,6 @@ class molecule (object):
         internal = np.array((rOH9, rOH10, spHOH, rthphi[0], rthphi[1], rthphi[2], thH,phiH,xiH,
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
                 , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-        #11 = xi_627, 14 = xi_514
         self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH',
                              'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                              'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
@@ -1235,11 +1173,25 @@ class molecule (object):
                  [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
 
         print self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
-        if yz:
-            rotM = np.array([[0.,0.,1.],
+        if yz: #rotate about y axis
+            rotM1 = np.array([[0.,0.,1.],
                          [0, 1, 0],
                          [-1.,0,0.]
                          ])
+            rotM2 = np.array([[-1., 0., 1.],
+                             [0, 1., 0.],
+                             [0., 0., -1.]
+                             ])
+            # sqr2=np.sqrt(2) / 2.
+            # rotM1 = np.array([[sqr2, 0., sqr2],
+            #                   [0, 1, 0],
+            #                   [-sqr2, 0, sqr2]
+            #                   ])
+            # rotM2 = np.array([[1., 0., 0.],
+            #                   [0, sqr2, sqr2],
+            #                   [0., sqr2, sqr2]
+            #                   ])
+            rotM = np.matmul(rotM1, rotM2)
             myBetterRef= np.dot(rotM,myBetterRef.T).T
 
 
