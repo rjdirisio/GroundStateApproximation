@@ -40,7 +40,7 @@ class myPlot:
                 print self.xl,self.yl
                 plt.xlabel(self.xl)
                 plt.ylabel(self.yl)
-                plt.plot(self.binCenters1,self.pltdata,'k',linewidth=2)
+                plt.plot(self.binCenters1,self.pltdata,'r',linewidth=2)
                 plt.ylim(bottom=0.0)
                 #plt.show()
                 savef = titlemod+self.yl.replace(" ", "")+'vs'+self.xl.replace(" ", "")+self.cfg+'.png'

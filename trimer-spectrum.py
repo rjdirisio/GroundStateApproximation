@@ -92,10 +92,10 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH', np.degrees(internals[:, 5]), (0,360), nm[5], 'trimerInternals/Probability Density', False,
                symDw)
 
-    PltHists1D('allH', np.degrees(internals[:, 6]), (0, 360), nm[6], 'trimerInternals/Probability Density',
+    PltHists1D('allH', np.degrees(internals[:, 6]), (-360, 360), nm[6], 'trimerInternals/Probability Density',
                False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 7]), (-360,360), nm[7], 'trimerInternals/Probability !?Density',
+    PltHists1D('allH', np.rad2deg(internals[:, 7]), (-360,360), nm[7], 'trimerInternals/Probability90180Density',
                False,
                symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 8]), (-360, 360), nm[8], 'trimerInternals/Probability Density',
@@ -233,7 +233,7 @@ print 'Got symCoords!'
 #print symCoords
 print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
 symEckRotCoords = symCoords
-iwantToPlotStuff=False
+iwantToPlotStuff=True
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)
 else:

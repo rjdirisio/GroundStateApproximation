@@ -931,6 +931,8 @@ class HarmonicApproxSpectrum(object):
 
         #GAAH                                                              
         TransformationMatrix=np.dot(vects.transpose(),GHalfInv)
+        # oppTmat = np.dot(GHalfInv,vects)
+        # whatHappens = np.dot()
         #print 'RESULTS'
         Tnorm=1.0*TransformationMatrix # NEED TO DEEP COPY :-0
         alpha=1.0*eigval #AS in alpha_j in equation 5 of the JPC A 2011 h5o2 dier paper                                          
@@ -967,13 +969,15 @@ class HarmonicApproxSpectrum(object):
 
         #stop
 
-            #calculate q from the moments and the transformation matrix
-        q=[]
-        #print moments.shape
-        for s in moments:
-            q.append(np.dot(TransformationMatrix,s))
-
-        q=np.array(q)
+        #calculate q from the moments and the transformation matrix
+        # q=[]
+        # #print moments.shape
+        # for s in moments:
+        #     q.append(np.dot(TransformationMatrix,s))
+        #
+        # q=np.array(q)
+        #
+        q = np.matmul(TransformationMatrix, moments.T).T
         q2=q**2
         #q4=q**4
 
