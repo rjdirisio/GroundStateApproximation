@@ -40,25 +40,6 @@ class HarmonicApproxSpectrum(object):
         self.path=path
         self.testname = testName
 
-
-    """def LoadG(self,GfileName):
-        print 'does ', GfileName, 'exist?'
-        if not os.path.isfile(GfileName):
-                print 'no!'
-                gnm=self.calculateG(self.coords,self.dw)
-                if 'test' not in GfileName and 'topWalk' not in GfileName:
-                # if 'topWalk' not in GfileName:
-                    np.savetxt(GfileName,gnm)
-                    if not os.path.isdir("allGs"):
-                        os.makedirs("allGs")
-                    gspl = GfileName.split("/")
-                    walkSet,_ = gspl[-1].split(".")
-                else:
-                    return gnm
-        else:
-            print 'yes! ^-^'
-        G=np.loadtxt(GfileName)
-        return G"""
     def LoadG(self,GfileName):
         print 'does ', GfileName, 'exist?'
         if not os.path.isfile(GfileName):
@@ -99,12 +80,17 @@ class HarmonicApproxSpectrum(object):
                 cycleTime = time.time()
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
-                # deltax[:,3,2]=deltax[:,3,2]+dx #perturbs the x,y,z coordinate of the atom of interest
-                deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
+                deltax[:,0,2]=deltax[:,0,2]+dx #perturbs the x,y,z coordinate of the atom of interest
+                # deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
+                badIdx = np.where(bigIdx[1] == 6)
+                bigIdx = bigIdx[bigIdx!=badIdx]
+                if badIdx[0] > 0:
+                    print 'shitfuck'
+                    kill
                 coordPlus[np.abs(coordPlus-coordMinus) > 1.]+=(-1.0*2.*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > 1.])
                 #Set DW to Zero
                 # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0

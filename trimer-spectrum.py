@@ -92,13 +92,14 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH', np.degrees(internals[:, 5]), (0,360), nm[5], 'trimerInternals/Probability Density', False,
                symDw)
 
-    PltHists1D('allH', np.degrees(internals[:, 6]), (-360, 360), nm[6], 'trimerInternals/Probability Density',
+    PltHists1D('allH', np.degrees(internals[:, 6]), (-180,180), nm[6], 'trimerInternals/Probability Density',
                False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 7]), (-360,360), nm[7], 'trimerInternals/Probability90180Density',
+    print 'maxmin theta', np.degrees(np.amin(internals[:, 6])),np.degrees(np.amax(internals[:, 6]))
+    PltHists1D('allH', np.rad2deg(internals[:, 7]), (-180,180), nm[7], 'trimerInternals/Probability90180Density',
                False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 8]), (-360, 360), nm[8], 'trimerInternals/Probability Density',
+    PltHists1D('allH', np.rad2deg(internals[:, 8]), (-180,180), nm[8], 'trimerInternals/Probability Density',
                False,
                symDw)
 
@@ -138,6 +139,9 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH', np.rad2deg(internals[:, 23]), (70,180), nm[23], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists2D('allH',np.degrees(internals[:,14]),np.degrees(internals[:,11]),(-180,180),(-180,180),'Xi1','Xi2',False,symDw,30)
+
+    PltHists2D('allH',np.degrees(internals[:,7]),np.degrees(internals[:,8]),(-180,180),(-180,180),'PhiH','XiH',False,symDw,30)
+
 
 # H E R M I T E  P O L Y N O M I A L  A P P R O X I M A T I O N
 au2wn=219474.63
@@ -198,7 +202,10 @@ else:
     symCoords, symDw = Wfn.loadCoords(cds)
     np.save('../coordinates/trimer/'+coordinateSet+'.npy', symCoords)
     np.save('../coordinates/trimer/'+coordinateSet+'_dw.npy', symDw)
-    symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 3, 2, 1)
+    if symCoords.shape[0] == 0:
+        symCoords = Wfn.molecule.rotateBackToFrame(np.array([symCoords,symCoords]), 3, 2, 1)[0]
+    else:
+        symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 3, 2, 1)
 
 if 'input' in coordinateSet:
     print 'input file - rotating'
@@ -233,7 +240,7 @@ print 'Got symCoords!'
 #print symCoords
 print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
 symEckRotCoords = symCoords
-iwantToPlotStuff=True
+iwantToPlotStuff=False
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)
 else:

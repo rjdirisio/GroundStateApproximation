@@ -1033,7 +1033,7 @@ class molecule (object):
 
     def finalTrimerHydEuler(self,xx):
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx,justO=True) #Not the trimer
+        ocom, eVecs,kil=self.eckartRotate(xx) #Not the trimer
         # ocom, eVecs,kil=self.eckartRotate(xx) #Not the trimer
 
         print 'got Cart matrix'
@@ -1046,12 +1046,6 @@ class molecule (object):
         print xx[0]
         print 'fully rotated'
         ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
-        # print 'b4'
-        # print xx[0]
-        # xx = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
-        # print 'af'
-        # print xx[0]
-        # stop
         print 'got Hydro matrix'
         eVecsH=eVecsH.transpose(0,2,1)
         print 'ROTM FOR HYD',eVecsH[0]
@@ -1183,28 +1177,31 @@ class molecule (object):
             # #              [0.,0.,-1.]])
             #
             # sqr2=np.sqrt(2) / 2.
-            # # # rotM = np.array([[sqr2, 0., sqr2],
-            # # #                   [0, 1, 0],
-            # # #                   [-sqr2, 0, sqr2]
-            # # #                   ])
+            # rotM = np.array([[sqr2, -sqr2, 0.],
+            #                  [sqr2, sqr2, 0.],
+            #                  [0., 0., 1.]
+            #                  ])
+
+            # rotM = np.array([[sqr2, 0., sqr2],
+            #                   [0, 1, 0],
+            #                   [-sqr2, 0, sqr2]
+            #                   ])
             # rotM = np.array([[1., 0., 0.],
             #                   [0, sqr2, -sqr2],
             #                   [0., sqr2, sqr2]
             #                   ])
-            #
-            # # rotM = np.array([[-1.,0.,0.],
-            # #              [0, -1., 0],
-            # #              [0.,0,1.]
-            # #              ])
             #z rotation.
             # rotM3=np.array([[0.70710678, -0.70710678, 0.],
             #        [0.70710678, 0.70710678, 0.],
             #        [0., 0., 1.]])
-            # myBetterRef = np.dot(rotM3, myBetterRef.T).T
+            # rotM=np.array([[-1., 0., 0.],
+            #        [0, -1., 0.],
+            #        [0., 0., 1.]])
+            # myBetterRef = np.dot(rotM, myBetterRef.T).T
             # #rotation about x
             # rotM = np.array([[1., 0., 0.],
             #                   [0, sqr2, -sqr2],
-            #                   [0., sqr2, sqr2]
+            #                   [0., sqr2, sqr2],
             #                   ])
             # myBetterRef= np.dot(rotM,myBetterRef.T).T
 
@@ -1296,8 +1293,10 @@ class molecule (object):
     def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
         one should transpose the matrix, or do eck.dot(___)"""
-        nMolecules=pos.shape[0]
-        # allEckVecs = np.zeros((nMolecules,3, 3))
+        if cart or justO or hydro:
+            planar = True
+        else:
+            planar = False
         if self.name in ProtonatedWaterTrimer:
             self.refPos = self.pullTrimerRefPos(yz)
         else:
@@ -1311,8 +1310,6 @@ class molecule (object):
         print 'getting mass'
         mass=self.get_mass()
         print 'got mass, here it is', mass
-        #com=np.dot(mass,pos)/np.sum(mass)
-
         if self.name in ProtonatedWaterTetramer:
             if justO: #the OOO plane
                 self.refPos=self.refPos[:3]
@@ -1352,80 +1349,41 @@ class molecule (object):
                 pos = pos[:, [3-1, 9-1,8-1,10-1], :]
             else:
                 com = np.dot(mass, pos) / np.sum(mass)
+                refCOM = np.dot(mass,self.refPos) / np.sum(mass)
         self.refPos-=refCOM
         #First Translate:
         print 'shifting molecules'
         ShiftedMolecules=pos-com[:,np.newaxis,:]
-        #######################
-        # for moli, molecule in enumerate(ShiftedMolecules):
-        #     Fvec = np.zeros((3, 3))
-        #     for atom, massa, eckatom in zip(molecule, mass, self.refPos):
-        #         Fvec = Fvec + massa * np.outer(eckatom, atom)
-        #     # F from eqn 3.4b             - vectorsthat connect the dotz
-        #     FF = np.dot(Fvec, Fvec.transpose())
-        #     # Diagonalize FF
-        #     sortEigValsF, sortEigVecF = np.linalg.eigh(FF)
-        #     sortEigVecFT = -sortEigVecF.transpose()
-        #     if len(np.where(sortEigValsF <= 0)[0]) != 0:
-        #         # sortEigVecFT=np.abs(sortEigVecFT)
-        #         sortEigValsF = np.abs(sortEigValsF)
-        #         invRootDiagF = sortEigValsF
-        #         for e, element in enumerate(sortEigValsF):
-        #             if element > 0:
-        #                 invRootDiagF[e] = 1.0 / np.sqrt(element)
-        #     # Get the inverse sqrt of diagonalized(FF)
-        #     else:
-        #         invRootDiagF = 1.0 / np.sqrt(sortEigValsF)
-        #     # F^{-1/2}
-        #     invRootF = np.dot(invRootDiagF[np.newaxis, :] * -sortEigVecF, sortEigVecFT)
-        #     eckVecs = np.dot(Fvec.transpose(), invRootF)
-        #######################
         #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
-        # start = time.time()
         print 'starting mathy math'
         asdf = np.sum(ShiftedMolecules[:,:,:,np.newaxis]*self.refPos[np.newaxis,:,np.newaxis,:]*mass[np.newaxis,:,np.newaxis,np.newaxis],axis=1)
         myF = np.transpose(asdf,(0,2,1))
-        myFF = np.matmul(myF,asdf)
-        #If just planar, then we need to do this
-        if justO or cart:
-            whichPlane=np.where(np.around(np.diag(myFF[0]),12)==0.0)[0]
-            if whichPlane == 0:
-                myFF[:, 0] = np.cross(myFF[:, 1], myFF[:, 2])
-            elif whichPlane == 1:
-                myFF[:, 1] = np.cross(myFF[:, 2], myFF[:, 0])
-            elif whichPlane == 2:
-                myFF[:, 2] = np.cross(myFF[:, 0], myFF[:, 1])
-            else:
-                print 'Not actually planar eckart'
-                # stop
-        bigEvals,bigEvecs=la.eigh(myFF)
-        bigEvecsT=np.transpose(bigEvecs,(0,2,1))
-        if np.all(np.around(bigEvals[:,0])==0.0) or np.all(np.around(bigEvals[:,1])==0.0) or np.all(np.around(bigEvals[:,2])==0.0):
-            print 'DANGER: 0 EIGENVALUE, KILLING'
-            sys.exit()
-        invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
-        axaxxa=np.where(np.isnan(invRootDiagF2))
-        if len(axaxxa[0]) > 0:
-            print "BADBADBADBADBAD"
-            print len(axaxxa[0])
-            print ShiftedMolecules[axaxxa]
-            raise ZeroDivisionError("this is bad, dude")
-            # bigEvals[axaxxa]*=-1.0
-            # invRootDiagF2[axaxxa[0]] = 1.0 / np.sqrt(bigEvals[axaxxa[0]])
-        invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
-        #print myF
-        eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
-        if cart or justO:
-            whichPlane = np.where(np.around(np.diag(eckVecs2[0]),12)== 0.0)[0]
-            if whichPlane == 0:
-                eckVecs2[:, 0] = np.cross(eckVecs2[:, 1], eckVecs2[:, 2])
-            elif whichPlane == 1:
-                eckVecs2[:, 1] = np.cross(eckVecs2[:, 2], eckVecs2[:, 0])
-            elif whichPlane == 2:
-                eckVecs2[:, 2] = np.cross(eckVecs2[:, 0], eckVecs2[:, 1])
-            # eckVecs2[:,:,-1]=np.cross(eckVecs2[:,:,0],eckVecs2[:,:,1])
-            else:
-                print 'not actually planar eckart, wtf man'
+        if planar:
+            # myF[:,-1] = np.cross(myF[:,0],myF[:,1])
+            myFp=np.copy(myF[:,:2])
+            myFF = np.matmul(myFp,myFp.transpose(0,2,1))
+            peval,pevecs = la.eigh(myFF)
+            invRootDiagF2 = 1/np.sqrt(peval)
+            pevecsT = np.transpose(pevecs,(0,2,1))
+            invRootF2 = np.matmul(invRootDiagF2[:, np.newaxis, :]*pevecs,pevecsT)  # -bigEvecs
+            eckVecs2 = np.zeros((len(invRootDiagF2),3,3))
+            eckVecs2[:,:,:2] =  np.matmul(np.transpose(myFp, (0, 2, 1)), invRootF2) #.transpose((0,2,1))
+            eckVecs2[:,:,-1] = np.cross(eckVecs2[:,:,0],eckVecs2[:,:,1])
+            print 'fuck u'
+        else:
+            myFF = np.matmul(myF, asdf)
+            bigEvals,bigEvecs=la.eigh(myFF)
+            bigEvecsT=np.transpose(bigEvecs,(0,2,1))
+            invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
+            axaxxa=np.where(np.isnan(invRootDiagF2))
+            if len(axaxxa[0]) > 0:
+                print "BADBADBADBADBAD"
+                print len(axaxxa[0])
+                print ShiftedMolecules[axaxxa]
+                raise ZeroDivisionError("this is bad, dude")
+            invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
+            #print myF
+            eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
         print 'done'
         # plus=0
         # minus=0
