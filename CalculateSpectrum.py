@@ -80,28 +80,53 @@ class HarmonicApproxSpectrum(object):
                 cycleTime = time.time()
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
-                deltax[:,0,2]=deltax[:,0,2]+dx #perturbs the x,y,z coordinate of the atom of interest
-                # deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
+                # deltax[:,1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest
+                deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
+                # coordPlus=np.where(coordPlus == np.isnan(coordPlus),coordPlus,0.)
+                # coordMinus = np.where(coordMinus== np.isnan(coordMinus), coordMinus, 0.)
+                pnan=np.where(np.isnan(coordPlus))
+                mnan=np.where(np.isnan(coordMinus))
+                print len(pnan[0])/3., 'nans in coordPlus'
+                print len(mnan[0])/3., 'nans in coordMinus'
+                if len(pnan[0]) > 0 or len(mnan[0]) > 0:
+                    print 'setting nans to zero'
+                descendantWeights[pnan[0]]=0.0
+                descendantWeights[mnan[0]] = 0.0
+                coordPlus[pnan]=0.0
+                coordMinus[mnan]=0.0
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
-                badIdx = np.where(bigIdx[1] == 6)
-                bigIdx = bigIdx[bigIdx!=badIdx]
-                if badIdx[0] > 0:
-                    print 'shitfuck'
-                    kill
-                coordPlus[np.abs(coordPlus-coordMinus) > 1.]+=(-1.0*2.*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > 1.])
-                #Set DW to Zero
+                if self.wfn.molecule.name in ProtonatedWaterTrimer:
+                    badIdx = np.where(bigIdx[1] == 6)
+                    # bigIdx = np.where(bigIdx[1]!=6)
+                else:
+                    fixAdjustedEckartStuffInTetramer
+
+                # qual = (np.abs(coordPlus - coordMinus) > 1.0) * (np.abs(coordPlus-coordMinus) < (np.pi+0.5))
+                # print len(coordPlus[qual])
+                # coordPlus[qual] += (-1.0 * np.pi) * np.sign(coordPlus[qual])
+                # coordPlus[np.abs(coordPlus-coordMinus) > (np.pi+0.5)]+=(-1.0*2.*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > (np.pi+0.5)])
+                # print len(coordPlus[np.abs(coordPlus-coordMinus) > 1.0]), 'potential theta'
+
+                #For 2pi stuff going from 0 to 2pi
+                qual1 = np.abs(coordPlus - coordMinus) > 1.0
+                print np.sum(qual1),'walkers with weird derivatives'
+                coordPlus[np.abs(coordPlus - coordMinus) > 1.0] += (-1.0 * 2. * np.pi) * np.sign(coordPlus[np.abs(coordPlus - coordMinus) > 1.0])
                 # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
+
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
-                if len(coordPlus[np.abs(coordPlus-coordMinus) > 1.])>1.0 :
-                    fuckyouuuu
                 excessCount = len(bigIdx[0])
-                print excessCount, 'walkers have bad stuff'
+                print excessCount, 'walkers have bad stuff (other than theta)'
                 if len(bigIdx[0])!=0:
                     for badWalk in np.column_stack(bigIdx):
-                        print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]]
+                        print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]],coordPlus[badWalk[0],badWalk[1]],coordMinus[badWalk[0],badWalk[1]]
+                if len(badIdx)!=0:
+                    print 'Theta H was bad in ',len(badIdx[0]), 'walkers'
+                if len(coordPlus[np.abs(coordPlus-coordMinus) > 1.])>0 :
+                    self.wfn.molecule.printCoordsToFile(eckartRotatedCoords[np.where(np.abs(coordPlus-coordMinus) > 1.0)[0]])
+                    add2pifuckyouuuu
                 mwpd2 = (partialderv[:,:,np.newaxis]*partialderv[:,np.newaxis,:])/mass[atom]
                 mwpartialderv_all += mwpd2
                 print 'dx timing: ', str(time.time()-cycleTime), 'secs'
@@ -254,7 +279,7 @@ class HarmonicApproxSpectrum(object):
         start = time.time()
         nvibs2 = self.nVibs * 2
         lg.write('Construct Diagonal Elements\n')
-        if not os.path.isfile('ezOvMat_'+walkerSet+".npy"):
+        if not os.path.isfile('ezOvMat_'+walkerSet+"noKEInFunds"+".npy"):
             print 'ez part of overlap matrix doesnt exist'
             dgnl2=[]
             dgnl2.append(1)
@@ -315,22 +340,13 @@ class HarmonicApproxSpectrum(object):
             bf=pst[1]+1
             overlap2[tuple((af,bf))] = np.copy(overlap2[0,nvibs2+1:])
             # ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
-            ########KINETIC COUPLING#######
-            if 'final' in walkerSet:
-                gmatz = np.load("allGs/allGM"+walkerSet+".npy")
-            elif 'fSym' in walkerSet:
-                gmatz = np.load("allGs/allGM"+walkerSet+".npy")
-            elif 'test_' in walkerSet:
-                gmatz = np.load("allGs/allGM"+ walkerSet + ".npy")
-            else:
-                print 'bad boi'
-                for combo in range(self.nVibs):
-                    ham2[combo+1,combo+2:self.nVibs+1] = np.average(q[:, combo, np.newaxis]*q[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
-            tmat = np.loadtxt("TransformationMatrix"+walkerSet+".datatest")
-            tmatz = np.copy(gmatz)
-            gmatz = np.matmul(tmat,gmatz)
-            testingTheKinetic=False
-            if not testingTheKinetic:
+
+            engageKineticCoupling=False
+            if engageKineticCoupling:
+                ########KINETIC COUPLING#######
+                gmatz = np.load("allGs/allGM" + walkerSet + ".npy")
+                tmat = np.loadtxt("TransformationMatrix" + walkerSet + ".datatest")
+                gmatz = np.matmul(tmat, gmatz)
                 for combo in range(self.nVibs-1):
                     # <2,0|gab|0,2>
                     # <0,0|gab|0,0>
@@ -359,9 +375,10 @@ class HarmonicApproxSpectrum(object):
                         -np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):],axis=0, weights=dw)\
                         -np.average(gmatz[:,combo,(combo+1):]*bq2aq1[:,(combo+1):], axis=0,weights=dw))\
                         +np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis], axis=0, weights=dw)
+                walkerSet = walkerSet + 'KEInFunds'
                 ###############
             else:
-                walkerSet = walkerSet + 'testingTheKinetic'
+                walkerSet = walkerSet + 'noKEInFunds'
                 ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
 
             ##Funds with overtones
@@ -388,13 +405,12 @@ class HarmonicApproxSpectrum(object):
                 np.save("ezHamMat_"+walkerSet+".npy",ham2)
         else:
             print 'ez overlap and ham already exist! loading...'
-            overlap2 = np.load('ezOvMat_'+walkerSet+".npy")
-            ham2 = np.load('ezHamMat_'+walkerSet+".npy")
+            overlap2 = np.load('ezOvMat_'+walkerSet+'noKEInFunds'+".npy")
+            ham2 = np.load('ezHamMat_'+walkerSet+'noKEInFunds'+".npy")
         # funds with combos and overtones with combos
         ####PUT BACK HERE
 
         #HEFTY BOI
-        lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
         bigMem = True
         if bigMem:
             print 'bigMemActivated'
@@ -413,6 +429,71 @@ class HarmonicApproxSpectrum(object):
             else:
                 print 'lm exists, laoding...'
                 lm=np.load('lm_' + walkerSet + ".npy")
+
+                #########################################
+                sumDw = np.sum(dw)
+                if self.wfn.molecule.name in ProtonatedWaterTrimer:
+                    # factors = [1, 2, 3, 4, 6, 279176, 12, 558352, 837528, 24, 32, 48, 69794,
+                    #            2233408, 64, 1675056, 8, 192, 6700224, 1116704, 139588, 96,
+                    #            418764, 34897, 3350112, 16, 209382, 104691]
+                    splitArs = len(q) #smallest, least memory, fastest?
+                    splitArs = 192
+                else:
+                    splitArs = len(q)
+                qsize = q.shape[1]
+                print 'splitting arrays'
+
+                if len(dw) % splitArs != 0.0:
+                    print 'not divisible~!!!'
+                    octopus
+
+                # Reshaping for chopping instead of array splits
+                q = np.reshape(q, (splitArs, nwalkers / splitArs, -1))
+                bq2aq1 = np.reshape(bq2aq1, (splitArs, nwalkers / splitArs, -1))
+                potE = np.reshape(potE, (splitArs, nwalkers / splitArs))
+                dw = np.reshape(dw, (splitArs, nwalkers / splitArs))
+                lm = np.reshape(lm, (splitArs, nwalkers / splitArs, -1))
+
+                # q = np.array_split(q, splitArs)
+                # bq2aq1 = np.array_split(bq2aq1, splitArs)
+                # potE = np.array_split(potE, splitArs)
+                # dw = np.array_split(dw, splitArs)
+                # lm = np.array_split(lm, splitArs)
+
+                cyc = 0
+                fuco = np.zeros((qsize, lnsize))
+                ovco = np.zeros((qsize, lnsize))
+                hfuco = np.zeros((qsize, lnsize))
+                hovco = np.zeros((qsize, lnsize))
+                coco = np.zeros((lnsize, lnsize))
+                hcoco = np.zeros((lnsize, lnsize))
+
+                for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
+
+                    print 'cycle', cyc, 'out of ', splitArs
+                    if cyc == 0:
+                        st = time.time()
+                    fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                    ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                    hfuco += np.sum(
+                        qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
+                    hovco += np.sum(
+                        bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
+                    coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                    hcoco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
+                    cyc += 1
+                    print time.time()-st , 'secs'
+                ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
+                g = ovlas[0] + nvibs2 + 1
+                h = ovlas[1] + nvibs2 + 1
+                asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
+                overlap2[tuple((g, h))] = coco[asco] / sumDw
+                overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
+                overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
+                ham2[tuple((g, h))] = hcoco[asco] / sumDw
+                ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
+                ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
+                #########################################
         else:
             print 'smol Mem Activated'
             lst = []
@@ -533,12 +614,12 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             overlapMs = self.path + 'redH/'
-            np.savetxt(overlapMs + 'overlapMatrix2_' + setOfWalkers + testName + kill + '.dat', overlap2)
-            np.savetxt(overlapMs + 'offDiagonalCouplingsInPotential2_' + setOfWalkers + testName + kill + '.dat', ham2)
+            np.savetxt(overlapMs + 'overlapMatrix22_' + setOfWalkers + testName + kill + '.dat', overlap2)
+            np.savetxt(overlapMs + 'offDiagonalCouplingsInPotential22_' + setOfWalkers + testName + kill + '.dat', ham2)
         #V_0=<0|V|0>
         print 'overlap matrix done or skipped'
         print 'Potential Energy',potentialEnergy
@@ -599,7 +680,7 @@ class HarmonicApproxSpectrum(object):
         vovers = np.average((1+a*q+b*q*q)*potentialEnergy[:,None]*(1+a*q+b*q*q),axis=0,weights=dw)
         vovers /= (np.average(np.square(1+a*q+b*q*q),axis=0,weights=dw))
         np.fill_diagonal(Vq2d,vovers)
-        print 'overtone combo potential',Vq2d
+        # print 'overtone combo potential',Vq2d
         #Energy is V+T, don't forget to subtract off the ZPE
             #Eq2d=np.zeros((self.nVibs,self.nVibs))
         Eq2d=(Vq2d+Tq2d)-V_0 #related to frequencies later on
@@ -965,6 +1046,4 @@ class HarmonicApproxSpectrum(object):
         #
         q = np.matmul(TransformationMatrix, moments.T).T
         q2=q**2
-        #q4=q**4
-
-        return q,q2 #,q4
+  

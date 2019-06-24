@@ -481,45 +481,39 @@ class molecule (object):
         return np.arccos((left*right).sum(axis=1) / (la.norm(left,axis=1)*la.norm(right,axis=1)))
 
 
-    def SymInternals(self,x,rotato=False,weights=0):
+    def SymInternals(self,x,rotato=True,weights=0):
         #print 'called SymInternals'
         #print 'returning values in bohr [or radians]'
         if self.name in DeprotonatedWaterDimer:
             internals= self.SymInternalsH3O2minus(x)
             #self.internalNames=internalNames
-
             return internals#,internalNames
-
-        #elif self.name in ProtonatedWaterDimer:
-        #    return self.SymInternalsH5O2plus(x)
         elif self.name in ProtonatedWaterTrimer:
-            if rotato:
-                if (x[0,0,2]==0.0) and (x[0,1,1]==0.0) and (x[0,1,2]==0.0) and (x[0,2,0]==0.0) and (x[0,2,1]==0.0) and (x[0,2,2]==0.0):
-                    print 'No need to rotate.'
-                else:
-                    #print 'Coordinates that matter: (b4): ',x[0,:3]*ang2bohr
-                    x = self.rotateBackToFrame(x,3,2,1)
-                    #print 'Coordinates that matter: (af): ', x[0, :3]*ang2bohr
-                    if not (x[0, 0, 2] == 0.0) and (x[0, 1, 1] == 0.0) and (x[0, 1, 2] == 0.0) and (x[0, 2, 0] == 0.0) and (
-                            x[0, 2, 1] == 0.0) and (x[0, 2, 2] == 0.0):
-                        rotationDidntWork
+            if (x[0,0,2]==0.0) and (x[0,1,1]==0.0) and (x[0,1,2]==0.0) and (x[0,2,0]==0.0) and (x[0,2,1]==0.0) and (x[0,2,2]==0.0):
+                print 'No need to rotate.'
+            else:
+                #print 'Coordinates that matter: (b4): ',x[0,:3]*ang2bohr
+                x = self.rotateBackToFrame(x,3,2,1)
+                #print 'Coordinates that matter: (af): ', x[0, :3]*ang2bohr
+                if not (x[0, 0, 2] == 0.0) and (x[0, 1, 1] == 0.0) and (x[0, 1, 2] == 0.0) and (x[0, 2, 0] == 0.0) and (
+                        x[0, 2, 1] == 0.0) and (x[0, 2, 2] == 0.0):
+                    rotationDidntWork
             internals = self.SymInternalsH7O3plus(x)
             return internals
         elif self.name in ProtonatedWaterTetramer:
-            if rotato:
-                #print 'You just commented stuff out, fam'
-                if (x[0, 0, 1] == 0.0) and (x[0, 0, 2] == 0.0) and (x[0, 1, 0] == 0.0) and (x[0, 1, 1] == 0.0) and\
-                        (x[0, 1, 2] == 0.0) and (x[0, 2, 2] == 0.0):
-                    print 'No need to rotate.'
-                else:
-                    # print 'Coordinates that matter: (b4): ',x[0,:3]*ang2bohr
-                    x = self.rotateBackToFrame(x, 2, 1, 3)
-                    # print 'Coordinates that matter: (af): ', x[0, :3]*ang2bohr
-                    if not (x[0, 0, 1] == 0.0) and (x[0, 0, 2] == 0.0) and (x[0, 1, 0] == 0.0) and (x[0, 1, 1] == 0.0) and\
-                        (x[0, 1, 2] == 0.0) and (x[0, 2, 2] == 0.0):
-                        rotationDidntWork
-                    print 'Rotating done, translate COM...'
-                    x-=((x[:,3-1,:]+x[:,2-1,:]+x[:,1-1,:])/3)[:,np.newaxis,:]
+            #print 'You just commented stuff out, fam'
+            if (x[0, 0, 1] == 0.0) and (x[0, 0, 2] == 0.0) and (x[0, 1, 0] == 0.0) and (x[0, 1, 1] == 0.0) and\
+                    (x[0, 1, 2] == 0.0) and (x[0, 2, 2] == 0.0):
+                print 'No need to rotate.'
+            else:
+                # print 'Coordinates that matter: (b4): ',x[0,:3]*ang2bohr
+                x = self.rotateBackToFrame(x, 2, 1, 3)
+                # print 'Coordinates that matter: (af): ', x[0, :3]*ang2bohr
+                if not (x[0, 0, 1] == 0.0) and (x[0, 0, 2] == 0.0) and (x[0, 1, 0] == 0.0) and (x[0, 1, 1] == 0.0) and\
+                    (x[0, 1, 2] == 0.0) and (x[0, 2, 2] == 0.0):
+                    rotationDidntWork
+                print 'Rotating done, translate COM...'
+                x-=((x[:,3-1,:]+x[:,2-1,:]+x[:,1-1,:])/3)[:,np.newaxis,:]
             internals = self.SymInternalsH9O4plus(x)
 
             return internals
@@ -872,7 +866,7 @@ class molecule (object):
         xZdot = rotMs[:,0,2]
         Theta = np.arccos(zdot)
         tanPhi = np.arctan2(Yzdot, Xzdot)
-        tanChi = np.arctan2(yZdot, xZdot)  # negative baked in
+        tanChi = np.arctan2(yZdot, -xZdot)  # negative baked in
         # tanChi[tanChi < 0]+=(2*np.pi)
         # tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta,tanPhi,tanChi
@@ -1033,9 +1027,7 @@ class molecule (object):
 
     def finalTrimerHydEuler(self,xx):
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx) #Not the trimer
-        # ocom, eVecs,kil=self.eckartRotate(xx) #Not the trimer
-
+        ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
         print 'got Cart matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
@@ -1145,20 +1137,43 @@ class molecule (object):
 
         myBetterRef = np.array(
             [
-                 [-2.34906009e+00,  4.06869143e+00, -0.00000000e+00],
-                 [ 4.69812018e+00, -0.00000000e+00,  0.00000000e+00],
+                 [-2.34906009e+00,  4.06869143e+00,  0.00000000e+00],
+                 [ 4.69812018e+00,  0.00000000e+00,  0.00000000e+00],
                  [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
                  [-2.88862583e+00,  5.00324669e+00,  1.47532198e+00],
                  [-2.88862583e+00,  5.00324669e+00, -1.47532198e+00],
                  [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],
                  [ 5.77725164e+00, -2.46900000e-09,  1.47532198e+00],
-                 [-9.12352955e-01, -1.58024167e+00, -0.00000000e+00],
-                 [-9.76751990e-01,  1.69178407e+00, -0.00000000e+00],
+                 [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
+                 [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
                  [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
+        if not yz:
 
-        # myBetterRef= self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
-        # myBetterRef[:,-1]+=1.0 #shift entire molecule above XY plane
-        if yz: #rotate about y axis
+            # sqr2 = np.sqrt(2) / 2.
+            # rotM = np.array([[sqr2, -sqr2, 0.],
+            #              [sqr2, sqr2, 0.],
+            #              [0., 0., 1.]
+            #              ])
+            # myBetterRef= np.dot(rotM,myBetterRef.T).T
+            # rotM = np.array([[1.,0.,0.],
+            #              [0, 0., -1.],
+            #              [0.,1.,0.]])
+            # # rotM = np.array([[0.,0.,1.],
+            # #              [0, 1, 0],
+            # #              [-1.,0,0.]
+            # #              ])
+            # # rotM = np.array([[1., 0., 0.],
+            # #                   [0, sqr2, -sqr2],
+            # #                   [0., sqr2, sqr2]
+            # #                   ])
+            # # # rotM = np.array([[sqr2, 0., sqr2],
+            # # #                   [0, 1, 0],
+            # # #                   [-sqr2, 0, sqr2]
+            # # #                   ])
+            # return np.dot(rotM,myBetterRef.T).T
+            return myBetterRef
+        else:
+            #rotate about y axis
             # myBetterRef[:,-1]+=1.0 #shift entire molecule above XY plane
             print 'yz'
             #Rotate y 90 deg then x 90 degkills it
@@ -1168,13 +1183,15 @@ class molecule (object):
             #              [0, 1, 0],
             #              [-1.,0,0.]
             #              ])
-            # rotM = np.array([[1.,0.,0.],
-            #              [0, 0., -1.],
-            #              [0.,1.,0.]])
-            #
+
+            rotM = np.array([[1.,0.,0.],
+                         [0, 0., -1.],
+                         [0.,1.,0.]])
+
             # # rotM2 = np.array([[1.,0.,0.],
             # #              [0, -1., 0.],
             # #              [0.,0.,-1.]])
+
             #
             # sqr2=np.sqrt(2) / 2.
             # rotM = np.array([[sqr2, -sqr2, 0.],
@@ -1203,11 +1220,9 @@ class molecule (object):
             #                   [0, sqr2, -sqr2],
             #                   [0., sqr2, sqr2],
             #                   ])
-            # myBetterRef= np.dot(rotM,myBetterRef.T).T
+            myBetterRef= np.dot(rotM,myBetterRef.T).T
 
-
-
-        return myBetterRef #myRef2
+            return myBetterRef #myRef2
 
     def pullTetramerRefPos(self,yz): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
         """goes O1,O2,O3,O4,..H12"""
@@ -1359,18 +1374,30 @@ class molecule (object):
         asdf = np.sum(ShiftedMolecules[:,:,:,np.newaxis]*self.refPos[np.newaxis,:,np.newaxis,:]*mass[np.newaxis,:,np.newaxis,np.newaxis],axis=1)
         myF = np.transpose(asdf,(0,2,1))
         if planar:
+            print 'planar'
             # myF[:,-1] = np.cross(myF[:,0],myF[:,1])
+            ind=np.where(~myF.any(axis=1))[0]
             myFp=np.copy(myF[:,:2])
             myFF = np.matmul(myFp,myFp.transpose(0,2,1))
             peval,pevecs = la.eigh(myFF)
             invRootDiagF2 = 1/np.sqrt(peval)
+            axaxxa = np.where(np.isnan(invRootDiagF2))
+            if len(axaxxa[0]) > 0:
+                print "PLANARBADBADBAD"
+                print len(axaxxa[0])
+                print axaxxa[0]
+                print ShiftedMolecules[axaxxa[0]]
+                fileout = open("badEck_planar.xyz", "w+")
+                self.printCoordsToFile(ShiftedMolecules[axaxxa[0]], fileout)
+                # raise ZeroDivisionError("this is planar bad, dude")
             pevecsT = np.transpose(pevecs,(0,2,1))
             invRootF2 = np.matmul(invRootDiagF2[:, np.newaxis, :]*pevecs,pevecsT)  # -bigEvecs
             eckVecs2 = np.zeros((len(invRootDiagF2),3,3))
             eckVecs2[:,:,:2] =  np.matmul(np.transpose(myFp, (0, 2, 1)), invRootF2) #.transpose((0,2,1))
             eckVecs2[:,:,-1] = np.cross(eckVecs2[:,:,0],eckVecs2[:,:,1])
-            print 'fuck u'
+            print 'done with planar'
         else:
+            print 'not planar'
             myFF = np.matmul(myF, asdf)
             bigEvals,bigEvecs=la.eigh(myFF)
             bigEvecsT=np.transpose(bigEvecs,(0,2,1))
@@ -1379,28 +1406,27 @@ class molecule (object):
             if len(axaxxa[0]) > 0:
                 print "BADBADBADBADBAD"
                 print len(axaxxa[0])
-                print ShiftedMolecules[axaxxa]
-                raise ZeroDivisionError("this is bad, dude")
+                print axaxxa[0]
+                print ShiftedMolecules[axaxxa[0]]
+                fileout = open("badEck.xyz","w+")
+                self.printCoordsToFile(ShiftedMolecules[axaxxa[0]], fileout)
+                # raise ZeroDivisionError("this is bad, dude")
+
             invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
-            #print myF
             eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
         print 'done'
-        # plus=0
-        # minus=0
-        # mas = np.where(np.around(la.det(eckVecs2),10)==-1.0)
-        # print 'wlks neg for mine'
-        # print mas
-        # if len(mas[0])!=0:
-        #     killList2=mas
-        #     #eckVecs2[mas] = np.negative(eckVecs2[mas])
-        #     minus = len(mas[0])
-        #
-        # else:
-        #     killList2=mas[0]
-        #
-        # plus=len(ShiftedMolecules)-minus
-        # print 'Plus rotation: ',plus
-        # print 'Inverted Rotation: ',minus
+        mas = np.where(np.around(la.det(eckVecs2))==-1.0)
+        if len(mas[0])!=0:
+            killList2=mas
+            # eckVecs2[mas,:,-1] *= -1.0
+            eckVecs2[mas,-1] *= -1.0 #multiply row by -1, but actually column since this is transposed
+            minus = len(mas[0])
+        else:
+            minus = 0
+            killList2=mas[0]
+        plus=len(ShiftedMolecules)-minus
+        print 'Plus rotation: ',plus
+        print 'Inverted Rotation: ',minus
         killList2=0
         return com, eckVecs2 , killList2
 
@@ -1765,15 +1791,19 @@ class molecule (object):
         return listOfSwapped
 
     def printCoordsToFile(self,x,fileout):
+        if len(x) == 1:
+            x = np.array([x,x])
         au2ang=0.529177249
-        fakeMoleculeNames=['O','O','O','H','H','H','H','H','H','H','H'] #needs to be updated.  Li, N, Be are for distinguishing atoms in h3o2
-        #for particle in x:
-        fileout.write(str(self.nAtoms)+' \n'+' \n')
-        for atomName, atom in zip(fakeMoleculeNames,x):
-            print atom
-            fileout.write(str(atomName)+'   '+str(au2ang*atom[0])+"   "+str(au2ang*atom[1])+"   "+str(au2ang*atom[2])+"\n")
-        fileout.write("\n")
-        return
+        if self.name in ProtonatedWaterTrimer:
+            atomStr=['O','O','O','H','H','H','H','H','H','H']
+        elif self.name in ProtonatedWaterTetramer:
+            atomStr = ['O', 'O', 'O','O', 'H', 'H', 'H', 'H', 'H', 'H', 'H','H','H']  # needs to be updated.  Li, N, Be are for distinguishing atoms in h3o2
+        for i in x:
+            fileout.write("%d\nwriteout\n" % len(atomStr))
+            for atmn, atm in enumerate(i):
+                fileout.write("%s %5.12f %5.12f %5.12f\n" % (atomStr[atmn],atm[0],atm[1],atm[2]))
+            fileout.write("\n")
+        fileout.close()
 
     def calcAverageInternalCoordinates(self,x,dw):
         if self.name in DeprotonatedWaterDimer:

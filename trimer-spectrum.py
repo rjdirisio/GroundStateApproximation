@@ -92,7 +92,7 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH', np.degrees(internals[:, 5]), (0,360), nm[5], 'trimerInternals/Probability Density', False,
                symDw)
 
-    PltHists1D('allH', np.degrees(internals[:, 6]), (-180,180), nm[6], 'trimerInternals/Probability Density',
+    PltHists1D('allH', np.degrees(internals[:, 6]), (0,180), nm[6], 'trimerInternals/Probability Density',
                False,
                symDw)
     print 'maxmin theta', np.degrees(np.amin(internals[:, 6])),np.degrees(np.amax(internals[:, 6]))
@@ -102,6 +102,12 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH', np.rad2deg(internals[:, 8]), (-180,180), nm[8], 'trimerInternals/Probability Density',
                False,
                symDw)
+    # PltHists1D('allH', np.rad2deg(internals[:, 7]), (0,360), nm[7], 'trimerInternals/Probability90180Density',
+    #            False,
+    #            symDw)
+    # PltHists1D('allH', np.rad2deg(internals[:, 8]), (0,360), nm[8], 'trimerInternals/Probability Density',
+    #            False,
+    #            symDw)
 
     PltHists1D('allH', np.rad2deg(internals[:, 9]), (0, 360), nm[9],
                'trimerInternals/Probability Density', False, symDw)
@@ -141,6 +147,7 @@ def plotStuff(symEckRotCoords):
     PltHists2D('allH',np.degrees(internals[:,14]),np.degrees(internals[:,11]),(-180,180),(-180,180),'Xi1','Xi2',False,symDw,30)
 
     PltHists2D('allH',np.degrees(internals[:,7]),np.degrees(internals[:,8]),(-180,180),(-180,180),'PhiH','XiH',False,symDw,30)
+    # PltHists2D('allH',np.degrees(internals[:,7]),np.degrees(internals[:,8]),(0,360),(0,360),'PhiH','XiH',False,symDw,30)
 
 
 # H E R M I T E  P O L Y N O M I A L  A P P R O X I M A T I O N
