@@ -614,7 +614,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             overlapMs = self.path + 'redH/'
@@ -1046,4 +1046,5 @@ class HarmonicApproxSpectrum(object):
         #
         q = np.matmul(TransformationMatrix, moments.T).T
         q2=q**2
-  
+        # q4=q**4
+        return q, q2  # ,q4

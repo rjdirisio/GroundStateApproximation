@@ -1028,6 +1028,7 @@ class molecule (object):
     def finalTrimerHydEuler(self,xx):
         print 'eckarting...'
         ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+        # ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
         print 'got Cart matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
@@ -1043,8 +1044,8 @@ class molecule (object):
         print 'ROTM FOR HYD',eVecsH[0]
         thH,phiH,xiH=self.extractEulers(eVecsH)
 
-        # phiH[phiH<0.0]+=(2*np.pi)
-        # xiH[xiH< 0.0] += (2 * np.pi)
+        phiH[phiH<0.0]+=(2*np.pi)
+        xiH[xiH< 0.0] += (2 * np.pi)
 
         return thH,phiH,xiH
 
@@ -1135,6 +1136,18 @@ class molecule (object):
         #                     [  7.88860905E-31, 1.69178407E+00,  6.12546816E-01],
         #                     [ -2.07183794E-16, -1.69178407E+00,  6.12546816E-01]])
 
+        # myBetterRef = np.array(
+        #     [
+        #          [-2.34906009e+00,  4.06869143e+00,  0.00000000e+00],
+        #          [ 4.69812018e+00,  0.00000000e+00,  0.00000000e+00],
+        #          [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+        #          [-2.88862583e+00,  5.00324669e+00,  1.47532198e+00],
+        #          [-2.88862583e+00,  5.00324669e+00, -1.47532198e+00],
+        #          [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],
+        #          [ 5.77725164e+00, -2.46900000e-09,  1.47532198e+00],
+        #          [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
+        #          [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
+        #          [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
         myBetterRef = np.array(
             [
                  [-2.34906009e+00,  4.06869143e+00,  0.00000000e+00],
@@ -1142,13 +1155,13 @@ class molecule (object):
                  [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
                  [-2.88862583e+00,  5.00324669e+00,  1.47532198e+00],
                  [-2.88862583e+00,  5.00324669e+00, -1.47532198e+00],
-                 [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],
                  [ 5.77725164e+00, -2.46900000e-09,  1.47532198e+00],
+                 [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],
                  [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
                  [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
-                 [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
+                 [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]]) #6 and 7 better alinged with walkers themselves rather than my printout.
         if not yz:
-
+            print 'normal ref pos'
             # sqr2 = np.sqrt(2) / 2.
             # rotM = np.array([[sqr2, -sqr2, 0.],
             #              [sqr2, sqr2, 0.],
@@ -1165,28 +1178,23 @@ class molecule (object):
             # # rotM = np.array([[1., 0., 0.],
             # #                   [0, sqr2, -sqr2],
             # #                   [0., sqr2, sqr2]
-            # #                   ])
-            # # # rotM = np.array([[sqr2, 0., sqr2],
-            # # #                   [0, 1, 0],
-            # # #                   [-sqr2, 0, sqr2]
             # # #                   ])
+            # rotM = np.array([[sqr2, 0., sqr2],
+            #                   [0, 1, 0],
+            #                   [-sqr2, 0, sqr2]
+            #                   ])
             # return np.dot(rotM,myBetterRef.T).T
             return myBetterRef
         else:
-            #rotate about y axis
-            # myBetterRef[:,-1]+=1.0 #shift entire molecule above XY plane
             print 'yz'
-            #Rotate y 90 deg then x 90 degkills it
-            #Rotate y 90 deg then x 180
 
-            # rotM = np.array([[0.,0.,1.],
-            #              [0, 1, 0],
-            #              [-1.,0,0.]
-            #              ])
-
-            rotM = np.array([[1.,0.,0.],
-                         [0, 0., -1.],
-                         [0.,1.,0.]])
+            rotM = np.array([[0.,0.,1.],
+                         [0, 1, 0],
+                         [-1.,0,0.]
+                         ])
+            # rotM = np.array([[1.,0.,0.],
+            #              [0, 0., -1.],
+            #              [0.,1.,0.]])
 
             # # rotM2 = np.array([[1.,0.,0.],
             # #              [0, -1., 0.],
@@ -1211,8 +1219,8 @@ class molecule (object):
             # rotM3=np.array([[0.70710678, -0.70710678, 0.],
             #        [0.70710678, 0.70710678, 0.],
             #        [0., 0., 1.]])
-            # rotM=np.array([[-1., 0., 0.],
-            #        [0, -1., 0.],
+            # rotM=np.array([[0, -1., 0.],
+            #        [1., 0., 0.],
             #        [0., 0., 1.]])
             # myBetterRef = np.dot(rotM, myBetterRef.T).T
             # #rotation about x
@@ -1375,9 +1383,10 @@ class molecule (object):
         myF = np.transpose(asdf,(0,2,1))
         if planar:
             print 'planar'
-            # myF[:,-1] = np.cross(myF[:,0],myF[:,1])
-            ind=np.where(~myF.any(axis=1))[0]
-            myFp=np.copy(myF[:,:2])
+            all3 = np.arange(3)
+            # myFp=np.copy(myF[:,:2])
+            indZ=np.where(myF.any(axis=2))[1][:2]
+            myFp = myF[:,indZ,:]
             myFF = np.matmul(myFp,myFp.transpose(0,2,1))
             peval,pevecs = la.eigh(myFF)
             invRootDiagF2 = 1/np.sqrt(peval)
@@ -1391,10 +1400,13 @@ class molecule (object):
                 self.printCoordsToFile(ShiftedMolecules[axaxxa[0]], fileout)
                 # raise ZeroDivisionError("this is planar bad, dude")
             pevecsT = np.transpose(pevecs,(0,2,1))
-            invRootF2 = np.matmul(invRootDiagF2[:, np.newaxis, :]*pevecs,pevecsT)  # -bigEvecs
             eckVecs2 = np.zeros((len(invRootDiagF2),3,3))
-            eckVecs2[:,:,:2] =  np.matmul(np.transpose(myFp, (0, 2, 1)), invRootF2) #.transpose((0,2,1))
-            eckVecs2[:,:,-1] = np.cross(eckVecs2[:,:,0],eckVecs2[:,:,1])
+            invRootF2 = np.matmul(invRootDiagF2[:, np.newaxis, :]*pevecs,pevecsT)  # -bigEvecs
+            eckVecs2[:,:,indZ] =  np.matmul(np.transpose(myFp, (0, 2, 1)), invRootF2) #.transpose((0,2,1))
+            if indZ[0] == 0 and indZ[1] == 2: #then we have to cross z cross x
+                eckVecs2[:,:,np.setdiff1d(all3,indZ)[0]] = np.cross(eckVecs2[:,:,indZ[1]],eckVecs2[:,:,indZ[0]])
+            else:
+                eckVecs2[:, :, np.setdiff1d(all3, indZ)[0]] = np.cross(eckVecs2[:, :, indZ[0]], eckVecs2[:, :,indZ[1]])
             print 'done with planar'
         else:
             print 'not planar'
@@ -1415,12 +1427,25 @@ class molecule (object):
             invRootF2=np.matmul(invRootDiagF2[:,np.newaxis,:]*-bigEvecs,-bigEvecsT,) #-bigEvecs
             eckVecs2 = np.matmul(np.transpose(myF,(0,2,1)),invRootF2)
         print 'done'
+        # np.setdiff1d(asdf)
         mas = np.where(np.around(la.det(eckVecs2))==-1.0)
         if len(mas[0])!=0:
             killList2=mas
-            # eckVecs2[mas,:,-1] *= -1.0
-            eckVecs2[mas,-1] *= -1.0 #multiply row by -1, but actually column since this is transposed
-            minus = len(mas[0])
+            # eckVecs2[mas,::,-1] *= -1.0
+            fileout = open("invDet.xyz","w+")
+            mas = np.array(mas[0])
+            self.printCoordsToFile(np.concatenate((ShiftedMolecules[0][None,:,:],ShiftedMolecules[killList2[0]][:4])), fileout)
+            eckVecs2[mas,2] *= -1.0 #multiply row by -1, but actually column since this is transposed
+            minus = len(mas)
+            # xy1=np.where(np.around(np.cross(eckVecs2[mas,0],eckVecs2[mas,1]),2) == np.around(eckVecs2[mas,2],2))
+            # zx1=np.where(np.around(np.cross(eckVecs2[mas, 2], eckVecs2[mas, 0]),2) == np.around(eckVecs2[mas,1],2))
+            # yz1=np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) == np.around(eckVecs2[mas, 0],2))
+            # # eckVecs2[mas, 0] *= -1.0  # multiply row by -1, but actually column since this is transposed
+            # # eckVecs2[mas, 1] *= -1.0  # multiply row by -1, but actually column since this is transposed
+            # # eckVecs2[mas,2] *= -1.0 #multiply row by -1, but actually column since this is transposed
+            # xy2=np.where(np.around(np.cross(eckVecs2[mas, 0], eckVecs2[mas, 1]),2) != np.around(eckVecs2[mas, 2],2))
+            # zx2=np.where(np.around(np.cross(eckVecs2[mas, 2], eckVecs2[mas, 0]),2) != np.around(eckVecs2[mas, 1],2))
+            # yz2 =np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) != np.around(eckVecs2[mas, 0],2))
         else:
             minus = 0
             killList2=mas[0]
@@ -1794,11 +1819,12 @@ class molecule (object):
         if len(x) == 1:
             x = np.array([x,x])
         au2ang=0.529177249
+        xp = np.copy(x)*au2ang
         if self.name in ProtonatedWaterTrimer:
             atomStr=['O','O','O','H','H','H','H','H','H','H']
         elif self.name in ProtonatedWaterTetramer:
             atomStr = ['O', 'O', 'O','O', 'H', 'H', 'H', 'H', 'H', 'H', 'H','H','H']  # needs to be updated.  Li, N, Be are for distinguishing atoms in h3o2
-        for i in x:
+        for i in xp:
             fileout.write("%d\nwriteout\n" % len(atomStr))
             for atmn, atm in enumerate(i):
                 fileout.write("%s %5.12f %5.12f %5.12f\n" % (atomStr[atmn],atm[0],atm[1],atm[2]))
