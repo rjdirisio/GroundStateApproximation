@@ -74,7 +74,6 @@ def plotStuff(symEckRotCoords):
         for i in range(q.shape[1]):
             PltHists1D('allH', np.power(q[:, i],4), (-1000, 1000), 'q4_' + str(i), 'tetramerInternals/Probability Denisty',
                    False, symDw)
-    stop
 
     print 'INTERNAL COORDINATES :-O'
     internals = Wfn.molecule.SymInternalsH9O4plus(symEckRotCoords)
@@ -137,12 +136,19 @@ def plotStuff(symEckRotCoords):
     PltHists1D('allH',np.degrees(internals[:, 6]), (0,180), nm[6], 'tetramerInternals/Probability Density',
                False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 7]), (0,360), nm[7], 'tetramerInternals/Probability Density',
+    # PltHists1D('allH', np.degrees(internals[:, 7]), (0,360), nm[7], 'tetramerInternals/Probability Density',
+    #            False,
+    #            symDw)
+    # PltHists1D('allH', np.degrees(internals[:, 8]), (0, 360), nm[8], 'tetramerInternals/Probability Density',
+    #            False,
+    #            symDw)
+    PltHists1D('allH', np.degrees(internals[:, 7]), (-180,180), nm[7], 'tetramerInternals/Probability Density',
                False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 8]), (0, 360), nm[8], 'tetramerInternals/Probability Density',
+    PltHists1D('allH', np.degrees(internals[:, 8]), (-180, 180), nm[8], 'tetramerInternals/Probability Density',
                False,
                symDw)
+
 
     # PltHists1D('allH', internals[:, 6]*angstr, (-5, 5), nm[6], 'tetramerInternals/Probability Density',
     #            False,
@@ -387,7 +393,6 @@ iwantToPlotStuff=False
 path='../spectra/'
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)
-    stop
 else:
     eckt = False
     if os.path.isfile(dipPath + 'eng_dip_' + coordinateSet + '_eckart.npy'):

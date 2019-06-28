@@ -102,7 +102,8 @@ class HarmonicApproxSpectrum(object):
                     badIdx = np.where(bigIdx[1] == 6)
                     # bigIdx = np.where(bigIdx[1]!=6)
                 else:
-                    fixAdjustedEckartStuffInTetramer
+                    badIdx = np.where(bigIdx[1] == 9)
+                    # fixAdjustedEckartStuffInTetramer
 
                 # qual = (np.abs(coordPlus - coordMinus) > 1.0) * (np.abs(coordPlus-coordMinus) < (np.pi+0.5))
                 # print len(coordPlus[qual])
@@ -111,8 +112,8 @@ class HarmonicApproxSpectrum(object):
                 # print len(coordPlus[np.abs(coordPlus-coordMinus) > 1.0]), 'potential theta'
 
                 #For 2pi stuff going from 0 to 2pi
-                qual1 = np.abs(coordPlus - coordMinus) > 1.0
-                print np.sum(qual1),'walkers with weird derivatives'
+                # qual1 = np.abs(coordPlus - coordMinus) > 1.0
+                # print np.sum(qual1),'walkers with weird derivatives'
                 coordPlus[np.abs(coordPlus - coordMinus) > 1.0] += (-1.0 * 2. * np.pi) * np.sign(coordPlus[np.abs(coordPlus - coordMinus) > 1.0])
                 # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
 
@@ -125,7 +126,8 @@ class HarmonicApproxSpectrum(object):
                 if len(badIdx)!=0:
                     print 'Theta H was bad in ',len(badIdx[0]), 'walkers'
                 if len(coordPlus[np.abs(coordPlus-coordMinus) > 1.])>0 :
-                    self.wfn.molecule.printCoordsToFile(eckartRotatedCoords[np.where(np.abs(coordPlus-coordMinus) > 1.0)[0]])
+                    badfl = open("badFile.xyz","w+")
+                    self.wfn.molecule.printCoordsToFile(eckartRotatedCoords[np.where(np.abs(coordPlus-coordMinus) > 1.0)[0]],badfl)
                     add2pifuckyouuuu
                 mwpd2 = (partialderv[:,:,np.newaxis]*partialderv[:,np.newaxis,:])/mass[atom]
                 mwpartialderv_all += mwpd2
@@ -138,6 +140,7 @@ class HarmonicApproxSpectrum(object):
 
     """def calculateG(self, eckartRotatedCoords, descendantWeights):
         # Input is x which is a NAtoms x 3(coordinates) sized array
+        # input is also dx, the perturbation size, usually .001
         # input is also dx, the perturbation size, usually .001
         # output is the G matrix, which is a self.nVibs*self.nVibs sized array (there are self.nVibs internals)
 
@@ -431,69 +434,69 @@ class HarmonicApproxSpectrum(object):
                 lm=np.load('lm_' + walkerSet + ".npy")
 
                 #########################################
-                sumDw = np.sum(dw)
-                if self.wfn.molecule.name in ProtonatedWaterTrimer:
-                    # factors = [1, 2, 3, 4, 6, 279176, 12, 558352, 837528, 24, 32, 48, 69794,
-                    #            2233408, 64, 1675056, 8, 192, 6700224, 1116704, 139588, 96,
-                    #            418764, 34897, 3350112, 16, 209382, 104691]
-                    splitArs = len(q) #smallest, least memory, fastest?
-                    splitArs = 192
-                else:
-                    splitArs = len(q)
-                qsize = q.shape[1]
-                print 'splitting arrays'
+            sumDw = np.sum(dw)
+            if self.wfn.molecule.name in ProtonatedWaterTrimer:
+                # factors = [1, 2, 3, 4, 6, 279176, 12, 558352, 837528, 24, 32, 48, 69794,
+                #            2233408, 64, 1675056, 8, 192, 6700224, 1116704, 139588, 96,
+                #            418764, 34897, 3350112, 16, 209382, 104691]
+                splitArs = len(q) #smallest, least memory, fastest?
+                splitArs = 192
+            else:
+                splitArs = len(q)
+            qsize = q.shape[1]
+            print 'splitting arrays'
 
-                if len(dw) % splitArs != 0.0:
-                    print 'not divisible~!!!'
-                    octopus
+            if len(dw) % splitArs != 0.0:
+                print 'not divisible~!!!'
+                octopus
 
-                # Reshaping for chopping instead of array splits
-                q = np.reshape(q, (splitArs, nwalkers / splitArs, -1))
-                bq2aq1 = np.reshape(bq2aq1, (splitArs, nwalkers / splitArs, -1))
-                potE = np.reshape(potE, (splitArs, nwalkers / splitArs))
-                dw = np.reshape(dw, (splitArs, nwalkers / splitArs))
-                lm = np.reshape(lm, (splitArs, nwalkers / splitArs, -1))
+            # Reshaping for chopping instead of array splits
+            q = np.reshape(q, (splitArs, nwalkers / splitArs, -1))
+            bq2aq1 = np.reshape(bq2aq1, (splitArs, nwalkers / splitArs, -1))
+            potE = np.reshape(potE, (splitArs, nwalkers / splitArs))
+            dw = np.reshape(dw, (splitArs, nwalkers / splitArs))
+            lm = np.reshape(lm, (splitArs, nwalkers / splitArs, -1))
 
-                # q = np.array_split(q, splitArs)
-                # bq2aq1 = np.array_split(bq2aq1, splitArs)
-                # potE = np.array_split(potE, splitArs)
-                # dw = np.array_split(dw, splitArs)
-                # lm = np.array_split(lm, splitArs)
+            # q = np.array_split(q, splitArs)
+            # bq2aq1 = np.array_split(bq2aq1, splitArs)
+            # potE = np.array_split(potE, splitArs)
+            # dw = np.array_split(dw, splitArs)
+            # lm = np.array_split(lm, splitArs)
 
-                cyc = 0
-                fuco = np.zeros((qsize, lnsize))
-                ovco = np.zeros((qsize, lnsize))
-                hfuco = np.zeros((qsize, lnsize))
-                hovco = np.zeros((qsize, lnsize))
-                coco = np.zeros((lnsize, lnsize))
-                hcoco = np.zeros((lnsize, lnsize))
+            cyc = 0
+            fuco = np.zeros((qsize, lnsize))
+            ovco = np.zeros((qsize, lnsize))
+            hfuco = np.zeros((qsize, lnsize))
+            hovco = np.zeros((qsize, lnsize))
+            coco = np.zeros((lnsize, lnsize))
+            hcoco = np.zeros((lnsize, lnsize))
 
-                for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
+            for qq, bb, pp, dd, ll in itertools.izip(q, bq2aq1, potE, dw, lm):
 
-                    print 'cycle', cyc, 'out of ', splitArs
-                    if cyc == 0:
-                        st = time.time()
-                    fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-                    ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-                    hfuco += np.sum(
-                        qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
-                    hovco += np.sum(
-                        bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
-                    coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
-                    hcoco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
-                    cyc += 1
-                    print time.time()-st , 'secs'
-                ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
-                g = ovlas[0] + nvibs2 + 1
-                h = ovlas[1] + nvibs2 + 1
-                asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
-                overlap2[tuple((g, h))] = coco[asco] / sumDw
-                overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
-                overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
-                ham2[tuple((g, h))] = hcoco[asco] / sumDw
-                ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
-                ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
-                #########################################
+                print 'cycle', cyc, 'out of ', splitArs
+                if cyc == 0:
+                    st = time.time()
+                fuco += np.sum(qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                ovco += np.sum(bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                hfuco += np.sum(
+                    qq[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
+                hovco += np.sum(
+                    bb[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
+                coco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * dd[:, np.newaxis, np.newaxis], axis=0)
+                hcoco += np.sum(ll[:, :, np.newaxis] * ll[:, np.newaxis, :] * pp[:, np.newaxis, np.newaxis] * dd[:, np.newaxis,np.newaxis],axis=0)
+                cyc += 1
+                print time.time()-st , 'secs'
+            ovlas = np.triu_indices_from(overlap2[nvibs2 + 1:, nvibs2 + 1:], k=1)
+            g = ovlas[0] + nvibs2 + 1
+            h = ovlas[1] + nvibs2 + 1
+            asco = np.triu_indices_from(np.zeros((lnsize, lnsize)), k=1)
+            overlap2[tuple((g, h))] = coco[asco] / sumDw
+            overlap2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = fuco / sumDw  # FC
+            overlap2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = ovco / sumDw
+            ham2[tuple((g, h))] = hcoco[asco] / sumDw
+            ham2[1:self.nVibs + 1, self.nVibs * 2 + 1:] = hfuco / sumDw
+            ham2[self.nVibs + 1:2 * self.nVibs + 1, self.nVibs * 2 + 1:] = hovco / sumDw
+            #########################################
         else:
             print 'smol Mem Activated'
             lst = []
@@ -547,13 +550,13 @@ class HarmonicApproxSpectrum(object):
 
         # com, eckVecs = self.wfn.molecule.eckartRotate(coords)
         #print dips
-        if testName == 'oxEck':
-            justO = True
-        else:
-            justO = False
+        # if testName == 'oxEck':
+        #     justO = True
+        # else:
+        #     justO = False
         if not ecked:
             print 'getting eckarted dipole moments. . .'
-            com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO)
+            com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False)
             dips = dips - com  # added this to shift dipole to center of mass before eckart roatation - translation of dipole should NOT matter
             #print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
             dipoleMoments = np.zeros(np.shape(dips))
@@ -614,7 +617,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
             overlapMs = self.path + 'redH/'
@@ -1017,6 +1020,7 @@ class HarmonicApproxSpectrum(object):
         else:
             assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
         for i,(vec,q2) in enumerate(zip(TransformationMatrix,eigval)):
+            assignF.write("%d\n" % i)
             if verbose: print '\n',i,':<q^2 >=',q2
             #        alpha[i]=alpha[i]/(firstterm-(alpha[i]*alpha[i]))                                                            
             if verbose: print 'vec    ',vec

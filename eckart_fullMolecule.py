@@ -10,7 +10,7 @@ from matplotlib.pyplot import cm
 import DMCClusters as dmc
 Wfn=dmc.wavefunction('H7O3+', 1)
 xx=np.load("../coordinates/trimer/final_allH.npy")
-# xx = xx[[0,1,421,541]]
+xx = xx[[0,1,421,541]]
 orig = np.copy(xx)
 com,evec,killL = Wfn.molecule.eckartRotate(xx)
 xx-=com[:,np.newaxis,:]

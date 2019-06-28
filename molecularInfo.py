@@ -918,8 +918,8 @@ class molecule (object):
         # return dh1,dh2,dh3,xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
 
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx,cart=True)
-        # ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+        # ocom, eVecs,kil=self.eckartRotate(xx,cart=True)
+        ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
 
         print 'got matrix'
         xx-=ocom[:,np.newaxis,:]
@@ -1027,8 +1027,8 @@ class molecule (object):
 
     def finalTrimerHydEuler(self,xx):
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
-        # ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
+        # ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+        ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
         print 'got Cart matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
@@ -1234,32 +1234,33 @@ class molecule (object):
 
     def pullTetramerRefPos(self,yz): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
         """goes O1,O2,O3,O4,..H12"""
-        # myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
-        #                    [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
-        #                    [-4.16865752E+00, -2.40677554E+00, 1.18329136E-30],
-        #                    [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
-        #                    [1.79529146E-16,  5.90334467E+00, -1.46596673E+00],
-        #                    [-3.94430453E-31,  5.90334467E+00,  1.46596673E+00],
-        #                    [5.11244645E+00, -2.95167233E+00,  1.46596673E+00],
-        #                    [5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
-        #                    [-5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
-        #                    [-5.11244645E+00, -2.95167233E+00, 1.46596673E+00],
-        #                    [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
-        #                    [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
-        #                    [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
-        myRefCOM = np.array([[-4.64953331e+00,  1.24583870e+00,  3.55153419e-32],
-                             [ 3.40369461e+00,  3.40369461e+00, -1.29965664e-30],
-                             [ 1.24583870e+00, -4.64953331e+00,  1.26414130e-30],
-                             [ 3.21975274e-09, -8.62730146e-10,  8.08499391e-32],
-                             [-5.70219308e+00,  1.52789803e+00, -1.46596673e+00],
-                             [-5.70219308e+00,  1.52789803e+00,  1.46596673e+00],
-                             [ 4.17429505e+00,  4.17429505e+00,  1.46596673e+00],
-                             [ 4.17429505e+00,  4.17429505e+00, -1.46596673e+00],
-                             [ 1.52789803e+00, -5.70219308e+00, -1.46596673e+00],
-                             [ 1.52789803e+00, -5.70219308e+00,  1.46596673e+00],
-                             [ 1.34769547e+00,  1.34769547e+00, -4.12188127e-31],
-                             [4.93290781e-01, -1.84098625e+00, 4.75280392e-31],
-                             [-1.84098624e+00,  4.93290777e-01,  6.35582926e-32]])
+        myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
+                           [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
+                           [-4.16865752E+00, -2.40677554E+00, 1.18329136E-30],
+                           [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
+                           [1.79529146E-16,  5.90334467E+00, -1.46596673E+00],
+                           [-3.94430453E-31,  5.90334467E+00,  1.46596673E+00],
+                           [5.11244645E+00, -2.95167233E+00,  1.46596673E+00],
+                           [5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
+                           [-5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
+                           [-5.11244645E+00, -2.95167233E+00, 1.46596673E+00],
+                           [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
+                           [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
+                           [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
+        # myRefCOM = np.array([[-4.64953331e+00,  1.24583870e+00,  3.55153419e-32],
+        #                      [ 3.40369461e+00,  3.40369461e+00, -1.29965664e-30],
+        #                      [ 1.24583870e+00, -4.64953331e+00,  1.26414130e-30],
+        #                      [ 3.21975274e-09, -8.62730146e-10,  8.08499391e-32],
+        #                      [-5.70219308e+00,  1.52789803e+00, -1.46596673e+00],
+        #                      [-5.70219308e+00,  1.52789803e+00,  1.46596673e+00],
+        #                      [ 4.17429505e+00,  4.17429505e+00,  1.46596673e+00],
+        #                      [ 4.17429505e+00,  4.17429505e+00, -1.46596673e+00],
+        #                      [ 1.52789803e+00, -5.70219308e+00, -1.46596673e+00],
+        #                      [ 1.52789803e+00, -5.70219308e+00,  1.46596673e+00],
+        #                      [ 1.34769547e+00,  1.34769547e+00, -4.12188127e-31],
+        #                      [4.93290781e-01, -1.84098625e+00, 4.75280392e-31],
+        #                      [-1.84098624e+00,  4.93290777e-01,  6.35582926e-32]])
+        myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
         #Rotate such that Z is along OOOOPlane
         #th = np.deg2rad(90.)
         if yz:
@@ -1323,10 +1324,7 @@ class molecule (object):
         if self.name in ProtonatedWaterTrimer:
             self.refPos = self.pullTrimerRefPos(yz)
         else:
-            if self.isotope == 'notDeuterated':
-                self.refPos = self.pullTetramerRefPos(yz)
-            else:
-                self.refPos = self.pullTetramerRefPos(True)
+            self.refPos = self.pullTetramerRefPos(yz)
         if len(pos.shape)<3:
             pos=np.array([pos])
         #Center of Mass
@@ -1354,6 +1352,8 @@ class molecule (object):
                 pos = pos[:, [4-1,13-1,11-1,12-1],:]
             else:
                 com = np.dot(mass, pos) / np.sum(mass)
+                refCOM = np.dot(mass,self.refPos) / np.sum(mass)
+
         elif self.name in ProtonatedWaterTrimer:
             if justO or cart:  # the OOO plane
                 self.refPos = self.refPos[:3]
@@ -1405,7 +1405,7 @@ class molecule (object):
             eckVecs2[:,:,indZ] =  np.matmul(np.transpose(myFp, (0, 2, 1)), invRootF2) #.transpose((0,2,1))
             if indZ[0] == 0 and indZ[1] == 2: #then we have to cross z cross x
                 eckVecs2[:,:,np.setdiff1d(all3,indZ)[0]] = np.cross(eckVecs2[:,:,indZ[1]],eckVecs2[:,:,indZ[0]])
-            else:
+            else: #others can use the same generic formula because it's a "forward" cross pdt (x x y ; y x z)
                 eckVecs2[:, :, np.setdiff1d(all3, indZ)[0]] = np.cross(eckVecs2[:, :, indZ[0]], eckVecs2[:, :,indZ[1]])
             print 'done with planar'
         else:
@@ -1448,7 +1448,7 @@ class molecule (object):
             # yz2 =np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) != np.around(eckVecs2[mas, 0],2))
         else:
             minus = 0
-            killList2=mas[0]
+            # killList2=mas[0]
         plus=len(ShiftedMolecules)-minus
         print 'Plus rotation: ',plus
         print 'Inverted Rotation: ',minus
