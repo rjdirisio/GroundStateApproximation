@@ -314,6 +314,8 @@ if os.path.isfile(cds+'.npy'):
     symDw = np.load(cds+'_dw.npy')
 else:
     symCoords, symDw = Wfn.loadCoords(cds)
+    if 'bad' in cds:
+        symCoords/=angstr
     # if 'origMin' in cds:
     #     symCoords/=(angstr**2)
     # #symCoords=np.concatenate((symCoords,symCoords))/angstr
