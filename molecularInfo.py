@@ -1027,8 +1027,8 @@ class molecule (object):
 
     def finalTrimerHydEuler(self,xx):
         print 'eckarting...'
-        # ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
-        ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
+        ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+        # ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
         print 'got Cart matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
@@ -1247,22 +1247,21 @@ class molecule (object):
                            [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
                            [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
                            [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
-        # myRefCOM = np.array([[-4.64953331e+00,  1.24583870e+00,  3.55153419e-32],
-        #                      [ 3.40369461e+00,  3.40369461e+00, -1.29965664e-30],
-        #                      [ 1.24583870e+00, -4.64953331e+00,  1.26414130e-30],
-        #                      [ 3.21975274e-09, -8.62730146e-10,  8.08499391e-32],
-        #                      [-5.70219308e+00,  1.52789803e+00, -1.46596673e+00],
-        #                      [-5.70219308e+00,  1.52789803e+00,  1.46596673e+00],
-        #                      [ 4.17429505e+00,  4.17429505e+00,  1.46596673e+00],
-        #                      [ 4.17429505e+00,  4.17429505e+00, -1.46596673e+00],
-        #                      [ 1.52789803e+00, -5.70219308e+00, -1.46596673e+00],
-        #                      [ 1.52789803e+00, -5.70219308e+00,  1.46596673e+00],
-        #                      [ 1.34769547e+00,  1.34769547e+00, -4.12188127e-31],
-        #                      [4.93290781e-01, -1.84098625e+00, 4.75280392e-31],
-        #                      [-1.84098624e+00,  4.93290777e-01,  6.35582926e-32]])
         myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
-        #Rotate such that Z is along OOOOPlane
-        #th = np.deg2rad(90.)
+
+        # myRefCOM = np.array([[ 0.      ,  0.      ,  0.      ], #RACHELS
+        #                    [ 0.      , -0.      ,  2.5696  ],
+        #                    [ 0.      , -0.      ,  1.5571  ],
+        #                    [ 0.792121, -0.074412, -0.550364],
+        #                    [-0.631119,  0.524128, -0.513472],
+        #                    [ 0.882556,  0.319984,  2.950348],
+        #                    [ 2.214579,  1.785388,  3.937318],
+        #                    [ 2.946939,  0.430003,  3.841332],
+        #                    [ 2.212682,  0.938298,  3.468813],
+        #                    [-0.290123, -0.88889 ,  2.959053],
+        #                    [-0.658888, -3.081611,  3.326199],
+        #                    [-1.542276, -2.198765,  4.234011],
+        #                    [-0.744838, -2.187377,  3.685491]])
         if yz:
             # #O2 being y axis
             # th = np.deg2rad(-(75.+90))
@@ -1435,7 +1434,7 @@ class molecule (object):
             fileout = open("invDet.xyz","w+")
             mas = np.array(mas[0])
             self.printCoordsToFile(np.concatenate((ShiftedMolecules[0][None,:,:],ShiftedMolecules[killList2[0]][:4])), fileout)
-            eckVecs2[mas,2] *= -1.0 #multiply row by -1, but actually column since this is transposed
+            eckVecs2[mas, 2] *= -1.0  # multiply row by -1, but actually column since this is transposed
             minus = len(mas)
             # xy1=np.where(np.around(np.cross(eckVecs2[mas,0],eckVecs2[mas,1]),2) == np.around(eckVecs2[mas,2],2))
             # zx1=np.where(np.around(np.cross(eckVecs2[mas, 2], eckVecs2[mas, 0]),2) == np.around(eckVecs2[mas,1],2))
@@ -1606,29 +1605,34 @@ class molecule (object):
                 self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
                 mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
         elif self.name in ProtonatedWaterTetramer:
-            mass = np.array([massO, massO, massO, massO, massH, massH, massH, massH, massH, massH, massH,massH,massH])
-            if self.isotope == 'DeuteratedOnce_eigen':
-                mass[10] = massD
-                self.names = ['O', 'O', 'O', 'O','H','H','H','H','H','H','D','H','H']
-            #elif self.isotope == 'DeuteratedOnce_fw':
-            #    mass[3] = massD
-            #    self.names = ['O', 'O', 'O', 'H', 'D', 'D', 'D', 'D', 'D', 'D']
-            #elif self.isotope == 'notDeuterated':
-            #    print ':)'
-            elif self.isotope == 'fullyDeuterated':
-                mass = np.array([massO, massO, massO,massO, massD, massD, massD, massD, massD, massD, massD,massD,massD])
-            elif self.isotope == 'notDeuteratedOnce_eigen':
-                self.names = ['O', 'O', 'O','O','D', 'D', 'D', 'D', 'D', 'D', 'H','D','D']
-                mass = np.array([massO, massO, massO, massO,massD, massD, massD, massD, massD, massD, massH, massD, massD])
-            elif self.isotope == 'notDeuteratedOnce_fw':
-                self.names = ['O', 'O', 'O','O','H', 'D','D','D', 'D', 'D', 'D', 'D', 'D']
-                mass = np.array([massO, massO, massO,massO, massH, massD, massD, massD, massD, massD, massD, massD, massD])
-            #elif self.isotope == 'DeuteratedOnce_hydronium':
-            #    self.names = ['O', 'O', 'O', 'H', 'H', 'H', 'H', 'D', 'H', 'H']
-            #    mass[7] = massD
-            #elif self.isotope == 'notDeuteratedOnce_hydronium':
-            #    self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
-            #    mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
+            rachel = False
+            if rachel:
+                self.names = ["O","O", "H", "D", "D", "D", "D", "D", "O", "D", "D", "D", "O"]
+                mass = np.array([massO,massO,massH,massD,massD,massD,massD,massD,massO,massD,massD,massD,massO])
+            else:
+                mass = np.array([massO, massO, massO, massO, massH, massH, massH, massH, massH, massH, massH,massH,massH])
+                if self.isotope == 'DeuteratedOnce_eigen':
+                    mass[10] = massD
+                    self.names = ['O', 'O', 'O', 'O','H','H','H','H','H','H','D','H','H']
+                #elif self.isotope == 'DeuteratedOnce_fw':
+                #    mass[3] = massD
+                #    self.names = ['O', 'O', 'O', 'H', 'D', 'D', 'D', 'D', 'D', 'D']
+                #elif self.isotope == 'notDeuterated':
+                #    print ':)'
+                elif self.isotope == 'fullyDeuterated':
+                    mass = np.array([massO, massO, massO,massO, massD, massD, massD, massD, massD, massD, massD,massD,massD])
+                elif self.isotope == 'notDeuteratedOnce_eigen':
+                    self.names = ['O', 'O', 'O','O','D', 'D', 'D', 'D', 'D', 'D', 'H','D','D']
+                    mass = np.array([massO, massO, massO, massO,massD, massD, massD, massD, massD, massD, massH, massD, massD])
+                elif self.isotope == 'notDeuteratedOnce_fw':
+                    self.names = ['O', 'O', 'O','O','H', 'D','D','D', 'D', 'D', 'D', 'D', 'D']
+                    mass = np.array([massO, massO, massO,massO, massH, massD, massD, massD, massD, massD, massD, massD, massD])
+                #elif self.isotope == 'DeuteratedOnce_hydronium':
+                #    self.names = ['O', 'O', 'O', 'H', 'H', 'H', 'H', 'D', 'H', 'H']
+                #    mass[7] = massD
+                #elif self.isotope == 'notDeuteratedOnce_hydronium':
+                #    self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
+                #    mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
         elif self.name in Water:
             mass = np.array([massO,massH,massH])
         return mass*massConversionFactor
@@ -1823,7 +1827,8 @@ class molecule (object):
         if self.name in ProtonatedWaterTrimer:
             atomStr=['O','O','O','H','H','H','H','H','H','H']
         elif self.name in ProtonatedWaterTetramer:
-            atomStr = ['O', 'O', 'O','O', 'H', 'H', 'H', 'H', 'H', 'H', 'H','H','H']  # needs to be updated.  Li, N, Be are for distinguishing atoms in h3o2
+            atomStr=["O", "O", "H", "H", "H", "H", "H", "H", "O", "H", "H", "H", "O"]
+            # atomStr = ['O', 'O', 'O','O', 'H', 'H', 'H', 'H', 'H', 'H', 'H','H','H']  # needs to be updated.  Li, N, Be are for distinguishing atoms in h3o2
         for i in xp:
             fileout.write("%d\nwriteout\n" % len(atomStr))
             for atmn, atm in enumerate(i):
