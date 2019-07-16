@@ -581,7 +581,7 @@ class HarmonicApproxSpectrum(object):
         #     justO = False
         if not ecked:
             print 'getting eckarted dipole moments. . .'
-            com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False)
+            com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False,yz=True)
             dips = dips - com  # added this to shift dipole to center of mass before eckart roatation - translation of dipole should NOT matter
             #print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
             dipoleMoments = np.zeros(np.shape(dips))
@@ -596,6 +596,7 @@ class HarmonicApproxSpectrum(object):
             dipoleMoments = dips
             print 'dips loaded from eckart',dipoleMoments[0]
             del dips
+        # stoptopus
         #dips = dips*ang2bohr
         #First, What is the G Matrix for this set of walkers based on the SymInternals coordinates
         if not os.path.isfile('q_'+setOfWalkers+'.npy'):
