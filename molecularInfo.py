@@ -296,36 +296,9 @@ class molecule (object):
 
 
     def V(self,x):
-        #print 'v',self.surfaceName,self.side,
         if self.name in Water:
             print '0.0'
         v=np.array([self.potential(cart_in) for cart_in in x])
-        #if self.surfaceName=='SharedProton':
-        #    if self.side=='Right':
-        #        r=self.calcRn(x)
-        #        v[(r<0)]=1000.00
-        #    elif self.side=='Left':
-        #        r=self.calcRn(x)
-        #        v[(r>0)]=1000.00
-        #    else:
-        #        donothing=1
-        #elif self.surfaceName=='OHStretchAnti':
-        #    #if self.side=='Both':
-        #    #    r,swap=self.calcStretchAnti(x)
-        #    #    if (len(swap)>0):
-        #    #        print 'swap list', swap, 'v before',v[swap],
-        #    #        v[np.array(swap)]=1000.00
-        #    #        print 'v after', v[swap]
-        #    if self.side=='Right':      
-        #        #swap=self.sortProtons()
-        #        r=self.calcStretchAnti(x)
-        #        v[(r<0)]=1000.00
-        #    elif self.side=='Left':
-        #        #swap=self.sortProtons()
-        #        r=self.calcStretchAnti(x)
-        #        v[(r>0)]=1000.00
-        #    else:
-        #        donothing=1
         return v
 
     def calcDipole(self,x,eckartRotated=False):
@@ -336,76 +309,6 @@ class molecule (object):
         dipoleVectors=self.dipole(eckRotx)
 
         return dipoleVectors
-
-    """def rotateDipoleToFrame(self,coordz,dips): 
-        #This is not in use
-        print 'RotatingWalkers'
-        print 'dip shape', np.shape(dips)
-        numWalkers = coordz.shape[0]
-        # print coordz[0] #a single walker
-        # print coordz[0,1] #the second atom's xyz coordinates
-        # translation back to Origin
-        o3 = coordz[:, 3 - 1].reshape(numWalkers, 1, 3)
-        #print 'o3 shape', np.shape(o3)
-        trCoordz = copy.deepcopy(coordz - o3)
-        o3 = o3.reshape(numWalkers,3)
-        #print 'o3 shape', np.shape(o3)
-        trDips = copy.deepcopy(dips-o3[:])
-        #print 'trDip shape', np.shape(trDips)
-
-        # Rotation of O2 to x axis
-        # Construct rotation matrix for a single walker
-        theta = np.zeros(numWalkers)
-        alpha = np.zeros(numWalkers)
-        dip2 = np.zeros(trDips.shape)
-        xaxtrCoordz = np.zeros(np.shape(trCoordz))
-        o2 = trCoordz[:, 2 - 1].reshape(numWalkers, 1, 3)
-
-        for walker in range(numWalkers):
-            z = o2[walker, 0, 2]
-            y = o2[walker, 0, 1]
-            x = o2[walker, 0, 0]
-            theta[walker] = np.arctan2(-1 * z, y)
-            alpha[walker] = np.arctan2((-1 * (
-                    y * np.cos(theta[walker]) - np.sin(theta[walker]) * z)), x)
-            r1 = np.array([[1, 0, 0],
-                           [0, np.cos(theta[walker]), -1 * np.sin(theta[walker])],
-                           [0, np.sin(theta[walker]), np.cos(theta[walker])]]
-                          )
-            r2 = np.array([[np.cos(alpha[walker]), -1 * np.sin(alpha[walker]), 0],
-                           [np.sin(alpha[walker]), np.cos(alpha[walker]), 0],
-                           [0, 0, 1]]
-                          )
-            rotM = np.dot(r2, r1)
-            na = 0
-            for coord in trCoordz[walker]:
-                xaxtrCoordz[walker, na] = np.dot(rotM, coord)
-                na += 1
-            dip2[walker] = np.dot(rotM,trDips[walker])
-        print dip2.shape
-        # print 'xaxtrCoords: ',xaxtrCoordz[0]
-        # Rotation of O1 to xyplane
-        #finalCoords = np.zeros(np.shape(xaxtrCoordz))
-        finalDips = np.zeros(np.shape(dip2))
-        print finalDips.shape
-        o1 = xaxtrCoordz[:, 1 - 1].reshape(numWalkers, 1, 3)
-        beta = np.zeros(numWalkers)
-        for walker in range(numWalkers):
-            z = o1[walker, 0, 2]
-            y = o1[walker, 0, 1]
-            x = o1[walker, 0, 0]
-            beta[walker] = np.arctan2(-1 * z, y)
-            r = np.array([[1, 0, 0],
-                          [0, np.cos(beta[walker]), -1 * np.sin(beta[walker])],
-                          [0, np.sin(beta[walker]), np.cos(beta[walker])]]
-                         )
-            naa = 0
-            #for coord in xaxtrCoordz[walker]: no need to rotate last walkers - just need dipole
-            #    finalCoords[walker, naa] = np.dot(r, coord)
-            #    naa += 1
-            finalDips[walker] = np.dot(r, dip2[walker])
-        # print finalCoords
-        return np.round(finalDips, 12)"""
 
     def rotateBackToFrame(self,coordz,a,b,c):        #use the rotation matrices that I always use to reshape each coordinate back to its reference frame
         #print coordz[1]
@@ -469,8 +372,6 @@ class molecule (object):
         lens = la.norm(atmO-atmT,axis=1)
         return lens
 
-
-    #umbrell = self.ba(addedX, H2, O, 13)  # 4 11 0 now O H1 0
     def ba(self,xx,atm1,atm2,atm3): #left center right
         #Rotation of O1 to xyplane
         atmO = xx[:,atm1,:]
@@ -517,30 +418,20 @@ class molecule (object):
             internals = self.SymInternalsH9O4plus(x)
 
             return internals
-        #elif self.name in ProtonatedWaterTetramer:
-        #    return self.SymInternalsH9O4plus(x,printFlag=printFlag)
         else:
             print 'woefully unprepared to handle the calculation of the SymInternals for ', self.molecule
-            #crash
-
-
-    #def bondlength(self,pos,atom1=1,atom2=3):
-    #    length=(pos[:,atom1,0]-pos[:,atom2,0])**2+(pos[:,atom1,1]-pos[:,atom2,1])**2+(pos[:,atom1,2]-pos[:,atom2,2])**2
-    #    length=np.sqrt(length)
-    #    return length
+            crash
 
     def PltHists1D(self,cfg, thing, bound, xl, yl, overly, weits):
         if len(thing) > 90: #if len(thing) == 2: Just changed currently for plotting purposes
             theLen, xx = np.histogram(thing, bins=75, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY
             inin = True
-            #overlay = False
         else:
             inin = False
             c = 0
             theLen = np.zeros((np.size(thing), 75))
             for i in thing:
-                theLen[c], xx = np.histogram(i, bins=75, range=bound, normed=True,
-                                             weights=weits[c])  # WEIGHTS=WEIGHTARRAY
+                theLen[c], xx = np.histogram(i, bins=75, range=bound, normed=True,weights=weits[c])  # WEIGHTS=WEIGHTARRAY
                 c += 1
         bnd = str(bound[0]).replace(".", "").replace("-", "") + str(bound[1]).replace(".", "").replace("-", "")
         print bnd
@@ -549,10 +440,8 @@ class molecule (object):
 
     def PltHists2D(self,cfg, thing1, thing2, bound1, bound2, xl, yl, overly, weits):
         if len(thing1) == 2:
-            theLen, xx, yy = np.histogram2d(thing1, thing2, bins=75, range=(bound1, bound2), normed=True,
-                                            weights=weits)  # WEIGHTS=WEIGHTARRAY
+            theLen, xx, yy = np.histogram2d(thing1, thing2, bins=75, range=(bound1, bound2), normed=True,                                            weights=weits)  # WEIGHTS=WEIGHTARRAY
             inin = True
-            overlay = False
         else:
             inin = False
             c = 0
@@ -560,8 +449,7 @@ class molecule (object):
             print np.size(theLen)
             print np.size(theLen[0])
             for i, j in zip(thing1, thing2):
-                theLen[c], x2x, y2y = np.histogram2d(i, j, bins=75, range=(bound1, bound2), normed=True,
-                                                     weights=weits[c])  # WEIGHTS=WEIGHTARRAY
+                theLen[c], x2x, y2y = np.histogram2d(i, j, bins=75, range=(bound1, bound2), normed=True,weights=weits[c])  # WEIGHTS=WEIGHTARRAY
                 c += 1
         bnd1 = str(bound1[0]).replace(".", "").replace("-", "") + str(bound1[1]).replace(".", "").replace("-", "")
         bnd2 = str(bound2[0]).replace(".", "").replace("-", "") + str(bound2[1]).replace(".", "").replace("-", "")
@@ -581,7 +469,6 @@ class molecule (object):
         print xx[:,1-1].shape
         zaxis = np.cross(xx[:,1-1]-xx[:,3-1],xx[:,2-1]-xx[:,3-1],axis=1)
         yaxis = np.cross(zaxis,xaxis,axis=1)
-        #xcomp11 = ((xx[:,atmnm-1]-mp)*X).sum(axis=1)
         xcomp = ((xx[:,atmnm-1] - mp)*xaxis).sum(axis=1)
         ycomp = ((xx[:,atmnm-1] - mp)*yaxis).sum(axis=1)
         zcomp = ((xx[:,atmnm-1] - mp)*zaxis).sum(axis=1)
@@ -592,10 +479,6 @@ class molecule (object):
         bisector2 = la.norm(right - middle, axis=1).reshape(-1, 1) * (left - middle)
         normedbisector = la.norm(bisector1 + bisector2, axis=1).reshape(-1, 1)
         bisector = (bisector1 + bisector2) / normedbisector
-        #test = np.arccos(((left-middle)*bisector).sum(axis=1)/(la.norm(left)*la.norm(bisector)))
-        #test2 = np.arccos(((right-middle) * bisector).sum(axis=1) / (la.norm(right) * la.norm(bisector)))
-        #test3= np.arccos(((right-middle) * (left-middle)).sum(axis=1) / (la.norm(right) * la.norm(left)))
-        #print 'testing'
         return bisector
 
     def xyzFreeHydronium(self,xx):
@@ -620,23 +503,11 @@ class molecule (object):
         Y = np.cross(Z, X, axis=1)
 
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
-        #I EDITED THIS ON SATURDAY AFTER I RAN THE MOST RECENT RESULTS _ CAN RUN AGAIN ON MONDAY WITH THIS ADDITION.
         exx = np.copy(x)
         x = np.copy(y)
         y = np.copy(z)
         z = np.copy(exx)
-        #
-        # exx = np.copy(x)
-        # x = np.copy(z)
-        # z = np.copy(y)
-        # y = np.copy(exx)
-        #
         print 'lets get weird'
-        # exX = np.copy(X)
-        # X = np.copy(Y)
-        # Y = np.copy(Z)
-        # Z = np.copy(exX)
-        #
         exX = np.copy(X)
         X = np.copy(Z)
         Z = np.copy(Y)
@@ -745,7 +616,6 @@ class molecule (object):
                     wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
                 wf.write("\n")
             wf.close()
-        # # print 'addedLindseyCoords.shapes', addedLindseyCoords.shape
         umbrell = self.ba(addedX, H2, O, -1)  # 4 11 0 now O H1 0
         print np.degrees(umbrell)
         return umbrell
@@ -770,9 +640,6 @@ class molecule (object):
         ZBig = np.cross(xx[:,at2-1]-dummy,xx[:,at3-1]-dummy,axis=1)
         #test = la.norm(ZBig,axis=1)
         ZBig /= la.norm(ZBig,axis=1)[:,None]
-        #mp = (center + oW) / 2 #no decimal
-        #print mp
-        #sharedH = xx[:, atmnm - 1, :]  # Coordinates of shared Hydrogen
         xaxisp = np.divide((center - oW), la.norm(center - oW, axis=1).reshape(-1,1))  # Normalized coordinates of xpaxis definition. aka vector with only x component, where x = 1
         oaHat=np.copy(xaxisp)
         OB=dummy-oW
@@ -1162,72 +1029,13 @@ class molecule (object):
                  [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]]) #6 and 7 better alinged with walkers themselves rather than my printout.
         if not yz:
             print 'normal ref pos'
-            # sqr2 = np.sqrt(2) / 2.
-            # rotM = np.array([[sqr2, -sqr2, 0.],
-            #              [sqr2, sqr2, 0.],
-            #              [0., 0., 1.]
-            #              ])
-            # myBetterRef= np.dot(rotM,myBetterRef.T).T
-            # rotM = np.array([[1.,0.,0.],
-            #              [0, 0., -1.],
-            #              [0.,1.,0.]])
-            # # rotM = np.array([[0.,0.,1.],
-            # #              [0, 1, 0],
-            # #              [-1.,0,0.]
-            # #              ])
-            # # rotM = np.array([[1., 0., 0.],
-            # #                   [0, sqr2, -sqr2],
-            # #                   [0., sqr2, sqr2]
-            # # #                   ])
-            # rotM = np.array([[sqr2, 0., sqr2],
-            #                   [0, 1, 0],
-            #                   [-sqr2, 0, sqr2]
-            #                   ])
-            # return np.dot(rotM,myBetterRef.T).T
             return myBetterRef
         else:
-            print 'yz'
-
+            print 'yz - ref structure turned'
             rotM = np.array([[0.,0.,1.],
                          [0, 1, 0],
                          [-1.,0,0.]
                          ])
-            # rotM = np.array([[1.,0.,0.],
-            #              [0, 0., -1.],
-            #              [0.,1.,0.]])
-
-            # # rotM2 = np.array([[1.,0.,0.],
-            # #              [0, -1., 0.],
-            # #              [0.,0.,-1.]])
-
-            #
-            # sqr2=np.sqrt(2) / 2.
-            # rotM = np.array([[sqr2, -sqr2, 0.],
-            #                  [sqr2, sqr2, 0.],
-            #                  [0., 0., 1.]
-            #                  ])
-
-            # rotM = np.array([[sqr2, 0., sqr2],
-            #                   [0, 1, 0],
-            #                   [-sqr2, 0, sqr2]
-            #                   ])
-            # rotM = np.array([[1., 0., 0.],
-            #                   [0, sqr2, -sqr2],
-            #                   [0., sqr2, sqr2]
-            #                   ])
-            #z rotation.
-            # rotM3=np.array([[0.70710678, -0.70710678, 0.],
-            #        [0.70710678, 0.70710678, 0.],
-            #        [0., 0., 1.]])
-            # rotM=np.array([[0, -1., 0.],
-            #        [1., 0., 0.],
-            #        [0., 0., 1.]])
-            # myBetterRef = np.dot(rotM, myBetterRef.T).T
-            # #rotation about x
-            # rotM = np.array([[1., 0., 0.],
-            #                   [0, sqr2, -sqr2],
-            #                   [0., sqr2, sqr2],
-            #                   ])
             myBetterRef= np.dot(rotM,myBetterRef.T).T
 
             return myBetterRef #myRef2
@@ -1249,55 +1057,28 @@ class molecule (object):
                            [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
         myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
 
-        # myRefCOM = np.array([[ 0.      ,  0.      ,  0.      ], #RACHELS
-        #                    [ 0.      , -0.      ,  2.5696  ],
-        #                    [ 0.      , -0.      ,  1.5571  ],
-        #                    [ 0.792121, -0.074412, -0.550364],
-        #                    [-0.631119,  0.524128, -0.513472],
-        #                    [ 0.882556,  0.319984,  2.950348],
-        #                    [ 2.214579,  1.785388,  3.937318],
-        #                    [ 2.946939,  0.430003,  3.841332],
-        #                    [ 2.212682,  0.938298,  3.468813],
-        #                    [-0.290123, -0.88889 ,  2.959053],
-        #                    [-0.658888, -3.081611,  3.326199],
-        #                    [-1.542276, -2.198765,  4.234011],
-        #                    [-0.744838, -2.187377,  3.685491]])
-        if yz:
-            # #O2 being y axis
-            # th = np.deg2rad(-(75.+90))
-            # rotM = np.array([[np.cos(th),-np.sin(th),0],
-            #                  [np.sin(th),np.cos(th),0],
-            #                  [0,0,1]])
-            # myRefCOM = np.dot(rotM,myRefCOM.T).T
+        # print 'rachel!'
+        # myRefCOM = np.array([[-1.573836, -1.906592,  0.153066],
+        #                     [ 0.031902, -0.015475, -0.516356],
+        #                     [ -0.600807 ,-0.760633, -0.252583],
+        #                     [ -2.194775, -1.863462,  0.893632],
+        #                     [ -1.984789, -2.486599, -0.503704],
+        #                     [ 2.485285 ,-0.344283 , 0.159396],
+        #                     [ 2.815597 ,-0.851021 , 0.914618],
+        #                     [ 3.165932 ,-0.416818 ,-0.525062],
+        #                     [ -0.941997 , 2.264043,  0.147881],
+        #                     [ -0.677334 , 2.809021,  0.902337],
+        #                     [ -1.212647,  2.885144, -0.543499],
+        #                     [ 0.984041, -0.189547 ,-0.217524],
+        #                     [-0.306056,  0.892378 ,-0.22012]])*ang2bohr
 
-            #rotate 90 degrees about y axis
+        if yz:
             rotM = np.array([[0.,0.,1.],
                          [0, 1, 0],
                          [-1.,0,0.]
                          ])
             myRefCOM= np.dot(rotM,myRefCOM.T).T
-            # #nullify O2 being y axis
-            # th = np.deg2rad((75. + 90))
-            # rotM = np.array([[np.cos(th), -np.sin(th), 0],
-            #                  [np.sin(th), np.cos(th), 0],
-            #                  [0, 0, 1]])
-            # myRefCOM = np.dot(rotM, myRefCOM.T).T
-
-            print 'refStructureTurned'
-
-
-
-
-        # myRefCOM, extra = self.rotateBackToFrame(np.array([myRef2, myRef2]), 2, 1, 3)  # rotate reference to OOO plane
-        # print 'got Eckgeometry'
-        # mass=self.get_mass()
-        # com = np.dot(mass[:3], myRefCOM[:3]) / np.sum(mass[:3]) #same as overal COM
-        # myRefCOM-=com
-        # print 'myRefCOM',myRefCOM
-
-        # np.savetxt('myRefCOM.txt',myRefCOM)
-
-
+            print 'yz - ref structure turned'
         # #get rotation matrix for ref geom to O2 being x axis
         # newX = (myRefCOM[2-1]-myRefCOM[4-1])/la.norm(myRefCOM[2-1]-myRefCOM[4-1])
         # oldX = (myRefCOM[1-1]-myRefCOM[2-1])/la.norm(myRefCOM[1-1]-myRefCOM[2-1])
@@ -1605,34 +1386,34 @@ class molecule (object):
                 self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
                 mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
         elif self.name in ProtonatedWaterTetramer:
-            # rachel = False
-            # if rachel:
-            #     self.names = ["O","O", "H", "D", "D", "D", "D", "D", "O", "D", "D", "D", "O"]
-            #     mass = np.array([massO,massO,massH,massD,massD,massD,massD,massD,massO,massD,massD,massD,massO])
-            # else:
-            mass = np.array([massO, massO, massO, massO, massH, massH, massH, massH, massH, massH, massH,massH,massH])
-            if self.isotope == 'DeuteratedOnce_eigen':
-                mass[10] = massD
-                self.names = ['O', 'O', 'O', 'O','H','H','H','H','H','H','D','H','H']
-            #elif self.isotope == 'DeuteratedOnce_fw':
-            #    mass[3] = massD
-            #    self.names = ['O', 'O', 'O', 'H', 'D', 'D', 'D', 'D', 'D', 'D']
-            #elif self.isotope == 'notDeuterated':
-            #    print ':)'
-            elif self.isotope == 'fullyDeuterated':
-                mass = np.array([massO, massO, massO,massO, massD, massD, massD, massD, massD, massD, massD,massD,massD])
-            elif self.isotope == 'notDeuteratedOnce_eigen':
-                self.names = ['O', 'O', 'O','O','D', 'D', 'D', 'D', 'D', 'D', 'H','D','D']
-                mass = np.array([massO, massO, massO, massO,massD, massD, massD, massD, massD, massD, massH, massD, massD])
-            elif self.isotope == 'notDeuteratedOnce_fw':
-                self.names = ['O', 'O', 'O','O','H', 'D','D','D', 'D', 'D', 'D', 'D', 'D']
-                mass = np.array([massO, massO, massO,massO, massH, massD, massD, massD, massD, massD, massD, massD, massD])
-            #elif self.isotope == 'DeuteratedOnce_hydronium':
-            #    self.names = ['O', 'O', 'O', 'H', 'H', 'H', 'H', 'D', 'H', 'H']
-            #    mass[7] = massD
-            #elif self.isotope == 'notDeuteratedOnce_hydronium':
-            #    self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
-            #    mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
+            rachel = False
+            if rachel:
+                self.names = ["O","O", "H", "D", "D", "O", "D", "D", "O", "D", "D", "D", "D"]
+                mass = np.array([massO,massO,massH,massD,massD,massO,massD,massD,massO,massD,massD,massD,massD])
+            else:
+                mass = np.array([massO, massO, massO, massO, massH, massH, massH, massH, massH, massH, massH,massH,massH])
+                if self.isotope == 'DeuteratedOnce_eigen':
+                    mass[10] = massD
+                    self.names = ['O', 'O', 'O', 'O','H','H','H','H','H','H','D','H','H']
+                #elif self.isotope == 'DeuteratedOnce_fw':
+                #    mass[3] = massD
+                #    self.names = ['O', 'O', 'O', 'H', 'D', 'D', 'D', 'D', 'D', 'D']
+                #elif self.isotope == 'notDeuterated':
+                #    print ':)'
+                elif self.isotope == 'fullyDeuterated':
+                    mass = np.array([massO, massO, massO,massO, massD, massD, massD, massD, massD, massD, massD,massD,massD])
+                elif self.isotope == 'notDeuteratedOnce_eigen':
+                    self.names = ['O', 'O', 'O','O','D', 'D', 'D', 'D', 'D', 'D', 'H','D','D']
+                    mass = np.array([massO, massO, massO, massO,massD, massD, massD, massD, massD, massD, massH, massD, massD])
+                elif self.isotope == 'notDeuteratedOnce_fw':
+                    self.names = ['O', 'O', 'O','O','H', 'D','D','D', 'D', 'D', 'D', 'D', 'D']
+                    mass = np.array([massO, massO, massO,massO, massH, massD, massD, massD, massD, massD, massD, massD, massD])
+                #elif self.isotope == 'DeuteratedOnce_hydronium':
+                #    self.names = ['O', 'O', 'O', 'H', 'H', 'H', 'H', 'D', 'H', 'H']
+                #    mass[7] = massD
+                #elif self.isotope == 'notDeuteratedOnce_hydronium':
+                #    self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
+                #    mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
         elif self.name in Water:
             mass = np.array([massO,massH,massH])
         return mass*massConversionFactor
@@ -1824,11 +1605,15 @@ class molecule (object):
             x = np.array([x,x])
         au2ang=0.529177249
         xp = np.copy(x)*au2ang
-        if self.name in ProtonatedWaterTrimer:
-            atomStr=['O','O','O','H','H','H','H','H','H','H']
-        elif self.name in ProtonatedWaterTetramer:
-            # atomStr=["O", "O", "H", "H", "H", "H", "H", "H", "O", "H", "H", "H", "O"]
-            atomStr = ['O', 'O', 'O','O', 'H', 'H', 'H', 'H', 'H', 'H', 'H','H','H']  # needs to be updated.  Li, N, Be are for distinguishing atoms in h3o2
+        rachel = False
+        if rachel:
+            atomStr =["O","O", "H", "D", "D", "O", "D", "D", "O", "D", "D", "D", "D"]
+        else:
+            if self.name in ProtonatedWaterTrimer:
+                atomStr=['O','O','O','H','H','H','H','H','H','H']
+            elif self.name in ProtonatedWaterTetramer:
+                # atomStr=["O", "O", "H", "H", "H", "H", "H", "H", "O", "H", "H", "H", "O"]
+                atomStr = ['O', 'O', 'O','O', 'H', 'H', 'H', 'H', 'H', 'H', 'H','H','H']  # needs to be updated.  Li, N, Be are for distinguishing atoms in h3o2
         for i in xp:
             fileout.write("%d\nwriteout\n" % len(atomStr))
             for atmn, atm in enumerate(i):

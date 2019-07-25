@@ -78,7 +78,7 @@ class HarmonicApproxSpectrum(object):
                 cycleTime = time.time()
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
-                # deltax[:,1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest
+                # deltax[:,1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
                 deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
@@ -132,13 +132,6 @@ class HarmonicApproxSpectrum(object):
                     gnm+=mwpd2*descendantWeights[i]
         gnm/=sumDescendants
         return gnm
-
-
-
-
-
-
-
 
     def calculateG_all(self,eckartRotatedCoords,descendantWeights):
         #RYAN - THE COORDINATES ARE NOT ACTUALLY ECKART ROTATED
@@ -218,10 +211,6 @@ class HarmonicApproxSpectrum(object):
         gmat = np.average(mwpartialderv_all, axis=0, weights=descendantWeights)
         return mwpartialderv_all,gmat
 
-    ##############
-
-
-    ##############
 
     def diagonalizeRootG(self,G):
         w,v=np.linalg.eigh(G)
@@ -581,7 +570,10 @@ class HarmonicApproxSpectrum(object):
         #     justO = False
         if not ecked:
             print 'getting eckarted dipole moments. . .'
-            com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False,yz=True)
+            if setOfWalkers == 'fSymtet_allD':
+                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False,yz=True)
+            else:
+                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False)
             dips = dips - com  # added this to shift dipole to center of mass before eckart roatation - translation of dipole should NOT matter
             #print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
             dipoleMoments = np.zeros(np.shape(dips))
@@ -941,11 +933,11 @@ class HarmonicApproxSpectrum(object):
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'.npy')
         testing=False
         if testing:
-            self.wfn.molecule.internalName=['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
-                             'phi651', 'Chi651',
-                             'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-                             'HOH516', 'rOH7', 'rOH8', 'HOH728',
-                             'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xO4', 'yO4', 'zO4']
+            # self.wfn.molecule.internalName=['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
+            #                  'phi651', 'Chi651',
+            #                  'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
+            #                  'HOH516', 'rOH7', 'rOH8', 'HOH728',
+            #                  'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xO4', 'yO4', 'zO4']
             #####testing####
             # print 'eulers'
             # a = np.copy(mu2Ave[:9,:9])

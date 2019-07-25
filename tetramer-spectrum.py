@@ -314,8 +314,8 @@ if os.path.isfile(cds+'.npy'):
     symDw = np.load(cds+'_dw.npy')
 else:
     symCoords, symDw = Wfn.loadCoords(cds)
-    if 'bad' in cds:
-        symCoords/=angstr
+    # if 'bad' in cds:
+    #     symCoords/=angstr
     # if 'origMin' in cds:
     #     symCoords/=(angstr**2)
     # #symCoords=np.concatenate((symCoords,symCoords))/angstr
@@ -356,20 +356,6 @@ if 'input' in coordinateSet:
         wf.write("\n")
     wf.close()
     stop
-# if 'Top' in coordinateSet:
-#     #np.save("f"+coordinateSet+".npy",symCoords)
-#     #np.save("f"+coordinateSet+"_dw.npy",symDw)
-#     print 'input file - writing'
-#     wf = open("../coordinates/tetramer/f"+coordinateSet,'w+')
-#     trim = ["O", "O", "O", "O","H","H","H", "H", "H", "H", "H", "H", "H"]
-#     for wI, walker in enumerate(symCoords):
-#         wf.write("13\n")
-#         wf.write("%5.12f 0.0 0.0 0.0 0.0\n" % symDw[wI])
-#         for aI, atm in enumerate(walker):
-#             wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
-#         wf.write("\n")
-#     wf.close()
-#     stop
 elif 'RSwapped' in coordinateSet:
     print 'rotated and symmetrized file - rotatedagain'
     wf = open("../coordinates/tetramer/final_" + coordinateSet[-4:], 'w+')
@@ -391,7 +377,7 @@ print 'Got symCoords!'
 #print symCoords
 print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
 symEckRotCoords = symCoords
-iwantToPlotStuff=False
+iwantToPlotStuff=True
 path='../spectra/'
 if iwantToPlotStuff:
     plotStuff(symEckRotCoords)
