@@ -187,7 +187,7 @@ cdsPath= '../coordinates/trimer/'
 gPath = '../Gmats/trimer/'
 dipPath='../newDipolesAndPE/trimer/'
 cds =cdsPath+coordinateSet
-GfileName = gPath+coordinateSet+'.gmat'
+GfileName = gPath+coordinateSet+'_'+testName+"_"+kill+'.gmat'
 dipF = dipPath+'eng_dip_'+coordinateSet+'.dat'
 
 print cds

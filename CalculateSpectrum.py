@@ -53,7 +53,7 @@ class HarmonicApproxSpectrum(object):
                     #     os.makedirs("allGs")
                     # gspl = GfileName.split("/")
                     # walkSet,_ = gspl[-1].split(".")
-                    # np.save("allGs/allGM"+walkSet+".npy",allGs)
+                    # np.save("allGs/allGM"+Gfilename+".npy",allGs)
                 else:
                     return gnm
         else:
@@ -90,10 +90,10 @@ class HarmonicApproxSpectrum(object):
                 print len(mnan[0])/3., 'nans in coordMinus'
                 if len(pnan[0]) > 0 or len(mnan[0]) > 0:
                     print 'setting nans to zero'
-                descendantWeights[pnan[0]]=0.0
-                descendantWeights[mnan[0]] = 0.0
-                coordPlus[pnan]=0.0
-                coordMinus[mnan]=0.0
+                    descendantWeights[pnan[0]]=0.0
+                    descendantWeights[mnan[0]] = 0.0
+                    coordPlus[pnan]=0.0
+                    coordMinus[mnan]=0.0
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
                 if self.wfn.molecule.name in ProtonatedWaterTrimer:
@@ -127,6 +127,7 @@ class HarmonicApproxSpectrum(object):
                     badfl = open("badFile.xyz","w+")
                     self.wfn.molecule.printCoordsToFile(eckartRotatedCoords[np.where(np.abs(coordPlus-coordMinus) > 1.0)[0]],badfl)
                     add2pifuckyouuuu
+
                 for i,pd in enumerate(partialderv):
                     mwpd2 = (partialderv[i,:,np.newaxis]*partialderv[i,np.newaxis,:])/mass[atom]
                     gnm+=mwpd2*descendantWeights[i]
@@ -226,16 +227,16 @@ class HarmonicApproxSpectrum(object):
         #self.GHalfInv=invRootG
         return  invRootG
 
-    def calculateSecondMoments(self,x,dw,setOfWalkers):
+    def calculateSecondMoments(self,x,dw,setOfWalkers,kil,ek):
         #calculate average internals
         print 'Calculating moments . . .'
         internals=self.wfn.molecule.SymInternals(x)
         averageInternals=np.average(internals,weights=dw,axis=0)
-        np.savetxt('averageInternals_'+setOfWalkers,averageInternals)
+        np.savetxt('averageInternals_'+setOfWalkers+'_'+ek+'_'+kil,averageInternals)
         #calculate moments
         print 'averageInternals: ',zip(self.wfn.molecule.internalName,averageInternals)
         moments=internals-averageInternals
-        np.save("moments_"+setOfWalkers+".npy",moments)
+        np.save("moments_"+setOfWalkers+'_'+ek+'_'+kil+".npy",moments)
         print 'Moments: ', moments
         #calculate second moments
         walkerSize =len(dw)
@@ -251,14 +252,14 @@ class HarmonicApproxSpectrum(object):
         #mmap[:] = moments[:]
         #mmap.flush()
         #del mmap
-        dmap = np.memmap('dmap'+setOfWalkers, dtype='float64', mode='w+', shape=(int(walkerSize)))
+        dmap = np.memmap('dmap'+setOfWalkers+'_'+ek+'_'+kil, dtype='float64', mode='w+', shape=(int(walkerSize)))
         dmap[:] = dw[:]
         dmap.flush()
         del dw
         del dmap
         gc.collect()
         #mh = np.memmap('mmap', dtype='float64', mode='r', shape=(int(walkerSize), int(self.nVibs)))
-        sh = np.memmap('smap'+setOfWalkers, dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs),int(self.nVibs)))
+        sh = np.memmap('smap'+setOfWalkers+'_'+ek+'_'+kil, dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs),int(self.nVibs)))
         print 'walkerSize',walkerSize
         if walkerSize > 1000000:
             chunkSize=500000
@@ -591,25 +592,26 @@ class HarmonicApproxSpectrum(object):
         # stoptopus
         #dips = dips*ang2bohr
         #First, What is the G Matrix for this set of walkers based on the SymInternals coordinates
-        if not os.path.isfile('q_'+setOfWalkers+'.npy'):
+        if not os.path.isfile('q_'+setOfWalkers+'_'+testName+'_'+kill+'.npy'):
             self.G=self.LoadG(GfileName)
             self.wfn.molecule.setInternalName()
-            if not os.path.isfile("smap"+setOfWalkers):
-                moments=self.calculateSecondMoments(coords, dw,setOfWalkers)
+            if not os.path.isfile("smap"+setOfWalkers+'_'+testName+'_'+kill):
+                moments=self.calculateSecondMoments(coords, dw,setOfWalkers,kill,testName)
             else:
                 print "moments_"+setOfWalkers
-                if not os.path.isfile("moments_"+setOfWalkers+".npy"):
-                    if not os.path.isfile("mu2ave_"+setOfWalkers+".npy"):
+                if not os.path.isfile("moments_"+setOfWalkers+'_'+testName+'_'+kill+".npy"):
+                    if not os.path.isfile("mu2ave_"+setOfWalkers+'_'+testName+'_'+kill+".npy"):
                         print 'no moments...calculating'
                         internals = self.wfn.molecule.SymInternals(coords)
                         averageInternals = np.average(internals, weights=dw, axis=0)
                         moments = internals - averageInternals
-                        np.save("moments_"+setOfWalkers+".npy",moments)
+                        if 'test' not in setOfWalkers:
+                            np.save("moments_"+setOfWalkers+'_'+testName+'_'+kill+".npy",moments)
                     else:
                         moments = np.zeros((self.nVibs,len(coords)))
                 else:
                     print 'moments already calculated'
-                    moments = np.load("moments_"+setOfWalkers+".npy")
+                    moments = np.load("moments_"+setOfWalkers+'_'+testName+'_'+kill+".npy")
             q,q2=self.calculateQCoordinates(moments,dw,GfileName,setOfWalkers,kill,testName)
             print 'done with normal modes'
             #q4ave=np.average(q4,axis=0,weights=dw)
@@ -623,24 +625,24 @@ class HarmonicApproxSpectrum(object):
             #print 'q^4 \n',q4ave
             print '/\/\/\/\/\/\/\/\/\/\ '
             if 'test' not in setOfWalkers and 'top' not in setOfWalkers:
-                np.save("q_"+setOfWalkers+".npy",q)
-                np.save("q2_"+setOfWalkers+".npy",q2)
+                np.save("q_"+setOfWalkers+'_'+testName+'_'+kill+".npy",q)
+                np.save("q2_"+setOfWalkers+'_'+testName+'_'+kill+".npy",q2)
         else:
             print 'loading qs from file'
-            q=np.load('q_'+setOfWalkers+'.npy')
-            q2=np.load('q2_'+setOfWalkers+'.npy')
+            q=np.load('q_'+setOfWalkers+'_'+testName+'_'+kill+'.npy')
+            q2=np.load('q2_'+setOfWalkers+'_'+testName+'_'+kill+'.npy')
             q2ave = np.average(q2, axis=0, weights=dw)
             qave = np.average(q, axis=0, weights=dw)
         #Now calculate the Potential energy
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
-            ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers)
+            ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'
-            np.savetxt(overlapMs + 'overlapMatrix22_' + setOfWalkers + testName + kill + '.dat', overlap2)
-            np.savetxt(overlapMs + 'offDiagonalCouplingsInPotential22_' + setOfWalkers + testName + kill + '.dat', ham2)
+            np.savetxt(overlapMs + 'overlapMatrix2_' + setOfWalkers + testName + kill + '.dat', overlap2)
+            np.savetxt(overlapMs + 'offDiagonalCouplingsInPotential2_' + setOfWalkers + testName + kill + '.dat', ham2)
         #V_0=<0|V|0>
         print 'overlap matrix done or skipped'
         print 'Potential Energy',potentialEnergy
@@ -905,12 +907,12 @@ class HarmonicApproxSpectrum(object):
         #gmf = gmatrix
         print 'calculating Normal coordinates'
         walkerSize=len(dw)
-        if not os.path.isfile("mu2ave_"+setOfWalkers+".npy"):
+        if not os.path.isfile("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+".npy"):
             print 'no mu2ave, calculating...'
             #dwChunks = np.array_split(dw,100)
             mu2AveR = np.zeros((self.nVibs,self.nVibs))
-            sh = np.memmap('smap'+setOfWalkers, dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
-            dh = np.memmap('dmap'+setOfWalkers, dtype='float64', mode='r', shape=int(walkerSize))
+            sh = np.memmap('smap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
+            dh = np.memmap('dmap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=int(walkerSize))
             if walkerSize > 1000000:
                 chunkSize=1000000
             else:
@@ -927,10 +929,10 @@ class HarmonicApproxSpectrum(object):
                 else:
                     mu2AveR += np.sum(sh[j:]*dh[j:,np.newaxis,np.newaxis],axis=0)
             mu2Ave = np.divide(mu2AveR,np.sum(dw))/2.00000 #commented this to see what would happen
-            np.save('mu2ave_'+setOfWalkers+'.npy',mu2Ave)
+            np.save('mu2ave_'+setOfWalkers+'_'+eckt+'_'+kil+'.npy',mu2Ave)
         else:
             print 'loading second moments matrix'
-            mu2Ave=np.load("mu2ave_"+setOfWalkers+'.npy')
+            mu2Ave=np.load("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+'.npy')
         testing=False
         if testing:
             # self.wfn.molecule.internalName=['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
@@ -1025,7 +1027,7 @@ class HarmonicApproxSpectrum(object):
         Tnorm=1.0*TransformationMatrix # NEED TO DEEP COPY :-0
         alpha=1.0*eigval #AS in alpha_j in equation 5 of the JPC A 2011 h5o2 dier paper                                          
         #save the transformation matrix for future reference                                                                      
-        TMatFileName='TransformationMatrix'+setOfWalkers+'.data'
+        TMatFileName='TransformationMatrix'+setOfWalkers+'_'+eckt+'_'+kil+'.data'
         #stop
         #TMatFileName = 'allHTesting/spectra/TransformationMatrix.data'
         np.savetxt(TMatFileName+"test",TransformationMatrix)

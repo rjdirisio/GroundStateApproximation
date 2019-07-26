@@ -1036,6 +1036,9 @@ class molecule (object):
                          [0, 1, 0],
                          [-1.,0,0.]
                          ])
+            # rotM = np.array([[1.,0.,0.],
+            #              [0, 0., -1.],
+            #              [0.,1.,0.]])
             myBetterRef= np.dot(rotM,myBetterRef.T).T
 
             return myBetterRef #myRef2
