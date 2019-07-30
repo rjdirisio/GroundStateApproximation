@@ -284,7 +284,7 @@ class HarmonicApproxSpectrum(object):
         print 'returning moments...'
         return moments
 
-    def overlapMatrix(self,q,dw,poE,walkerSet):
+    def overlapMatrix(self,q,dw,poE,walkerSet,kil,ek):
         nwalkers = len(dw)
         lg = open("overlapLog.txt","w+")
         potE = np.copy(poE)*au2wn
@@ -297,7 +297,7 @@ class HarmonicApproxSpectrum(object):
         start = time.time()
         nvibs2 = self.nVibs * 2
         lg.write('Construct Diagonal Elements\n')
-        if not os.path.isfile('ezOvMat_'+walkerSet+"noKEInFunds"+".npy"):
+        if not os.path.isfile('ezOvMat_'+walkerSet+'_'+ek+'_'+kil+"noKEInFunds"+".npy"):
             print 'ez part of overlap matrix doesnt exist'
             dgnl2=[]
             dgnl2.append(1)
@@ -362,8 +362,8 @@ class HarmonicApproxSpectrum(object):
             engageKineticCoupling=False
             if engageKineticCoupling:
                 ########KINETIC COUPLING#######
-                gmatz = np.load("allGs/allGM" + walkerSet + ".npy")
-                tmat = np.loadtxt("TransformationMatrix" + walkerSet + ".datatest")
+                gmatz = np.load("allGs/allGM" + walkerSet +'_'+ek+'_'+kil+ ".npy")
+                tmat = np.loadtxt("TransformationMatrix" + walkerSet +'_'+ek+'_'+kil+ ".datatest")
                 gmatz = np.matmul(tmat, gmatz)
                 for combo in range(self.nVibs-1):
                     # <2,0|gab|0,2>
@@ -392,7 +392,8 @@ class HarmonicApproxSpectrum(object):
                         +np.average((q[:, combo, np.newaxis])**2 * (q[:, (combo + 1):])**2 *gmatz[:,combo,(combo+1):],axis=0,weights=dw)\
                         -np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):],axis=0, weights=dw)\
                         -np.average(gmatz[:,combo,(combo+1):]*bq2aq1[:,(combo+1):], axis=0,weights=dw))\
-                        +np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis], axis=0, weights=dw)
+                        +np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis] /au2wn, axis=0, weights=dw) #pot E is in wavenumbers, KE is in a.u.
+                    ham2[combo + 1, combo + 2:self.nVibs + 1]*=au2wn #change all to wavenumbers
                 walkerSet = walkerSet + 'KEInFunds'
                 ###############
             else:
@@ -419,21 +420,21 @@ class HarmonicApproxSpectrum(object):
             overlap2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hav
             ham2[1:self.nVibs + 1, self.nVibs + 1:nvibs2 + 1] = hamhav
             if 'test' not in walkerSet:
-                np.save("ezOvMat_"+walkerSet+".npy",overlap2)
-                np.save("ezHamMat_"+walkerSet+".npy",ham2)
+                np.save("ezOvMat_"+walkerSet+'_'+ek+'_'+kil+".npy",overlap2)
+                np.save("ezHamMat_"+walkerSet+'_'+ek+'_'+kil+".npy",ham2)
         else:
             print 'ez overlap and ham already exist! loading...'
-            overlap2 = np.load('ezOvMat_'+walkerSet+'noKEInFunds'+".npy")
-            ham2 = np.load('ezHamMat_'+walkerSet+'noKEInFunds'+".npy")
+            overlap2 = np.load('ezOvMat_'+walkerSet+'_'+ek+'_'+kil+'noKEInFunds'+".npy")
+            ham2 = np.load('ezHamMat_'+walkerSet+'_'+ek+'_'+kil+'noKEInFunds'+".npy")
         # funds with combos and overtones with combos
         ####PUT BACK HERE
 
         #HEFTY BOI
-        bigMem =False
+        bigMem =True
         if bigMem:
             print 'bigMemActivated'
             lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
-            if not os.path.isfile('lm_' + walkerSet + ".npy"):
+            if not os.path.isfile('lm_' + walkerSet+'_'+ek+'_'+kil + ".npy"):
                 print 'no lm , calculating...'
                 lm = np.zeros((len(q), lnsize))
                 for combo in range(self.nVibs):
@@ -443,10 +444,10 @@ class HarmonicApproxSpectrum(object):
                     print prev + self.nVibs - combo - 1
                     lm[:, prev:(prev + self.nVibs - combo - 1)] = q[:, combo, np.newaxis] * q[:, (combo + 1):]
                     prev += self.nVibs - 1 - combo
-                np.save('lm_' + walkerSet + ".npy",lm)
+                np.save('lm_' + walkerSet+'_'+ek+'_'+kil + ".npy",lm)
             else:
                 print 'lm exists, laoding...'
-                lm=np.load('lm_' + walkerSet + ".npy")
+                lm=np.load('lm_' + walkerSet+'_'+ek+'_'+kil + ".npy")
 
                 #########################################
             sumDw = np.sum(dw)
@@ -637,7 +638,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'
@@ -1031,10 +1032,10 @@ class HarmonicApproxSpectrum(object):
         #stop
         #TMatFileName = 'allHTesting/spectra/TransformationMatrix.data'
         np.savetxt(TMatFileName+"test",TransformationMatrix)
-        gmf = gmf[30:-5]
-        print 'assignment file name', setOfWalkers+gmf
-        if 'Eck' in gmf:
-            gmf=setOfWalkers
+        # gmf = gmf[30:-5]
+        # print 'assignment file name', setOfWalkers+gmf
+        # if 'Eck' in gmf:
+        #     gmf=setOfWalkers
         if not testing:
             assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
         else:
