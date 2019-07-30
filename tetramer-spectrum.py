@@ -271,10 +271,17 @@ print 'kill',kill
 Wfn=dmc.wavefunction('H9O4+', 1) #define our wavefunction
 if 'allD' in coordinateSet:
     Wfn.setIsotope('fullyDeuterated')
-if '1He' in coordinateSet:
+elif '1He' in coordinateSet:
     Wfn.setIsotope('notDeuteratedOnce_eigen')
-if '1Hw' in coordinateSet:
+elif '1Hw' in coordinateSet:
     Wfn.setIsotope('notDeuteratedOnce_fw')
+elif '1He' in coordinateSet:
+    Wfn.setIsotope('DeuteratedOnce_eigen')
+elif '1Hw' in coordinateSet:
+    Wfn.setIsotope('DeuteratedOnce_fw')
+else:
+    raise Exception
+
 
 head = '/home/netid.washington.edu/rjdiri/'
 #Lindsey's code: Be careful.  Here, we calculate the HOA spectrum on each individual wavefunction, but then also on the overall xyz file.  
@@ -355,7 +362,6 @@ if 'input' in coordinateSet:
             wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
         wf.write("\n")
     wf.close()
-    stop
 elif 'RSwapped' in coordinateSet:
     print 'rotated and symmetrized file - rotatedagain'
     wf = open("../coordinates/tetramer/final_" + coordinateSet[-4:], 'w+')
@@ -370,38 +376,37 @@ elif 'RSwapped' in coordinateSet:
     #         wf.write("%s %5.12f %5.12f %5.12f\n" % (trim[aI], atm[0], atm[1], atm[2]))
     #     wf.write("\n")
     # wf.close()
-    stop
-
-print 'Symcoords shape',symCoords.shape
-print 'Got symCoords!'
-#print symCoords
-print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
-symEckRotCoords = symCoords
-iwantToPlotStuff=True
-path='../spectra/'
-if iwantToPlotStuff:
-    plotStuff(symEckRotCoords)
 else:
-    eckt = False
-    if os.path.isfile(dipPath + 'eng_dip_' + coordinateSet + '_eckart.npy'):
-        pdip = np.load(dipPath + 'eng_dip_' + coordinateSet + '_eckart.npy')
-        eckt = True
-    elif os.path.isfile(dipF[:-3] + 'npy'):
-        pdip = np.load(dipF[:-3] + 'npy')
+    print 'Symcoords shape',symCoords.shape
+    print 'Got symCoords!'
+    #print symCoords
+    print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
+    symEckRotCoords = symCoords
+    iwantToPlotStuff=True
+    path='../spectra/'
+    if iwantToPlotStuff:
+        plotStuff(symEckRotCoords)
     else:
-        print 'not a npy file'
-        pdip = np.loadtxt(dipF)
-        np.save(dipF[:-3] + 'npy', pdip)
+        eckt = False
+        if os.path.isfile(dipPath + 'eng_dip_' + coordinateSet + '_eckart.npy'):
+            pdip = np.load(dipPath + 'eng_dip_' + coordinateSet + '_eckart.npy')
+            eckt = True
+        elif os.path.isfile(dipF[:-3] + 'npy'):
+            pdip = np.load(dipF[:-3] + 'npy')
+        else:
+            print 'not a npy file'
+            pdip = np.loadtxt(dipF)
+            np.save(dipF[:-3] + 'npy', pdip)
 
-    print 'PEDIP shape', pdip.shape
-    pe = pdip[:, 0]
-    dip = pdip[:, 1:]
-    print 'Shape of dipole: ', np.shape(dip)
-    HOASpectrum=CalculateSpectrum.HarmonicApproxSpectrum(Wfn,symEckRotCoords,symDw,path,testName)
-    if 'Eck' in GfileName:
-        coordinateSet=coordinateSet+'refGmat'
-    fundamentalEnergies,fundamentalIntensities, combinationBandEnergies,combinationBandIntensities=HOASpectrum.calculateSpectrum(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill,eckt,dipPath)
-    fundamentalFile=open('../spectra/Fundamentals_'+coordinateSet+testName+kill,'w')
-    for i,(v,intensity) in enumerate(zip(fundamentalEnergies,fundamentalIntensities)):
-        fundamentalFile.write(str(i)+"       "+str(v)+"   "+str(intensity)+"\n")
-    fundamentalFile.close()
+        print 'PEDIP shape', pdip.shape
+        pe = pdip[:, 0]
+        dip = pdip[:, 1:]
+        print 'Shape of dipole: ', np.shape(dip)
+        HOASpectrum=CalculateSpectrum.HarmonicApproxSpectrum(Wfn,symEckRotCoords,symDw,path,testName)
+        if 'Eck' in GfileName:
+            coordinateSet=coordinateSet+'refGmat'
+        fundamentalEnergies,fundamentalIntensities, combinationBandEnergies,combinationBandIntensities=HOASpectrum.calculateSpectrum(symEckRotCoords,symDw,GfileName,pe,dip,coordinateSet,testName,kill,eckt,dipPath)
+        fundamentalFile=open('../spectra/Fundamentals_'+coordinateSet+testName+kill,'w')
+        for i,(v,intensity) in enumerate(zip(fundamentalEnergies,fundamentalIntensities)):
+            fundamentalFile.write(str(i)+"       "+str(v)+"   "+str(intensity)+"\n")
+        fundamentalFile.close()

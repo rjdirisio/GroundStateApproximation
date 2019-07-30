@@ -141,7 +141,6 @@ def swapStuff():
        H6H7 = swapTwoCoordinates(6,7,myWalkers)
        #SwapTwoAtOnce
        H4H5H6H7 = swapTwoCoordinates(6,7,H4H5)
-
        big4 = [myWalkers,H4H5,H6H7,H4H5H6H7]
        return big4+negZ(copy.deepcopy(big4))
 
