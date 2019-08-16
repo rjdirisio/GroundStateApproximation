@@ -100,11 +100,6 @@ class wavefunction (object):
         for ln in range(nMolecules):
             #print ln
             coordstemp=[]
-            if 'eckart' in fileName:
-                print 'doing nothing . . .'
-            #else:
-                #pe[ln] = float(filedata[ln*repeatUnit+1].split()[1].replace(',',''))
-                #dip[ln,:] = float(filedata[ln*repeatUnit+1].split()[2].replace(',','')),float(filedata[ln*repeatUnit+1].split()[3].replace(',','')),float(filedata[ln*repeatUnit+1].split()[4].replace(',',''))
             for an in range(self.nAtoms):
                 #print an
                 #if an == 9:
@@ -117,7 +112,6 @@ class wavefunction (object):
                 descCoord[ln]=float(filedata[ln*repeatUnit+1].split()[0])
             except:
                 descCoord[ln]=1.0
-        #coord=coord/au2ang #FIGURE OUT IF THIS IS NECESSARY - I don't think it is, fam
         return coord,descCoord #,pe,dip
 
     def propagate(self,x,nSteps,setV_ref=False,ConstantV_ref=0,printCensus=True,initialPop=0,testing=False):

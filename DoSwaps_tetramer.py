@@ -223,6 +223,11 @@ def swapStuff():
 for config in fileList:
     print config
     numWalkers, xyzCoords, weightArray = putWalkersInArray2(config)
+    # weightArray = np.load("../coordinates/tetramer/rotated_allH_R_dw.npy")
+    # print len(weightArray)
+    # print np.amax(weightArray)
+    # print np.min(weightArray)
+
     #np.save("weights"+sys.argv[1],weightArray)
     #tpo
     #np.save("wtAr_100.npy",weightArray)

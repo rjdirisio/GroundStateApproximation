@@ -279,8 +279,9 @@ elif '1He' in coordinateSet:
     Wfn.setIsotope('DeuteratedOnce_eigen')
 elif '1Hw' in coordinateSet:
     Wfn.setIsotope('DeuteratedOnce_fw')
-else:
-    raise Exception
+
+# else:
+#     raise Exception
 
 
 head = '/home/netid.washington.edu/rjdiri/'
@@ -319,6 +320,25 @@ if os.path.isfile(cds+'.npy'):
     #symCoords=Wfn.molecule.rotateBackToFrame(symCoords,2,1,3)
     #np.save("refEck.npy",symCoords)
     symDw = np.load(cds+'_dw.npy')
+elif 'finalWfns' in coordinateSet:
+    for gg in range(35):
+        print(gg)
+        if gg == 0:
+            symCoords, symDw = Wfn.loadCoords(cds+'/tetramerCds_wfn'+str(gg))
+            symDw = np.loadtxt(cds+"/weights_wfn"+str(gg))
+        else:
+            tmpCds,tmpDw = Wfn.loadCoords(cds+'/tetramerCds_wfn'+str(gg))
+            symCoords = np.concatenate((symCoords,tmpCds),axis=0)
+            symDw = np.concatenate((symDw,np.loadtxt(cds+"/weights_wfn"+str(gg))))
+    symCoords = symCoords[:,[7-1,10-1,13-1,4-1,5-1,6-1,8-1,9-1,12-1,11-1,1-1,2-1,3-1],:]
+    symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 2, 1, 3)
+    fl = open("rotated_allH_R.xyz","w+")
+    Wfn.molecule.printCoordsToFile(symCoords,fl)
+    fl2 = open("test_100R.xyz","w+")
+    Wfn.molecule.printCoordsToFile(symCoords[:100], fl2)
+    np.save("rotated_allH_R.npy",symCoords)
+    np.save("rotated_allH_R_dw.npy", symDw)
+    stp
 else:
     symCoords, symDw = Wfn.loadCoords(cds)
     # if 'bad' in cds:
@@ -382,7 +402,7 @@ else:
     #print symCoords
     print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
     symEckRotCoords = symCoords
-    iwantToPlotStuff=True
+    iwantToPlotStuff=False
     path='../spectra/'
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)

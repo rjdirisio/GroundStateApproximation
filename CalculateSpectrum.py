@@ -8,8 +8,9 @@ import itertools
 import gc
 import sys
 import matplotlib as mpl
-import multiprocessing
 mpl.use('agg')
+import matplotlib.pyplot as plt
+
 ProtonatedWaterTrimer = {'H7O3+','O3H7+', 'H7O3plus','H7O3', 'O3H7'}
 ProtonatedWaterTetramer = {'H9O4+','O4H9+', 'H9O4plus','H9O4', 'O4H9'}
 global ProtonatedWaterTrimer
@@ -45,6 +46,9 @@ class HarmonicApproxSpectrum(object):
         if not os.path.isfile(GfileName):
                 print 'no!'
                 # allGs,gnm=self.calculateG_all(self.coords,self.dw)
+                # gspl = GfileName.split("/")
+                # walkSet,_ = gspl[-1].split(".")
+                # np.save("allGs/allGM"+walkSet+".npy",allGs)
                 gnm = self.calculateG(self.coords,self.dw)
                 if 'test' not in GfileName and 'topWalk' not in GfileName:
                 # if 'topWalk' not in GfileName:
@@ -53,7 +57,7 @@ class HarmonicApproxSpectrum(object):
                     #     os.makedirs("allGs")
                     # gspl = GfileName.split("/")
                     # walkSet,_ = gspl[-1].split(".")
-                    # np.save("allGs/allGM"+Gfilename+".npy",allGs)
+                    # np.save("allGs/allGM"+walkSet+".npy",allGs)
                 else:
                     return gnm
         else:
@@ -359,12 +363,27 @@ class HarmonicApproxSpectrum(object):
             overlap2[tuple((af,bf))] = np.copy(overlap2[0,nvibs2+1:])
             # ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
 
-            engageKineticCoupling=False
+            engageKineticCoupling=True
             if engageKineticCoupling:
                 ########KINETIC COUPLING#######
-                gmatz = np.load("allGs/allGM" + walkerSet +'_'+ek+'_'+kil+ ".npy")
+                gmats = np.load("allGs/allGM" + walkerSet +".npy")
+                ghinv = np.load("vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
+                vecc = np.load("vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
                 tmat = np.loadtxt("TransformationMatrix" + walkerSet +'_'+ek+'_'+kil+ ".datatest")
-                gmatz = np.matmul(tmat, gmatz)
+                gmatzTest = np.matmul(tmat, gmats)
+                gmatz = np.matmul(vecc.T,np.matmul(ghinv,np.matmul(gmats,np.matmul(ghinv,vecc))))
+                plt.matshow(gmats[0])
+                plt.colorbar()
+                plt.savefig("gmats_orig")
+                plt.close()
+                plt.matshow(gmatz[0])
+                plt.colorbar()
+                plt.savefig("gmatz")
+                plt.close()
+                plt.matshow(gmatzTest[0])
+                plt.colorbar()
+                plt.savefig("gmatzTest")
+                plt.close()
                 for combo in range(self.nVibs-1):
                     # <2,0|gab|0,2>
                     # <0,0|gab|0,0>
@@ -1022,6 +1041,9 @@ class HarmonicApproxSpectrum(object):
 
         #GAAH                                                              
         TransformationMatrix=np.dot(vects.transpose(),GHalfInv)
+        np.save("allGs/vecs_T_L"+setOfWalkers+'_'+eckt+'_'+kil,vects.T)
+        np.save("allGs/ghinv_"+setOfWalkers+'_'+eckt+'_'+kil,GHalfInv)
+
         # oppTmat = np.dot(GHalfInv,vects)
         # whatHappens = np.dot()
         #print 'RESULTS'

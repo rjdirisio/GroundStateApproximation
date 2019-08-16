@@ -725,7 +725,7 @@ class molecule (object):
         # [x]    [. . .][X]
         # [y] =  [. . .][Y]
         # [z]    [. . .][Z]
-        #be careful with which euler matrix you're using, body fixed space fixed stuff\
+        #be careful with which euler matrix you're using, body fixed space fixed stuff-  DOESNT MATTER
         zdot=rotMs[:,-1,-1]
         Yzdot = rotMs[:,2,1]
         Xzdot = rotMs[:,2,0]
@@ -733,7 +733,7 @@ class molecule (object):
         xZdot = rotMs[:,0,2]
         Theta = np.arccos(zdot)
         tanPhi = np.arctan2(Yzdot, Xzdot)
-        tanChi = np.arctan2(yZdot, -xZdot)  # negative baked in
+        tanChi = np.arctan2(yZdot, -xZdot)  # negative not baked in
         # tanChi[tanChi < 0]+=(2*np.pi)
         # tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta,tanPhi,tanChi
@@ -894,8 +894,8 @@ class molecule (object):
 
     def finalTrimerHydEuler(self,xx):
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
-        # ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
+        # ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+        ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
         print 'got Cart matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
@@ -1146,7 +1146,6 @@ class molecule (object):
                 pos = pos[:, :3, :]
             elif hydro:
                 self.refPos = self.refPos[[3 - 1, 9-1,8-1,10-1]]
-                # rotate reference so that Z axis is along OOOO Plane
                 com = np.dot(mass[[3-1, 9-1,8-1,10-1]], pos[:, [3-1, 9-1,8-1,10-1]]) / np.sum(
                     mass[[3-1, 9-1,8-1,10-1]])
                 refCOM = np.dot(mass[[3-1, 9-1,8-1,10-1]], self.refPos) / np.sum(
