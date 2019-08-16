@@ -172,7 +172,9 @@ print 'pmz',testName
 print 'kill',kill
 
 Wfn=dmc.wavefunction('H7O3+', 1) #define our wavefunction
-if 'allD' in coordinateSet:
+if 'allH' in coordinateSet:
+    pass
+elif 'allD' in coordinateSet:
     Wfn.setIsotope('fullyDeuterated')
 elif '1He' in coordinateSet:
     Wfn.setIsotope('notDeuteratedOnce_eigen')
@@ -186,6 +188,8 @@ elif '1Dw' in coordinateSet:
     Wfn.setIsotope('DeuteratedOnce_fw')
 elif '1Dh' in coordinateSet:
     Wfn.setIsotope('DeuteratedOnce_hydronium')
+elif 'test' in coordinateSet:
+    print 'test,fam'
 else:
     raise Exception
 
@@ -247,7 +251,7 @@ else:
     #print symCoords
     print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
     symEckRotCoords = symCoords
-    iwantToPlotStuff=False
+    iwantToPlotStuff=True
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)
     else:
