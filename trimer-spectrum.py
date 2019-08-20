@@ -147,7 +147,12 @@ def plotStuff(symEckRotCoords):
     PltHists2D('allH',np.degrees(internals[:,14]),np.degrees(internals[:,11]),(-180,180),(-180,180),'Xi1','Xi2',False,symDw,30)
 
     # PltHists2D('allH',np.degrees(internals[:,7]),np.degrees(internals[:,8]),(-180,180),(-180,180),'PhiH','XiH',False,symDw,30)
-    PltHists2D('allH',np.degrees(internals[:,7]),np.degrees(internals[:,8]),(0,360),(0,360),'PhiH','XiH',False,symDw,30)
+    PltHists2D('allH',np.degrees(internals[:,7]),np.degrees(internals[:,8]),(0,360),(0,360),'PhiH','XiH',
+               False,symDw,30)
+    PltHists2D('allH', np.degrees(internals[:, 6]), np.degrees(internals[:, 7]), (0, 360), (0, 360), 'ThH', 'PhiH',
+               False, symDw, 30)
+    PltHists2D('allH', np.degrees(internals[:, 6]), np.degrees(internals[:, 8]), (0, 360), (0, 360), 'ThH', 'XiH',
+               False, symDw, 30)
 
 
 # H E R M I T E  P O L Y N O M I A L  A P P R O X I M A T I O N
@@ -251,7 +256,7 @@ else:
     #print symCoords
     print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
     symEckRotCoords = symCoords
-    iwantToPlotStuff=True
+    iwantToPlotStuff=False
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)
     else:

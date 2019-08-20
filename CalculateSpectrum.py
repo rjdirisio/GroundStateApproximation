@@ -363,7 +363,7 @@ class HarmonicApproxSpectrum(object):
             overlap2[tuple((af,bf))] = np.copy(overlap2[0,nvibs2+1:])
             # ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
 
-            engageKineticCoupling=True
+            engageKineticCoupling=False
             if engageKineticCoupling:
                 ########KINETIC COUPLING#######
                 gmats = np.load("allGs/allGM" + walkerSet +".npy")
@@ -657,7 +657,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'

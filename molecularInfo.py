@@ -896,6 +896,8 @@ class molecule (object):
         print 'eckarting...'
         # ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
         ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
+        # ocom, eVecs, kil = self.eckartRotate_Lindsey(xx)  # currently giving me bad results.
+        # SOTOPTPO
         print 'got Cart matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
@@ -906,12 +908,14 @@ class molecule (object):
         print xx[0]
         print 'fully rotated'
         ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+        # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True)
+
         print 'got Hydro matrix'
         eVecsH=eVecsH.transpose(0,2,1)
         print 'ROTM FOR HYD',eVecsH[0]
         thH,phiH,xiH=self.extractEulers(eVecsH)
 
-        phiH[phiH<0.0]+=(2*np.pi)
+        # phiH[phiH<0.0]+=(2*np.pi)
         xiH[xiH< 0.0] += (2 * np.pi)
 
         return thH,phiH,xiH
@@ -1074,6 +1078,20 @@ class molecule (object):
         #                     [ -1.212647,  2.885144, -0.543499],
         #                     [ 0.984041, -0.189547 ,-0.217524],
         #                     [-0.306056,  0.892378 ,-0.22012]])*ang2bohr
+        # print 'rachel!'
+        # myRefCOM = np.array([[   0.000000,    2.547200,    0.000010 ],
+        #                      [   0.000000,   -0.000000,    0.000010 ],
+        #                      [   0.000000,    1.008400,    0.000010 ],
+        #                      [   0.000000,    3.123786,   -0.775789 ],
+        #                      [0.000000,    3.123969 ,   0.775673],
+        #                      [2.205940, - 1.273600  ,  0.000010],
+        #                      [2.705278,   -1.561893 ,  -0.775789],
+        #                      [2.705436,   -1.561984 ,   0.775673 ],
+        #                      [-2.205940,   -1.273600,    0.000010 ],
+        #                      [-2.705278,   -1.561893,   -0.775789 ],
+        #                      [-2.705436,   -1.561984,    0.775673 ],
+        #                      [0.873300,   -0.504200 ,   0.000010 ],
+        #                      [-0.873300,   -0.504200,    0.000010]])*ang2bohr
 
         if yz:
             rotM = np.array([[0.,0.,1.],
@@ -1096,6 +1114,51 @@ class molecule (object):
         return myRefCOM
 
 
+    #Testing to make sure I get the same answer, I did!
+    # def eckartRotate_Lindsey(self,pos,specialCond=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+    #     newCoord=np.zeros(pos.shape)
+    #     self.refPos = self.pullTrimerRefPos()
+    #     #Center of Mass
+    #     mass=self.get_mass()
+    #     com=np.dot(mass,pos)/np.sum(mass)
+    #     #First Translate:
+    #     ShiftedMolecules=pos-com[:,np.newaxis,:]
+    #     #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
+    #     for moli,molecule in enumerate(ShiftedMolecules):
+    #         Fvec=np.zeros((3,3))
+    #         for atom,massa,eckatom in zip(molecule,mass,self.refPos):
+    #             Fvec=Fvec+massa*np.outer(eckatom,atom)
+    #         #F from eqn 3.4b             - vectorsthat connect the dotz
+    #         FF=np.dot(Fvec,Fvec.transpose())
+    #         #Diagonalize FF
+    #         sortEigValsF,sortEigVecF=np.linalg.eigh(FF)
+    #         sortEigVecFT=-sortEigVecF.transpose()
+    #         if specialCond:
+    #             print 'special condition activated!'
+    #             print 'eigenvals \n',sortEigValsF
+    #             print 'vect \n',sortEigVecFT
+    #         if len(np.where(sortEigValsF<=0)[0])!=0:
+    #             #sortEigVecFT=np.abs(sortEigVecFT)
+    #             sortEigValsF=np.abs(sortEigValsF)
+    #             invRootDiagF=sortEigValsF
+    #             for e,element in enumerate(sortEigValsF):
+    #                 if element>0:
+    #                     invRootDiagF[e]=1.0/np.sqrt(element)
+    #         #Get the inverse sqrt of diagonalized(FF)
+    #         else:
+    #             invRootDiagF=1.0/np.sqrt(sortEigValsF)
+    #         # F^{-1/2}
+    #         invRootF=np.dot(invRootDiagF[np.newaxis,:]*-sortEigVecF,sortEigVecFT)
+    #         eckVecs=np.dot(Fvec.transpose(),invRootF)
+    #         newCoord[moli]= np.dot(molecule,eckVecs)
+    #         masss = la.det(eckVecs)
+    #         if len(np.where(np.isnan(newCoord[moli]))[0])!=0:
+    #             print 'whaaaaaT?! nan',np.where(np.isnan(newCoord[moli])),'\ncoords:\n',newCoord[moli]
+    #             print '   molecule number:',moli,'\n   sortEigValsF: \n', sortEigValsF,'\n   molecule: \n', molecule,
+    #             print '\n   eckVecs \n', eckVecs
+    #             octopus
+    #
+    #     return newCoord
 
     def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
@@ -1217,11 +1280,18 @@ class molecule (object):
             fileout = open("invDet.xyz","w+")
             mas = np.array(mas[0])
             self.printCoordsToFile(np.concatenate((ShiftedMolecules[0][None,:,:],ShiftedMolecules[killList2[0]][:4])), fileout)
-            eckVecs2[mas, 2] *= -1.0 #multiply row by -1, but actually column since this is transposed
             minus = len(mas)
-            # xy1=np.where(np.around(np.cross(eckVecs2[mas,0],eckVecs2[mas,1]),2) == np.around(eckVecs2[mas,2],2))
-            # zx1=np.where(np.around(np.cross(eckVecs2[mas, 2], eckVecs2[mas, 0]),2) == np.around(eckVecs2[mas,1],2))
-            # yz1=np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) == np.around(eckVecs2[mas, 0],2))
+            # eckVecs2[mas, 2] *= -1.0 #multiply row by -1, but actually column since this is transposed
+            eckVecs2[mas] *= -1.0  # multiply everything by -1
+
+            mas2 = np.where(np.around(la.det(eckVecs2))==-1.0)[0]
+            if len(mas2) != 0:
+                raise Exception
+                killboi
+            # xy1=np.where(np.around(np.cross(eckVecs2[mas,0],eckVecs2[mas,1]),2) != np.around(eckVecs2[mas,2],2))
+            # zx1=np.where(np.around(np.cross(eckVecs2[mas, 2], eckVecs2[mas, 0]),2) != np.around(eckVecs2[mas,1],2))
+            # yz1=np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) != np.around(eckVecs2[mas, 0],2))
+            print('hi')
             # # eckVecs2[mas, 0] *= -1.0  # multiply row by -1, but actually column since this is transposed
             # # eckVecs2[mas, 1] *= -1.0  # multiply row by -1, but actually column since this is transposed
             # # eckVecs2[mas,2] *= -1.0 #multiply row by -1, but actually column since this is transposed
