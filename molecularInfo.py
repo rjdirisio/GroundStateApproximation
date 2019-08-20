@@ -916,7 +916,7 @@ class molecule (object):
         thH,phiH,xiH=self.extractEulers(eVecsH)
 
         # phiH[phiH<0.0]+=(2*np.pi)
-        xiH[xiH< 0.0] += (2 * np.pi)
+        # xiH[xiH< 0.0] += (2 * np.pi)
 
         return thH,phiH,xiH
 
@@ -1035,14 +1035,15 @@ class molecule (object):
             print 'normal ref pos'
             return myBetterRef
         else:
-            print 'yz - ref structure turned'
-            rotM = np.array([[0.,0.,1.],
-                         [0, 1, 0],
-                         [-1.,0,0.]
-                         ])
-            # rotM = np.array([[1.,0.,0.],
-            #              [0, 0., -1.],
-            #              [0.,1.,0.]])
+            # print 'yz - ref structure turned'
+            # rotM = np.array([[0.,0.,1.],
+            #              [0, 1, 0],
+            #              [-1.,0,0.]
+            #              ])
+            print 'yz - ref structure turned (rotation about x axis)'
+            rotM = np.array([[1.,0.,0.],
+                         [0, 0., -1.],
+                         [0.,1.,0.]])
             myBetterRef= np.dot(rotM,myBetterRef.T).T
 
             return myBetterRef #myRef2
@@ -1133,10 +1134,6 @@ class molecule (object):
     #         #Diagonalize FF
     #         sortEigValsF,sortEigVecF=np.linalg.eigh(FF)
     #         sortEigVecFT=-sortEigVecF.transpose()
-    #         if specialCond:
-    #             print 'special condition activated!'
-    #             print 'eigenvals \n',sortEigValsF
-    #             print 'vect \n',sortEigVecFT
     #         if len(np.where(sortEigValsF<=0)[0])!=0:
     #             #sortEigVecFT=np.abs(sortEigVecFT)
     #             sortEigValsF=np.abs(sortEigValsF)
@@ -1152,12 +1149,6 @@ class molecule (object):
     #         eckVecs=np.dot(Fvec.transpose(),invRootF)
     #         newCoord[moli]= np.dot(molecule,eckVecs)
     #         masss = la.det(eckVecs)
-    #         if len(np.where(np.isnan(newCoord[moli]))[0])!=0:
-    #             print 'whaaaaaT?! nan',np.where(np.isnan(newCoord[moli])),'\ncoords:\n',newCoord[moli]
-    #             print '   molecule number:',moli,'\n   sortEigValsF: \n', sortEigValsF,'\n   molecule: \n', molecule,
-    #             print '\n   eckVecs \n', eckVecs
-    #             octopus
-    #
     #     return newCoord
 
     def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
