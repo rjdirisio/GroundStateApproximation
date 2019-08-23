@@ -41,29 +41,25 @@ class HarmonicApproxSpectrum(object):
         self.path=path
         self.testname = testName
 
-    def LoadG(self,GfileName):
+    def LoadG(self,GfileName,calcAllGs=False):
         print 'does ', GfileName, 'exist?'
-        if not os.path.isfile(GfileName):
-                print 'no!'
-                # allGs,gnm=self.calculateG_all(self.coords,self.dw)
-                # gspl = GfileName.split("/")
-                # walkSet,_ = gspl[-1].split(".")
-                # np.save("allGs/allGM"+walkSet+".npy",allGs)
-                gnm = self.calculateG(self.coords,self.dw)
-                if 'test' not in GfileName and 'topWalk' not in GfileName:
-                # if 'topWalk' not in GfileName:
-                    np.savetxt(GfileName,gnm)
-                    # if not os.path.isdir("allGs"):
-                    #     os.makedirs("allGs")
-                    # gspl = GfileName.split("/")
-                    # walkSet,_ = gspl[-1].split(".")
-                    # np.save("allGs/allGM"+walkSet+".npy",allGs)
-                else:
-                    return gnm
+        if calcAllGs:
+            print 'Doesnt matter! Calculate ALL GS!!!!!! >>:)'
+            allGs, gnm = self.calculateG_all(self.coords, self.dw)  # tested and gives same results
+            gspl = GfileName.split("/")
+            walkSet, _ = gspl[-1].split(".")
+            np.save("allGs/allGM" + walkSet + ".npy", allGs)
+            return gnm
         else:
-            print 'yes! ^-^'
-        G=np.loadtxt(GfileName)
-        return G
+            if not os.path.isfile(GfileName):
+                print 'no!'
+                gnm = self.calculateG(self.coords,self.dw)
+                if 'test' not in GfileName:
+                    np.savetxt(GfileName,gnm)
+            else:
+                print 'yes! ^-^'
+                gnm=np.loadtxt(GfileName)
+            return gnm
 
 
     def calculateG(self,eckartRotatedCoords,descendantWeights):
@@ -83,6 +79,7 @@ class HarmonicApproxSpectrum(object):
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
                 # deltax[:,1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
+                # deltax[:,0,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
                 deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
@@ -144,6 +141,7 @@ class HarmonicApproxSpectrum(object):
         #input is also dx, the perturbation size, usually .001                                                
         #output is the G matrix, which is a self.nVibs*self.nVibs sized array (there are self.nVibs internals)
         #(3N-6 x 3N-6)
+        print 'CALCULATE ALL G MATRICES'
         dx=1e-4
         start=time.time()
         mass=self.wfn.molecule.get_mass()
@@ -301,7 +299,8 @@ class HarmonicApproxSpectrum(object):
         start = time.time()
         nvibs2 = self.nVibs * 2
         lg.write('Construct Diagonal Elements\n')
-        if not os.path.isfile('ezOvMat_'+walkerSet+'_'+ek+'_'+kil+"noKEInFunds"+".npy"):
+        engageKineticCoupling=False
+        if (not os.path.isfile('ezOvMat_'+walkerSet+"noKEInFunds"+'_'+ek+'_'+kil+".npy")) or engageKineticCoupling:
             print 'ez part of overlap matrix doesnt exist'
             dgnl2=[]
             dgnl2.append(1)
@@ -362,15 +361,14 @@ class HarmonicApproxSpectrum(object):
             bf=pst[1]+1
             overlap2[tuple((af,bf))] = np.copy(overlap2[0,nvibs2+1:])
             # ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
-
-            engageKineticCoupling=False
             if engageKineticCoupling:
+
                 ########KINETIC COUPLING#######
-                gmats = np.load("allGs/allGM" + walkerSet +".npy")
-                ghinv = np.load("vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
-                vecc = np.load("vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
+                gmats = np.load("allGs/allGM" + walkerSet + '_' + ek + '_' + kil+".npy")
+                ghinv = np.load("allGs/ghinv_" + walkerSet+ '_' + ek + '_' + kil+".npy")
+                vecc = np.load("allGs/vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
                 tmat = np.loadtxt("TransformationMatrix" + walkerSet +'_'+ek+'_'+kil+ ".datatest")
-                gmatzTest = np.matmul(tmat, gmats)
+                # gmatzTest = np.matmul(tmat, gmats)
                 gmatz = np.matmul(vecc.T,np.matmul(ghinv,np.matmul(gmats,np.matmul(ghinv,vecc))))
                 plt.matshow(gmats[0])
                 plt.colorbar()
@@ -380,31 +378,33 @@ class HarmonicApproxSpectrum(object):
                 plt.colorbar()
                 plt.savefig("gmatz")
                 plt.close()
-                plt.matshow(gmatzTest[0])
-                plt.colorbar()
-                plt.savefig("gmatzTest")
-                plt.close()
+                # plt.matshow(gmatzTest[0])
+                # plt.colorbar()
+                # plt.savefig("gmatzTest")
+                # plt.close()
                 for combo in range(self.nVibs-1):
+                    print combo
                     # <2,0|gab|0,2>
                     # <0,0|gab|0,0>
                     # <1,1|gab|1,1>
                     # <2,0|gab|0,0>
                     # <0,0|gab|0,2>
                     # <1,0| V |0,1>
-                    aa1=np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)
-                    aa2=np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)
-                    aa3=np.average((q[:, combo, np.newaxis])**2 * (q[:, (combo + 1):])**2 *gmatz[:,combo,(combo+1):],axis=0,weights=dw)
-                    aa4=np.average(bq2aq1[:, combo, np.newaxis] * gmatz[:, combo, (combo + 1):], axis=0, weights=dw)
-                    aa5=np.average(gmatz[:, combo, (combo + 1):] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
-                    aa6=np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis], axis=0, weights=dw)
-                    print '<2,0|gab|0,2>',aa1*au2wn
-                    print '<0,0|gab|0,0>',aa2*au2wn
-                    print '<1,1|gab|1,1>',aa3*au2wn
-                    print '<2,0|gab|0,0> (subtract this #)',aa4*au2wn
-                    print '<0,0|gab|0,2> (subtract this #)',aa5*au2wn
-                    print '1/4(2,2 + 0,0 + 1,1 - 2,0 - 0,2)',0.25*(aa1+aa2+aa3-aa4-aa5)*au2wn
-                    print 'potential energy avg',aa6*au2wn
-                    print 'total',(0.25*(aa1+aa2+aa3-aa4-aa5)+aa6)*au2wn
+                    if combo == 1:
+                        aa1=np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)
+                        aa2=np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)
+                        aa3=np.average((q[:, combo, np.newaxis])**2 * (q[:, (combo + 1):])**2 *gmatz[:,combo,(combo+1):],axis=0,weights=dw)
+                        aa4=np.average(bq2aq1[:, combo, np.newaxis] * gmatz[:, combo, (combo + 1):], axis=0, weights=dw)
+                        aa5=np.average(gmatz[:, combo, (combo + 1):] * bq2aq1[:, (combo + 1):], axis=0, weights=dw)
+                        aa6=np.average(q[:, combo, np.newaxis] * q[:, (combo + 1):] * potE[:, np.newaxis]/au2wn, axis=0, weights=dw)
+                        print '<2,0|gab|0,2>',aa1*au2wn
+                        print '<0,0|gab|0,0>',aa2*au2wn
+                        print '<1,1|gab|1,1>',aa3*au2wn
+                        print '<2,0|gab|0,0> (subtract this #)',aa4*au2wn
+                        print '<0,0|gab|0,2> (subtract this #)',aa5*au2wn
+                        print '1/4(2,2 + 0,0 + 1,1 - 2,0 - 0,2)',0.25*(aa1+aa2+aa3-aa4-aa5)*au2wn
+                        print 'potential energy avg',aa6*au2wn
+                        print 'total',(0.25*(aa1+aa2+aa3-aa4-aa5)+aa6)*au2wn
                     ham2[combo + 1, combo + 2:self.nVibs + 1] = \
                         0.25*(np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)\
                         +np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)\
@@ -415,6 +415,24 @@ class HarmonicApproxSpectrum(object):
                     ham2[combo + 1, combo + 2:self.nVibs + 1]*=au2wn #change all to wavenumbers
                 walkerSet = walkerSet + 'KEInFunds'
                 ###############
+                if not os.path.isfile('ezOvMat_' + walkerSet + "noKEInFunds" + '_' + ek + '_' + kil + ".npy"):
+                    print 'Have spectrum calc continue through'
+                    walkerSet = walkerSet + "_KE"
+                else:
+                    dov = np.diagonal(overlap2)
+                    overlap2 = overlap2 / np.sqrt(dov[:, None])
+                    overlap2 = overlap2 / np.sqrt(dov)
+                    ham2 = ham2 / np.sqrt(dov[:, None])
+                    ham2 = ham2 / np.sqrt(dov)
+                    overlap2 = overlap2 + overlap2.T - np.eye(len(overlap2))
+                    print 'Hammie and Overlap Man are Constructed. Nearing the end...'
+                    print 'abs overlap Max Min', np.amax(np.abs(overlap2)), np.amin(np.abs(overlap2))
+                    ham2 = ham2 + ham2.T  # nothing on diagonal
+                    np.savetxt(
+                        'JUSTFUNDSWITHKEINCLUDEDoffDiagonalCouplingsInPotential2_' + walkerSet + ek + kil + '.dat',
+                        ham2)
+                    print 'finished.'
+                    youarefinished
             else:
                 walkerSet = walkerSet + 'noKEInFunds'
                 ham2[tuple((af,bf))] = np.copy(ham2[0,nvibs2+1:])
@@ -443,8 +461,8 @@ class HarmonicApproxSpectrum(object):
                 np.save("ezHamMat_"+walkerSet+'_'+ek+'_'+kil+".npy",ham2)
         else:
             print 'ez overlap and ham already exist! loading...'
-            overlap2 = np.load('ezOvMat_'+walkerSet+'_'+ek+'_'+kil+'noKEInFunds'+".npy")
-            ham2 = np.load('ezHamMat_'+walkerSet+'_'+ek+'_'+kil+'noKEInFunds'+".npy")
+            overlap2 = np.load('ezOvMat_'+walkerSet+'noKEInFunds'+'_'+ek+'_'+kil+".npy")
+            ham2 = np.load('ezHamMat_'+walkerSet+'noKEInFunds'+'_'+ek+'_'+kil+".npy")
         # funds with combos and overtones with combos
         ####PUT BACK HERE
 
@@ -471,11 +489,10 @@ class HarmonicApproxSpectrum(object):
                 #########################################
             sumDw = np.sum(dw)
             if self.wfn.molecule.name in ProtonatedWaterTrimer:
-                # factors = [1, 2, 3, 4, 6, 279176, 12, 558352, 837528, 24, 32, 48, 69794,
-                #            2233408, 64, 1675056, 8, 192, 6700224, 1116704, 139588, 96,
-                #            418764, 34897, 3350112, 16, 209382, 104691]
-                splitArs = len(q) #smallest, least memory, fastest?
-                splitArs = 192
+                if 'allH' in walkerSet:
+                    splitArs = 192
+                else:
+                    splitArs = len(q)  # smallest, least memory, fastest?
             else:
                 splitArs = len(q)
             qsize = q.shape[1]
@@ -612,8 +629,9 @@ class HarmonicApproxSpectrum(object):
         # stoptopus
         #dips = dips*ang2bohr
         #First, What is the G Matrix for this set of walkers based on the SymInternals coordinates
+        calcAllGs = False
         if not os.path.isfile('q_'+setOfWalkers+'_'+testName+'_'+kill+'.npy'):
-            self.G=self.LoadG(GfileName)
+            self.G=self.LoadG(GfileName,calcAllGs=calcAllGs)
             self.wfn.molecule.setInternalName()
             if not os.path.isfile("smap"+setOfWalkers+'_'+testName+'_'+kill):
                 moments=self.calculateSecondMoments(coords, dw,setOfWalkers,kill,testName)
@@ -648,16 +666,17 @@ class HarmonicApproxSpectrum(object):
                 np.save("q_"+setOfWalkers+'_'+testName+'_'+kill+".npy",q)
                 np.save("q2_"+setOfWalkers+'_'+testName+'_'+kill+".npy",q2)
         else:
+            if calcAllGs:
+                self.G = self.LoadG(GfileName,calcAllGs=calcAllGs)
             print 'loading qs from file'
             q=np.load('q_'+setOfWalkers+'_'+testName+'_'+kill+'.npy')
             q2=np.load('q2_'+setOfWalkers+'_'+testName+'_'+kill+'.npy')
             q2ave = np.average(q2, axis=0, weights=dw)
-            qave = np.average(q, axis=0, weights=dw)
         #Now calculate the Potential energy
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'

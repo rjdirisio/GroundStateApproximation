@@ -495,6 +495,49 @@ class molecule (object):
         phiOH[phiOH <= 0]+=(2.*np.pi)
         return rdistOH, thetaOH, phiOH
 
+    def spcoords_Water(self,xx,hAtom,hL,hR):
+        #For H8, hAtom = 8, hL = 9, hR = 10
+        hAtom-=1
+        hL-=1
+        hR-=1
+        xaxis = self.getBisectingVector(xx[:,hL,:], xx[:,3 - 1,:],xx[:,hR,:])
+        crs = np.cross(xx[:,hL]-xx[:,3-1],xx[:,hR]-xx[:,3-1],axis=1)
+        zaxis = crs/((la.norm(crs,axis=1))[:,np.newaxis])
+        yaxis = np.cross(zaxis,xaxis,axis=1)
+        xcomp = ((xx[:,hAtom] - xx[:,3-1])*xaxis).sum(axis=1)
+        ycomp = ((xx[:,hAtom] - xx[:,3-1])*yaxis).sum(axis=1)
+        zcomp = ((xx[:,hAtom] - xx[:,3-1])*zaxis).sum(axis=1)
+        rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=1)
+        thetaOH = np.arccos(zcomp / rdistOH)
+        phiOH = np.arctan2(ycomp,xcomp)
+        phiOH[phiOH <= 0]+=(2.*np.pi)
+        return rdistOH, thetaOH, phiOH
+
+    def spcoords_Water_sp(self,xx,hAtom):
+        #For H8, hAtom = 8, hL = 9, hR = 10
+        if hAtom == 9:
+            oxx = 1
+            oxx2 = 2
+        elif hAtom == 10:
+            oxx = 2
+            oxx2 = 1
+        oxx -= 1
+        oxx2 -= 1
+        hAtom -= 1
+        xaxis = xx[:,oxx]-xx[:,3-1]
+        xaxis/=la.norm(xaxis,axis=1)[:,np.newaxis]
+        crs = np.cross(xaxis,xx[:,oxx2]-xx[:,3-1],axis=1)
+        zaxis = crs/la.norm(crs,axis=1)[:,np.newaxis]
+        yaxis = np.cross(zaxis,xaxis,axis=1)
+        xcomp = ((xx[:,hAtom] - xx[:,3-1])*xaxis).sum(axis=1)
+        ycomp = ((xx[:,hAtom] - xx[:,3-1])*yaxis).sum(axis=1)
+        zcomp = ((xx[:,hAtom] - xx[:,3-1])*zaxis).sum(axis=1)
+        rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=1)
+        thetaOH = np.arccos(zcomp / rdistOH)
+        phiOH = np.arctan2(ycomp,xcomp)
+        # phiOH[phiOH <= 0]+=(2.*np.pi)
+        return rdistOH, thetaOH, phiOH
+
     def finalTrimerEuler(self,xx,O1, h1, h2):
         #SharedProtonCoordinateSystem
         X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1).reshape(-1,1))
@@ -709,14 +752,26 @@ class molecule (object):
         #print np.degrees(dh)
         return dh
 
-    def getHydroniumAxes(self,xx):
-        X = (xx[:, 1 - 1] - xx[:, 2 - 1]) / la.norm(xx[:, 1 - 1] - xx[:, 2 - 1], axis=1)[:, np.newaxis]
-        cr = np.cross(xx[:, 1 - 1] - xx[:, 2 - 1], xx[:, 3 - 1] - xx[:, 2 - 1])
+    def getHydroniumAxes(self,xx, group1,group2):
+        #group1 = list of indices that correspond to X axis, origin, and somewhere on xy plane for outer atoms
+        #group2 = list of indices that correspond to X axis, origin, and somewhere on xy plane for inner atoms
+        outerX = group1[0]-1
+        outerC = group1[1]-1
+        outerXY = group1[2]-1
+        innerX = group2[0]-1
+        innerC = group2[1]-1
+        innerXY = group2[2]-1
+        #For tetramer, this was 1-1-2-1 , then cross 1,2 with 3,2
+
+        X = (xx[:, outerX] - xx[:, outerC]) / la.norm(xx[:, outerX] - xx[:, outerC], axis=1)[:, np.newaxis]
+        cr = np.cross(xx[:, outerX] - xx[:, outerC], xx[:, outerXY] - xx[:, outerC])
         Z = cr / la.norm(cr, axis=1)[:, np.newaxis]
         Y = np.cross(Z, X)
 
-        x = (xx[:, 13 - 1] - xx[:, 11 - 1]) / la.norm(xx[:, 13 - 1] - xx[:, 11 - 1], axis=1)[:, np.newaxis]
-        cr2 = np.cross(xx[:, 13 - 1] - xx[:, 11 - 1], xx[:, 12 - 1] - xx[:, 11 - 1])
+        # For tetramer, this was 13-1-11-1 , then cross 13,11 with 12,11
+
+        x = (xx[:, innerX] - xx[:, innerC]) / la.norm(xx[:, innerX] - xx[:, innerC], axis=1)[:, np.newaxis]
+        cr2 = np.cross(xx[:, innerX] - xx[:, innerC], xx[:, innerXY] - xx[:, innerC])
         z = cr2 / la.norm(cr2, axis=1)[:, np.newaxis]
         y = np.cross(z, x)
         return X,Y,Z,x,y,z
@@ -907,7 +962,8 @@ class molecule (object):
         print 'af'
         print xx[0]
         print 'fully rotated'
-        ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+        # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+        ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro_water=True,yz=True)
         # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True)
 
         print 'got Hydro matrix'
@@ -915,24 +971,75 @@ class molecule (object):
         print 'ROTM FOR HYD',eVecsH[0]
         thH,phiH,xiH=self.extractEulers(eVecsH)
 
-        # phiH[phiH<0.0]+=(2*np.pi)
-        # xiH[xiH< 0.0] += (2 * np.pi)
+        phiH[phiH<0.0]+=(2*np.pi)
+        xiH[xiH< 0.0] += (2 * np.pi)
 
         return thH,phiH,xiH
 
+    def finalTrimerHydEuler_FromAxes(self,xx):
+        X,Y,Z,x,y,z = self.getHydroniumAxes(xx,[1,3,2],[9,8,10])
+        rotM = np.array([[0., 0., 1.],
+                         [0, 1, 0],
+                         [-1., 0, 0.]
+                         ])
+        x,y,z = np.dot(rotM,np.array([x,y,z]).transpose(1,0,2))
+        thH, phiH, xiH = self.eulerMatrix(x, y, z, X, Y, Z)
+        phiH[phiH<0.0]+=(2*np.pi)
+        xiH[xiH< 0.0] += (2 * np.pi)
+        return thH,phiH,xiH
+
+    # def SymInternalsH7O3plus(self,x):
+    #     print 'Commence getting internal coordinates for trimer'
+    #     #Hydronium
+    #     rOH9 = self.bL(x,3-1,9-1)
+    #     rOH10 = self.bL(x,3-1,10-1)
+    #     spHOH = self.ba(x,9-1,3-1,10-1)
+    #     rthphi = self.xyzFreeHydronium(x)  # *ang2bohr     #Spherical free hydrogen 3xnwalkers in degrees
+    #     print 'done with FH'
+    #     thphixi1= self.finalTrimerEuler(x,2,7,6)
+    #     print 'done with Euler1'
+    #     thphixi2 = self.finalTrimerEuler(x,1,4,5)
+    #     print 'done with Euler2'
+    #     thH,phiH,xiH = self.finalTrimerHydEuler(x)
+    #     # thH,phiH,xiH = self.finalTrimerHydEuler_FromAxes(x)
+    #
+    #     rOH1 = self.bL(x,1-1,4-1)
+    #     rOH2 = self.bL(x,1-1,5-1)
+    #     aHOH1= self.ba(x,5-1,1-1,4-1)
+    #     rOH3 = self.bL(x,2-1,6-1)
+    #     rOH4 = self.bL(x,2-1,7-1)
+    #     aHOH2= self.ba(x,6-1,2-1,7-1)
+    #     rOO1 = self.bL(x,1-1,3-1)
+    #     rOO2 = self.bL(x,2-1,3-1)
+    #     aOOO = self.ba(x,1-1,3-1,2-1)
+    #     print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
+    #     print 'first Angle: ',np.degrees(aOOO[0])
+    #     internal = np.array((rOH9, rOH10, spHOH, rthphi[0], rthphi[1], rthphi[2], thH,phiH,xiH,
+    #             thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
+    #             , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
+    #     self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH',
+    #                          'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+    #                          'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
+    #     return internal
     def SymInternalsH7O3plus(self,x):
         print 'Commence getting internal coordinates for trimer'
         #Hydronium
-        rOH9 = self.bL(x,3-1,9-1)
-        rOH10 = self.bL(x,3-1,10-1)
-        spHOH = self.ba(x,9-1,3-1,10-1)
-        rthphi = self.xyzFreeHydronium(x)  # *ang2bohr     #Spherical free hydrogen 3xnwalkers in degrees
+        # rOH9 = self.bL(x,3-1,9-1)
+        # rOH10 = self.bL(x,3-1,10-1)
+        # spHOH = self.ba(x,9-1,3-1,10-1)
+        # rthphi8 = self.xyzFreeHydronium(x)  # *ang2bohr     #Spherical free hydrogen 3xnwalkers in degrees
+        # rOH8,thH8,phH8 = self.spcoords_Water(x,8,9,10)
+        rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
+        rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
+        rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
         print 'done with FH'
         thphixi1= self.finalTrimerEuler(x,2,7,6)
         print 'done with Euler1'
         thphixi2 = self.finalTrimerEuler(x,1,4,5)
         print 'done with Euler2'
-        thH,phiH,xiH = self.finalTrimerHydEuler(x)
+        # thH,phiH,xiH = self.finalTrimerHydEuler(x)
+        # thH,phiH,xiH = self.finalTrimerHydEuler_FromAxes(x)
+
         rOH1 = self.bL(x,1-1,4-1)
         rOH2 = self.bL(x,1-1,5-1)
         aHOH1= self.ba(x,5-1,1-1,4-1)
@@ -944,14 +1051,13 @@ class molecule (object):
         aOOO = self.ba(x,1-1,3-1,2-1)
         print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
         print 'first Angle: ',np.degrees(aOOO[0])
-        internal = np.array((rOH9, rOH10, spHOH, rthphi[0], rthphi[1], rthphi[2], thH,phiH,xiH,
+        internal = np.array((rOH8, thH8, phH8, rOH9, thH9, phH9, rOH10, thH10, phH10,
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2]
                 , rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-        self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH',
+        self.internalName = ['rOH8', 'thH8', 'phiH8','rOH9', 'thH9', 'phiH9','rOH10', 'thH10', 'phiH10',
                              'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                              'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
         return internal
-
 
     def SymInternalsH3O2minus(self,x): #get an array of all the internal coordinates associated with H3O2 minus
         #print 'calculating the internals...ver 1...'
@@ -1035,15 +1141,15 @@ class molecule (object):
             print 'normal ref pos'
             return myBetterRef
         else:
-            # print 'yz - ref structure turned'
-            # rotM = np.array([[0.,0.,1.],
-            #              [0, 1, 0],
-            #              [-1.,0,0.]
-            #              ])
-            print 'yz - ref structure turned (rotation about x axis)'
-            rotM = np.array([[1.,0.,0.],
-                         [0, 0., -1.],
-                         [0.,1.,0.]])
+            print 'yz - ref structure turned'
+            rotM = np.array([[0.,0.,1.],
+                         [0, 1, 0],
+                         [-1.,0,0.]
+                         ])
+            # print 'yz - ref structure turned (rotation about x axis)'
+            # rotM = np.array([[1.,0.,0.],
+            #              [0, 0., -1.],
+            #              [0.,1.,0.]])
             myBetterRef= np.dot(rotM,myBetterRef.T).T
 
             return myBetterRef #myRef2
@@ -1116,45 +1222,45 @@ class molecule (object):
 
 
     #Testing to make sure I get the same answer, I did!
-    # def eckartRotate_Lindsey(self,pos,specialCond=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
-    #     newCoord=np.zeros(pos.shape)
-    #     self.refPos = self.pullTrimerRefPos()
-    #     #Center of Mass
-    #     mass=self.get_mass()
-    #     com=np.dot(mass,pos)/np.sum(mass)
-    #     #First Translate:
-    #     ShiftedMolecules=pos-com[:,np.newaxis,:]
-    #     #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
-    #     for moli,molecule in enumerate(ShiftedMolecules):
-    #         Fvec=np.zeros((3,3))
-    #         for atom,massa,eckatom in zip(molecule,mass,self.refPos):
-    #             Fvec=Fvec+massa*np.outer(eckatom,atom)
-    #         #F from eqn 3.4b             - vectorsthat connect the dotz
-    #         FF=np.dot(Fvec,Fvec.transpose())
-    #         #Diagonalize FF
-    #         sortEigValsF,sortEigVecF=np.linalg.eigh(FF)
-    #         sortEigVecFT=-sortEigVecF.transpose()
-    #         if len(np.where(sortEigValsF<=0)[0])!=0:
-    #             #sortEigVecFT=np.abs(sortEigVecFT)
-    #             sortEigValsF=np.abs(sortEigValsF)
-    #             invRootDiagF=sortEigValsF
-    #             for e,element in enumerate(sortEigValsF):
-    #                 if element>0:
-    #                     invRootDiagF[e]=1.0/np.sqrt(element)
-    #         #Get the inverse sqrt of diagonalized(FF)
-    #         else:
-    #             invRootDiagF=1.0/np.sqrt(sortEigValsF)
-    #         # F^{-1/2}
-    #         invRootF=np.dot(invRootDiagF[np.newaxis,:]*-sortEigVecF,sortEigVecFT)
-    #         eckVecs=np.dot(Fvec.transpose(),invRootF)
-    #         newCoord[moli]= np.dot(molecule,eckVecs)
-    #         masss = la.det(eckVecs)
-    #     return newCoord
+    def eckartRotate_Lindsey(self,pos,specialCond=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+        newCoord=np.zeros(pos.shape)
+        self.refPos = self.pullTrimerRefPos()
+        #Center of Mass
+        mass=self.get_mass()
+        com=np.dot(mass,pos)/np.sum(mass)
+        #First Translate:
+        ShiftedMolecules=pos-com[:,np.newaxis,:]
+        #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
+        for moli,molecule in enumerate(ShiftedMolecules):
+            Fvec=np.zeros((3,3))
+            for atom,massa,eckatom in zip(molecule,mass,self.refPos):
+                Fvec=Fvec+massa*np.outer(eckatom,atom)
+            #F from eqn 3.4b             - vectorsthat connect the dotz
+            FF=np.dot(Fvec,Fvec.transpose())
+            #Diagonalize FF
+            sortEigValsF,sortEigVecF=np.linalg.eigh(FF)
+            sortEigVecFT=-sortEigVecF.transpose()
+            if len(np.where(sortEigValsF<=0)[0])!=0:
+                #sortEigVecFT=np.abs(sortEigVecFT)
+                sortEigValsF=np.abs(sortEigValsF)
+                invRootDiagF=sortEigValsF
+                for e,element in enumerate(sortEigValsF):
+                    if element>0:
+                        invRootDiagF[e]=1.0/np.sqrt(element)
+            #Get the inverse sqrt of diagonalized(FF)
+            else:
+                invRootDiagF=1.0/np.sqrt(sortEigValsF)
+            # F^{-1/2}
+            invRootF=np.dot(invRootDiagF[np.newaxis,:]*-sortEigVecF,sortEigVecFT)
+            eckVecs=np.dot(Fvec.transpose(),invRootF)
+            newCoord[moli]= np.dot(molecule,eckVecs)
+            masss = la.det(eckVecs)
+        return newCoord
 
-    def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+    def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False,hydro_water=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
         one should transpose the matrix, or do eck.dot(___)"""
-        if cart or justO or hydro:
+        if cart or justO or hydro or hydro_water:
             planar = True
         else:
             planar = False
@@ -1206,6 +1312,14 @@ class molecule (object):
                     mass[[3-1, 9-1,8-1,10-1]])  # same as overal COM
                 mass = mass[[3-1, 9-1,8-1,10-1]]
                 pos = pos[:, [3-1, 9-1,8-1,10-1], :]
+            elif hydro_water:
+                self.refPos = self.refPos[[3 - 1, 9 - 1,  10 - 1]]
+                com = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], pos[:, [3 - 1, 9 - 1,  10 - 1]]) / np.sum(
+                    mass[[3 - 1, 9 - 1,  10 - 1]])
+                refCOM = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], self.refPos) / np.sum(
+                    mass[[3 - 1, 9 - 1,  10 - 1]])  # same as overal COM
+                mass = mass[[3 - 1, 9 - 1,  10 - 1]]
+                pos = pos[:, [3 - 1, 9 - 1,  10 - 1], :]
             else:
                 com = np.dot(mass, pos) / np.sum(mass)
                 refCOM = np.dot(mass,self.refPos) / np.sum(mass)
@@ -1267,18 +1381,16 @@ class molecule (object):
         mas = np.where(np.around(la.det(eckVecs2))==-1.0)
         if len(mas[0])!=0:
             killList2=mas
-            # eckVecs2[mas,::,-1] *= -1.0
             fileout = open("invDet.xyz","w+")
             mas = np.array(mas[0])
             self.printCoordsToFile(np.concatenate((ShiftedMolecules[0][None,:,:],ShiftedMolecules[killList2[0]][:4])), fileout)
             minus = len(mas)
             # eckVecs2[mas, 2] *= -1.0 #multiply row by -1, but actually column since this is transposed
-            eckVecs2[mas] *= -1.0  # multiply everything by -1
-
+            eckVecs2[mas,:,2] *= -1.0  # multiply column by -1, but actually row since this is transposed
+            # eckVecs2[mas] *= -1.0  # multiply everything by -1
             mas2 = np.where(np.around(la.det(eckVecs2))==-1.0)[0]
             if len(mas2) != 0:
                 raise Exception
-                killboi
             # xy1=np.where(np.around(np.cross(eckVecs2[mas,0],eckVecs2[mas,1]),2) != np.around(eckVecs2[mas,2],2))
             # zx1=np.where(np.around(np.cross(eckVecs2[mas, 2], eckVecs2[mas, 0]),2) != np.around(eckVecs2[mas,1],2))
             # yz1=np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) != np.around(eckVecs2[mas, 0],2))
