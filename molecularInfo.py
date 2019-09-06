@@ -205,7 +205,7 @@ class molecule (object):
             elif self.isotope == 'DeuteratedOnce_hydronium':
                 self.names = ['O','O','O','H','H','H','H','D','H','H']
             elif self.isotope == 'notDeuteratedOnce_hydronium':
-                self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'H']
+                self.names = ['O','O','O','D','D','D','D','H','D','D']
 
         elif self.name in ProtonatedWaterTetramer:
             self.isotope = keyword
@@ -1260,6 +1260,7 @@ class molecule (object):
     def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False,hydro_water=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
         one should transpose the matrix, or do eck.dot(___)"""
+        killList2=0
         if cart or justO or hydro or hydro_water:
             planar = True
         else:
@@ -1348,6 +1349,7 @@ class molecule (object):
                 print ShiftedMolecules[axaxxa[0]]
                 fileout = open("badEck_planar.xyz", "w+")
                 self.printCoordsToFile(ShiftedMolecules[axaxxa[0]], fileout)
+                killList2 = axaxxa[0]
                 raise ZeroDivisionError("this is planar bad, dude")
             pevecsT = np.transpose(pevecs,(0,2,1))
             eckVecs2 = np.zeros((len(invRootDiagF2),3,3))
@@ -1380,10 +1382,9 @@ class molecule (object):
         # np.setdiff1d(asdf)
         mas = np.where(np.around(la.det(eckVecs2))==-1.0)
         if len(mas[0])!=0:
-            killList2=mas
             fileout = open("invDet.xyz","w+")
             mas = np.array(mas[0])
-            self.printCoordsToFile(np.concatenate((ShiftedMolecules[0][None,:,:],ShiftedMolecules[killList2[0]][:4])), fileout)
+            # self.printCoordsToFile(np.concatenate((ShiftedMolecules[0][None,:,:],ShiftedMolecules[killList2[0]][:4])), fileout)
             minus = len(mas)
             # eckVecs2[mas, 2] *= -1.0 #multiply row by -1, but actually column since this is transposed
             eckVecs2[mas,:,2] *= -1.0  # multiply column by -1, but actually row since this is transposed
@@ -1407,7 +1408,6 @@ class molecule (object):
         plus=len(ShiftedMolecules)-minus
         print 'Plus rotation: ',plus
         print 'Inverted Rotation: ',minus
-        killList2=0
         return com, eckVecs2 , killList2
 
     def getInitialCoordinates(self):
@@ -1559,7 +1559,7 @@ class molecule (object):
                 mass[7] = massD
             elif self.isotope == 'notDeuteratedOnce_hydronium':
                 self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
-                mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
+                mass = np.array([massO, massO, massO, massD, massD, massD, massD, massH, massD, massD])
         elif self.name in ProtonatedWaterTetramer:
             rachel = False
             if rachel:
@@ -1570,11 +1570,6 @@ class molecule (object):
                 if self.isotope == 'DeuteratedOnce_eigen':
                     mass[10] = massD
                     self.names = ['O', 'O', 'O', 'O','H','H','H','H','H','H','D','H','H']
-                #elif self.isotope == 'DeuteratedOnce_fw':
-                #    mass[3] = massD
-                #    self.names = ['O', 'O', 'O', 'H', 'D', 'D', 'D', 'D', 'D', 'D']
-                #elif self.isotope == 'notDeuterated':
-                #    print ':)'
                 elif self.isotope == 'fullyDeuterated':
                     mass = np.array([massO, massO, massO,massO, massD, massD, massD, massD, massD, massD, massD,massD,massD])
                 elif self.isotope == 'notDeuteratedOnce_eigen':
@@ -1583,12 +1578,6 @@ class molecule (object):
                 elif self.isotope == 'notDeuteratedOnce_fw':
                     self.names = ['O', 'O', 'O','O','H', 'D','D','D', 'D', 'D', 'D', 'D', 'D']
                     mass = np.array([massO, massO, massO,massO, massH, massD, massD, massD, massD, massD, massD, massD, massD])
-                #elif self.isotope == 'DeuteratedOnce_hydronium':
-                #    self.names = ['O', 'O', 'O', 'H', 'H', 'H', 'H', 'D', 'H', 'H']
-                #    mass[7] = massD
-                #elif self.isotope == 'notDeuteratedOnce_hydronium':
-                #    self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'H', 'D', 'D']
-                #    mass = np.array([massO, massO, massO, massH, massD, massD, massD, massH, massD, massD])
         elif self.name in Water:
             mass = np.array([massO,massH,massH])
         return mass*massConversionFactor

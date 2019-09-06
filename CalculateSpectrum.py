@@ -296,7 +296,6 @@ class HarmonicApproxSpectrum(object):
         bq2aq1 = 1 + a * q + b * q * q
         #Construct Overlap Matrix
         #Construct diagonal elements
-        start = time.time()
         nvibs2 = self.nVibs * 2
         lg.write('Construct Diagonal Elements\n')
         engageKineticCoupling=False
@@ -367,9 +366,9 @@ class HarmonicApproxSpectrum(object):
                 gmats = np.load("allGs/allGM" + walkerSet + '_' + ek + '_' + kil+".npy")
                 ghinv = np.load("allGs/ghinv_" + walkerSet+ '_' + ek + '_' + kil+".npy")
                 vecc = np.load("allGs/vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
-                tmat = np.loadtxt("TransformationMatrix" + walkerSet +'_'+ek+'_'+kil+ ".datatest")
-                # gmatzTest = np.matmul(tmat, gmats)
-                gmatz = np.matmul(vecc.T,np.matmul(ghinv,np.matmul(gmats,np.matmul(ghinv,vecc))))
+                # tmat = np.loadtxt("TransformationMatrix" + walkerSet +'_'+ek+'_'+kil+ ".datatest")
+                gmatz = np.matmul(vecc.T, np.matmul(ghinv, np.matmul(gmats, np.matmul(ghinv, vecc))))
+                # gmatz2 = np.matmul(la.inv(vecc),np.matmul(ghinv,np.matmul(gmats,np.matmul(ghinv,vecc))))
                 plt.matshow(gmats[0])
                 plt.colorbar()
                 plt.savefig("gmats_orig")
@@ -405,6 +404,7 @@ class HarmonicApproxSpectrum(object):
                         print '1/4(2,2 + 0,0 + 1,1 - 2,0 - 0,2)',0.25*(aa1+aa2+aa3-aa4-aa5)*au2wn
                         print 'potential energy avg',aa6*au2wn
                         print 'total',(0.25*(aa1+aa2+aa3-aa4-aa5)+aa6)*au2wn
+                        del aa1,aa2,aa3,aa4,aa5,aa6
                     ham2[combo + 1, combo + 2:self.nVibs + 1] = \
                         0.25*(np.average(bq2aq1[:,combo,np.newaxis]*gmatz[:,combo,(combo+1):]*bq2aq1[:, (combo + 1):],axis=0,weights=dw)\
                         +np.average(gmatz[:,combo,(combo+1):],axis=0,weights=dw)\

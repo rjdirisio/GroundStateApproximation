@@ -215,7 +215,7 @@ elif '1He' in coordinateSet:
 elif '1Hw' in coordinateSet:
     Wfn.setIsotope('notDeuteratedOnce_fw')
 elif '1Hh' in coordinateSet:
-    Wfn.setIsotope('DeuteratedOnce_hydronium')
+    Wfn.setIsotope('notDeuteratedOnce_hydronium')
 elif '1De' in coordinateSet:
     Wfn.setIsotope('DeuteratedOnce_eigen')
 elif '1Dw' in coordinateSet:
