@@ -676,7 +676,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'
@@ -814,6 +814,7 @@ class HarmonicApproxSpectrum(object):
         aMu2d=aMu2d.transpose()  #switches around the axes 24x24x3
 
         magAvgMu=np.zeros(self.nVibs)
+        magAvgMu2=np.zeros(self.nVibs)
 
         #Finding |<1_i|dipoleMoment|0>|^2
         """Getting intensity!"""

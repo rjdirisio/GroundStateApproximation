@@ -538,6 +538,32 @@ class molecule (object):
         # phiOH[phiOH <= 0]+=(2.*np.pi)
         return rdistOH, thetaOH, phiOH
 
+
+    def spcoords_Water_sp(self,xx,hAtom):
+        #For H8, hAtom = 8, hL = 9, hR = 10
+        if hAtom == 9:
+            oxx = 1
+            oxx2 = 2
+        elif hAtom == 10:
+            oxx = 2
+            oxx2 = 1
+        oxx -= 1
+        oxx2 -= 1
+        hAtom -= 1
+        xaxis = xx[:,oxx]-xx[:,3-1]
+        xaxis/=la.norm(xaxis,axis=1)[:,np.newaxis]
+        crs = np.cross(xaxis,xx[:,oxx2]-xx[:,3-1],axis=1)
+        zaxis = crs/la.norm(crs,axis=1)[:,np.newaxis]
+        yaxis = np.cross(zaxis,xaxis,axis=1)
+        xcomp = ((xx[:,hAtom] - xx[:,3-1])*xaxis).sum(axis=1)
+        ycomp = ((xx[:,hAtom] - xx[:,3-1])*yaxis).sum(axis=1)
+        zcomp = ((xx[:,hAtom] - xx[:,3-1])*zaxis).sum(axis=1)
+        rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=1)
+        thetaOH = np.arccos(zcomp / rdistOH)
+        phiOH = np.arctan2(ycomp,xcomp)
+        # phiOH[phiOH <= 0]+=(2.*np.pi)
+        return rdistOH, thetaOH, phiOH
+
     def finalTrimerEuler(self,xx,O1, h1, h2):
         #SharedProtonCoordinateSystem
         X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1).reshape(-1,1))
@@ -893,14 +919,15 @@ class molecule (object):
     def SymInternalsH9O4plus(self,x):
         print 'Commence getting internal coordinates for tetramer'
         start = time.time()
-        all = self.finalPlaneShareEuler(x)
-        rOHHyd = all[3:6]
-        umbDi = all[6:9]
-        eulHyd = all[9:12]
-        thphixi1=all[12:15]
-        thphixi2=all[15:18]
-        thphixi3=all[18:21]
-        xyzO4 = all[0:3]
+        # all = self.finalPlaneShareEuler(x)
+        # rOHHyd = all[3:6]
+        # umbDi = all[6:9]
+        # eulHyd = all[9:12]
+        # thphixi1=all[12:15]
+        # thphixi2=all[15:18]
+        # thphixi3=all[18:21]
+        # xyzO4 = all[0:3]
+
         print 'done hydronium XYZ'
         print 'time it took to get xyzs,eulers: ',str(time.time()-start)
         third = time.time()
@@ -1021,6 +1048,8 @@ class molecule (object):
     #                          'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
     #                          'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
     #     return internal
+
+    
     def SymInternalsH7O3plus(self,x):
         print 'Commence getting internal coordinates for trimer'
         #Hydronium
