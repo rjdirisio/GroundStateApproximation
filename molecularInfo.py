@@ -310,13 +310,15 @@ class molecule (object):
 
         return dipoleVectors
 
-    def rotateBackToFrame(self,coordz,a,b,c):        #use the rotation matrices that I always use to reshape each coordinate back to its reference frame
+    def rotateBackToFrame(self,coordz,a,b,c,dips=None):        #use the rotation matrices that I always use to reshape each coordinate back to its reference frame
         #print coordz[1]
         print 'RotatingWalkers'
         numWalkers = coordz.shape[0]
         #translation back to Origin
         o3 = coordz[:,a-1].reshape(numWalkers,1,3)
         trCoordz = copy.deepcopy(coordz-o3)
+        if dips is not None:
+            dips = dips-o3[:,0,:]
         #Rotation of O2 to x axis
         o2 = trCoordz[:,b-1,:].reshape(numWalkers,1,3)
         z = o2[:, 0, 2]
@@ -342,6 +344,9 @@ class molecule (object):
         rotM = np.matmul(r2, r1)
         #print trCoordz.shape
         xaxtrCoordz = np.matmul(rotM,trCoordz.transpose(0,2,1)).transpose(0,2,1)
+        if dips is not None:
+            for i in range(len(dips)):
+                dips[i] = np.dot(rotM[i],dips[i])
         #print xaxtrCoordz[0]
         #Rotation of O1 to xyplane
         o1 = xaxtrCoordz[:,c-1,:]
@@ -358,12 +363,18 @@ class molecule (object):
         mas = np.where(np.around(la.det(r),10)!=1.0)
         print mas
         finalCoords = np.matmul(r, xaxtrCoordz.transpose(0, 2, 1)).transpose(0, 2, 1)
+        if dips is not None:
+            for i in range(len(dips)):
+                dips[i] = np.dot(r[i], dips[i])
         o1x=np.round(finalCoords[:,1-1,0],12)
         asdf = np.where(o1x<0)
         asdf2 = np.where(o1x>0)
         #print finalCoords[0]
         print np.round(finalCoords[0],12)
-        return np.round(finalCoords,12)
+        if dips is not None:
+            return np.round(finalCoords,12), dips
+        else:
+            return np.round(finalCoords,12)
 
     def bL(self,xx,atm1,atm2):
         #Rotation of O1 to xyplane
@@ -539,25 +550,32 @@ class molecule (object):
         return rdistOH, thetaOH, phiOH
 
 
-    def spcoords_Water_sp(self,xx,hAtom):
+    def spcoords_Water_tetramer(self,xx,hAtom):
         #For H8, hAtom = 8, hL = 9, hR = 10
-        if hAtom == 9:
+        if hAtom == 11:
             oxx = 1
-            oxx2 = 2
-        elif hAtom == 10:
+            oxx2 = 3
+            oxN = 2
+        elif hAtom == 12:
             oxx = 2
             oxx2 = 1
+            oxN = 3
+        elif hAtom == 13:
+            oxx = 3
+            oxx2 = 2
+            oxN = 1
         oxx -= 1
         oxx2 -= 1
+        oxN -= 1
         hAtom -= 1
-        xaxis = xx[:,oxx]-xx[:,3-1]
+        xaxis = xx[:,oxN]-np.insert(xx[:,4-1,:-1],2,0,axis=-1)
         xaxis/=la.norm(xaxis,axis=1)[:,np.newaxis]
-        crs = np.cross(xaxis,xx[:,oxx2]-xx[:,3-1],axis=1)
+        crs = np.cross(xx[:,oxx]-xx[:,4-1],xx[:,oxx2]-xx[:,4-1],axis=1)
         zaxis = crs/la.norm(crs,axis=1)[:,np.newaxis]
         yaxis = np.cross(zaxis,xaxis,axis=1)
-        xcomp = ((xx[:,hAtom] - xx[:,3-1])*xaxis).sum(axis=1)
-        ycomp = ((xx[:,hAtom] - xx[:,3-1])*yaxis).sum(axis=1)
-        zcomp = ((xx[:,hAtom] - xx[:,3-1])*zaxis).sum(axis=1)
+        xcomp = ((xx[:,hAtom] - xx[:,4-1])*xaxis).sum(axis=1)
+        ycomp = ((xx[:,hAtom] - xx[:,4-1])*yaxis).sum(axis=1)
+        zcomp = ((xx[:,hAtom] - xx[:,4-1])*zaxis).sum(axis=1)
         rdistOH = la.norm(np.column_stack((xcomp,ycomp,zcomp)), axis=1)
         thetaOH = np.arccos(zcomp / rdistOH)
         phiOH = np.arctan2(ycomp,xcomp)
@@ -891,6 +909,45 @@ class molecule (object):
 
         # return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],xcomp11,ycomp11,zcomp11,xcomp12,ycomp12,zcomp12,xcomp13,ycomp13,zcomp13,th11,phi11,xi11,th12,phi12,xi12,th13,phi13,xi13
 
+
+
+    def subsetOfStuff(self,xx):
+        print 'get carts & eulers pre eckart'
+        atmnm=11
+        h1 = 8
+        h2 = 7
+        o  = 2
+        X,Y,Z = self.getfinalOOAxes(atmnm,xx)
+        x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
+        th11,phi11,xi11 = self.eulerMatrix(x,y,z,X,Y,Z)
+
+        atmnm=12
+        h1 = 9
+        h2 = 10
+        o = 3
+        X,Y,Z = self.getfinalOOAxes(atmnm,xx)
+        x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
+        th12,phi12,xi12 = self.eulerMatrix(x,y,z,X,Y,Z)
+
+        atmnm=13
+        h1 = 6
+        h2 = 5
+        o = 1
+        X,Y,Z = self.getfinalOOAxes(atmnm,xx)
+        x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
+        th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
+
+        print 'eckarting...'
+        # ocom, eVecs,kil=self.eckartRotate(xx,cart=True)
+        ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+        print 'got matrix'
+        xx-=ocom[:,np.newaxis,:]
+        print 'done'
+        print 'b4'
+        xx = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
+
+        return th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13,xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2]
+
     def getEulerMat(self,th, ph, xi):
         a = np.array([[np.cos(ph) * np.cos(th) * np.cos(xi) - np.sin(ph) * np.sin(xi),
                        np.sin(ph) * np.cos(th) * np.cos(xi) + np.cos(ph) * np.sin(xi),
@@ -919,14 +976,25 @@ class molecule (object):
     def SymInternalsH9O4plus(self,x):
         print 'Commence getting internal coordinates for tetramer'
         start = time.time()
-        # all = self.finalPlaneShareEuler(x)
-        # rOHHyd = all[3:6]
-        # umbDi = all[6:9]
-        # eulHyd = all[9:12]
-        # thphixi1=all[12:15]
-        # thphixi2=all[15:18]
-        # thphixi3=all[18:21]
-        # xyzO4 = all[0:3]
+        #good defs
+        all = self.finalPlaneShareEuler(x)
+        rOHHyd = all[3:6]
+        umbDi = all[6:9]
+        eulHyd = all[9:12]
+        thphixi1=all[12:15]
+        thphixi2=all[15:18]
+        thphixi3=all[18:21]
+        xyzO4 = all[0:3]
+
+        #my newest test bad.
+        # r11,th11,ph11 = self.spcoords_Water_tetramer(x,11)
+        # r12,th12,ph12 = self.spcoords_Water_tetramer(x,12)
+        # r13,th13,ph13 = self.spcoords_Water_tetramer(x,13)
+        # subStuff = self.subsetOfStuff(x)
+        # thphixi1=subStuff[0:3]
+        # thphixi2=subStuff[3:6]
+        # thphixi3=subStuff[6:9]
+        # xyzO4 = subStuff[9:12]
 
         print 'done hydronium XYZ'
         print 'time it took to get xyzs,eulers: ',str(time.time()-start)
@@ -957,6 +1025,21 @@ class molecule (object):
                             'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
         print 'internal shape: ',np.shape(internal)
         print 'internal[0] shape: ',np.shape(internal[0])
+        # internal = np.array(
+        #     (r11, r12, r13, th11, th12, th13, ph11, ph12, ph13,thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0],
+        #      thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],thphixi3[2], rOH5, rOH6, HOH516, rOH7, rOH8, HOH728,
+        #      rOH9, rOH10, HOH9310, rO1O2, rO1O3, rO2O3,
+        #      xyzO4[0], xyzO4[1], xyzO4[2])).T
+        # self.internalName = ['rOH11', 'rOH12', 'rOH13', 'th11', 'th12', 'th13', 'ph11', 'ph12', 'ph13',
+        #                      'theta651',
+        #                      'phi651', 'Chi651',
+        #                      'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
+        #                      'HOH516', 'rOH7', 'rOH8', 'HOH728',
+        #                      'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'xo4', 'yo4', 'zo4']
+        print 'internal shape: ', np.shape(internal)
+        print 'internal[0] shape: ', np.shape(internal[0])
+
+
         return internal
 
     def setInternalName(self):
@@ -1154,6 +1237,7 @@ class molecule (object):
         #          [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
         #          [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
         #          [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
+
         myBetterRef = np.array(
             [
                  [-2.34906009e+00,  4.06869143e+00,  0.00000000e+00],
@@ -1166,6 +1250,23 @@ class molecule (object):
                  [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
                  [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
                  [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]]) #6 and 7 better alinged with walkers themselves rather than my printout.
+
+        # myBetterRef  = np.array(
+        #     [
+        #         [0.00000000E+00 , 4.09812725E+00 ,-7.66773992E-01 ],
+        #         [-5.01875842E-16, -4.09812725E+00 ,-7.66773992E-01],
+        #         [1.23259516E-31,  0.00000000E+00,  1.59928088E+00],
+        #         [0.00000000E+00,  5.76624514E+00, -1.83972876E-02 ],
+        #         [-1.97215226E-31,  4.32405303E+00, -2.58026572E+00],
+        #         [-5.29543770E-16, -4.32405303E+00, -2.58026572E+00],
+        #         [-7.06161366E-16, -5.76624514E+00, -1.83972876E-02],
+        #         [2.95822839E-31,  0.00000000E+00,  3.42362148E+00],
+        #         [9.86076132E-32,  1.68937343E+00,  6.23920678E-01],
+        #         [-2.06888576E-16, -1.68937343E+00,  6.23920678E-01],
+        #     ] #TOTALLY PLANAR
+        # )
+        myBetterRef = self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
+        print myBetterRef
         if not yz:
             print 'normal ref pos'
             return myBetterRef
@@ -1198,22 +1299,21 @@ class molecule (object):
                            [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
                            [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
                            [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
+        # myRefCOM = np.array([[0.00000000E+00 , 4.85061327E+00, 0.00000000E+00],
+        #                      [-4.20075432E+00, -2.42530663E+00, -3.29752226E-32 ],
+        #                      [4.20075432E+00, -2.42530663E+00, -3.29752226E-32],
+        #                      [0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
+        #                      [1.46095651E+00 , 5.94728732E+00,  6.90545654E-33],
+        #                      [-1.46095651E+00,  5.94728732E+00, -1.78915572E-16  ],
+        #                      [-5.88098016E+00, -1.70841820E+00, -2.32281848E-32 ],
+        #                      [-4.42002364E+00, -4.23886911E+00,  7.20212353E-16],
+        #                      [4.42002364E+00, -4.23886911E+00,  1.39582245E-31],
+        #                      [5.88098016E+00, -1.70841820E+00, -5.41296781E-16 ],
+        #                      [-1.64844284E+00, -9.51728920E-01, -1.29400021E-32 ],
+        #                      [1.64844284E+00, -9.51728920E-01, -1.29400021E-32],
+        #                      [4.93038066E-32,  1.90345784E+00, -5.47382213E-48],
+        #                      ]) #TOTALLY PLANAR
         myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
-
-        # print 'rachel!'
-        # myRefCOM = np.array([[-1.573836, -1.906592,  0.153066],
-        #                     [ 0.031902, -0.015475, -0.516356],
-        #                     [ -0.600807 ,-0.760633, -0.252583],
-        #                     [ -2.194775, -1.863462,  0.893632],
-        #                     [ -1.984789, -2.486599, -0.503704],
-        #                     [ 2.485285 ,-0.344283 , 0.159396],
-        #                     [ 2.815597 ,-0.851021 , 0.914618],
-        #                     [ 3.165932 ,-0.416818 ,-0.525062],
-        #                     [ -0.941997 , 2.264043,  0.147881],
-        #                     [ -0.677334 , 2.809021,  0.902337],
-        #                     [ -1.212647,  2.885144, -0.543499],
-        #                     [ 0.984041, -0.189547 ,-0.217524],
-        #                     [-0.306056,  0.892378 ,-0.22012]])*ang2bohr
         # print 'rachel!'
         # myRefCOM = np.array([[   0.000000,    2.547200,    0.000010 ],
         #                      [   0.000000,   -0.000000,    0.000010 ],
@@ -1228,7 +1328,7 @@ class molecule (object):
         #                      [-2.705436,   -1.561984,    0.775673 ],
         #                      [0.873300,   -0.504200 ,   0.000010 ],
         #                      [-0.873300,   -0.504200,    0.000010]])*ang2bohr
-
+        # myRefCOM = myRefCOM[[0,1,2,5,8,11,12]]
         if yz:
             rotM = np.array([[0.,0.,1.],
                          [0, 1, 0],
@@ -1295,8 +1395,10 @@ class molecule (object):
         else:
             planar = False
         if self.name in ProtonatedWaterTrimer:
+            # planar=True
             self.refPos = self.pullTrimerRefPos(yz)
         else:
+            # planar=True
             self.refPos = self.pullTetramerRefPos(yz)
         if len(pos.shape)<3:
             pos=np.array([pos])
@@ -1324,6 +1426,8 @@ class molecule (object):
                 mass = mass[[4-1,13-1,11-1,12-1]]
                 pos = pos[:, [4-1,13-1,11-1,12-1],:]
             else:
+                #rachel
+                # mass = mass[[[0, 1, 2, 5, 8, 11, 12]]]
                 com = np.dot(mass, pos) / np.sum(mass)
                 refCOM = np.dot(mass,self.refPos) / np.sum(mass)
 
@@ -1433,7 +1537,6 @@ class molecule (object):
             # yz2 =np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) != np.around(eckVecs2[mas, 0],2))
         else:
             minus = 0
-            # killList2=mas[0]
         plus=len(ShiftedMolecules)-minus
         print 'Plus rotation: ',plus
         print 'Inverted Rotation: ',minus

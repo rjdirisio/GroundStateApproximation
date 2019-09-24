@@ -402,7 +402,7 @@ else:
     #print symCoords
     print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
     symEckRotCoords = symCoords
-    iwantToPlotStuff=False
+    iwantToPlotStuff=True
     path='../spectra/'
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)
