@@ -1426,7 +1426,7 @@ class molecule (object):
                 mass = mass[[4-1,13-1,11-1,12-1]]
                 pos = pos[:, [4-1,13-1,11-1,12-1],:]
             else:
-                #rachel
+                #rachel!!!
                 # mass = mass[[[0, 1, 2, 5, 8, 11, 12]]]
                 com = np.dot(mass, pos) / np.sum(mass)
                 refCOM = np.dot(mass,self.refPos) / np.sum(mass)
