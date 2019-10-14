@@ -243,24 +243,12 @@ class HarmonicApproxSpectrum(object):
         #calculate second moments
         walkerSize =len(dw)
         print 'calculate second moments'
-        # if os.path.isfile('mmap'):
-        #     os.remove('mmap')
-        # if os.path.isfile('smap'):
-        #     os.remove('smap')
-        # if os.path.isfile('dmap'):
-        #     os.remove('dmap')
-
-        #mmap = np.memmap('mmap', dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs)))
-        #mmap[:] = moments[:]
-        #mmap.flush()
-        #del mmap
-        dmap = np.memmap('dmap'+setOfWalkers+'_'+ek+'_'+kil, dtype='float64', mode='w+', shape=(int(walkerSize)))
-        dmap[:] = dw[:]
-        dmap.flush()
-        del dw
-        del dmap
-        gc.collect()
-        #mh = np.memmap('mmap', dtype='float64', mode='r', shape=(int(walkerSize), int(self.nVibs)))
+        # dmap = np.memmap('dmap'+setOfWalkers+'_'+ek+'_'+kil, dtype='float64', mode='w+', shape=(int(walkerSize)))
+        # dmap[:] = dw[:]
+        # dmap.flush()
+        # del dw
+        # del dmap
+        # gc.collect()
         sh = np.memmap('smap'+setOfWalkers+'_'+ek+'_'+kil, dtype='float64', mode='w+', shape=(int(walkerSize), int(self.nVibs),int(self.nVibs)))
         print 'walkerSize',walkerSize
         if walkerSize > 1000000:
@@ -274,7 +262,7 @@ class HarmonicApproxSpectrum(object):
             print time.time()-a
             print stt
             k=stt+chunkSize
-            if k > walkerSize-chunkSize:
+            if k > walkerSize:
                 last=True
             if not last:
                 sh[stt:k,:,:]=moments[stt:k,:,np.newaxis]*moments[stt:k,np.newaxis,:]
@@ -467,7 +455,7 @@ class HarmonicApproxSpectrum(object):
         ####PUT BACK HERE
 
         #HEFTY BOI
-        bigMem =True
+        bigMem =False
         if bigMem:
             print 'bigMemActivated'
             lnsize = int((self.nVibs * self.nVibs - self.nVibs) / 2.)
@@ -607,11 +595,16 @@ class HarmonicApproxSpectrum(object):
         # else:
         #     justO = False
         if not ecked:
-            print 'getting eckarted dipole moments. . .'
-            if setOfWalkers == 'fSymtet_allD':
-                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False,yz=True)
+            if self.wfn.molecule.name in ProtonatedWaterTrimer:
+                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True,lst=[1,2,3])
             else:
-                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False)
+                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True, lst=[1, 2, 3,4])
+            #
+            # print 'getting eckarted dipole moments. . .'
+            # if setOfWalkers == 'fSymtet_allD':
+            #     com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False,yz=True)
+            # else:
+            #     com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=True)
             dips = dips - com  # added this to shift dipole to center of mass before eckart roatation - translation of dipole should NOT matter
             #print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
             dipoleMoments = np.zeros(np.shape(dips))
@@ -642,7 +635,7 @@ class HarmonicApproxSpectrum(object):
                         print 'no moments...calculating'
                         internals = self.wfn.molecule.SymInternals(coords)
                         averageInternals = np.average(internals, weights=dw, axis=0)
-                        moments = internals - averageInternals
+                        momentsmoments = internals - averageInternals
                         if 'test' not in setOfWalkers:
                             np.save("moments_"+setOfWalkers+'_'+testName+'_'+kill+".npy",moments)
                     else:
@@ -931,12 +924,7 @@ class HarmonicApproxSpectrum(object):
 
     def calculatePotentialEnergy(self,coords,pe):
         equilibriumEnergy=self.wfn.molecule.getEquilibriumEnergy()
-        if self.wfn.molecule.name in ProtonatedWaterTrimer:
-            electronicEnergy = pe
-        elif self.wfn.molecule.name in ProtonatedWaterTetramer:
-            electronicEnergy = pe
-        else:
-            electronicEnergy=self.wfn.molecule.V(coords)
+        electronicEnergy = pe
         relativePotentialEnergy=electronicEnergy-equilibriumEnergy
         #print 'average relative potential energy', np.average(relativePotentialEnergy)
         #print 'descendant weighted average relative potential energy', np.average(relativePotentialEnergy,weights=dw)
@@ -949,27 +937,34 @@ class HarmonicApproxSpectrum(object):
         walkerSize=len(dw)
         if not os.path.isfile("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+".npy"):
             print 'no mu2ave, calculating...'
-            #dwChunks = np.array_split(dw,100)
-            mu2AveR = np.zeros((self.nVibs,self.nVibs))
+            # mu2AveR = np.zeros((self.nVibs,self.nVibs))
             sh = np.memmap('smap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
-            dh = np.memmap('dmap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=int(walkerSize))
-            if walkerSize > 1000000:
-                chunkSize=1000000
-            else:
-                chunkSize=10
-            cycle = np.arange(0,walkerSize,chunkSize)
-            last=False
-
-            for j in cycle:
-                k = j+chunkSize
-                if k > walkerSize-chunkSize:
-                    last = True
-                if not last:
-                    mu2AveR += np.sum(sh[j:k]*dh[j:k,np.newaxis,np.newaxis],axis=0)
-                else:
-                    mu2AveR += np.sum(sh[j:]*dh[j:,np.newaxis,np.newaxis],axis=0)
-            mu2Ave = np.divide(mu2AveR,np.sum(dw))/2.00000 #commented this to see what would happen
-            np.save('mu2ave_'+setOfWalkers+'_'+eckt+'_'+kil+'.npy',mu2Ave)
+            # # dh = np.memmap('dmap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=int(walkerSize))
+            # # dh=dw
+            # ###test###
+            # # sh = np.array(sh)
+            # # dh = np.array(dh)
+            #
+            # ##########
+            # if walkerSize > 1000000:
+            #     chunkSize=1000000
+            # else:
+            #     chunkSize=10
+            # cycle = np.arange(0,walkerSize,chunkSize)
+            # last=False
+            # #Most likely the problem
+            # for j in cycle:
+            #     k = j+chunkSize
+            #     if k > walkerSize:
+            #         last = True
+            #     if not last:
+            #         mu2AveR += np.sum(sh[j:k]*dw[j:k,np.newaxis,np.newaxis],axis=0)
+            #     else:
+            #         mu2AveR += np.sum(sh[j:]*dw[j:,np.newaxis,np.newaxis],axis=0)
+            # #before this
+            # mu2Ave = np.divide(mu2AveR,np.sum(dw)) #/2.00000 #commented this to see what would happen
+            mu2Ave = np.average(sh,axis=0,weights=dw)
+            # np.save('mu2ave_'+setOfWalkers+'_'+eckt+'_'+kil+'.npy',mu2Ave)
         else:
             print 'loading second moments matrix'
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+'.npy')
@@ -1033,11 +1028,48 @@ class HarmonicApproxSpectrum(object):
             print 'off diagonal couplingggs'
             self.G[:29,29:]=0.0
             self.G[29:,:29]=0.0
+        ########Testing########################
+        # Gomit = [1,2,4,5,7,8,9,10,11,12,13,14,17,20,23]
+        # Gomit = [0,1,2,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+        # # """self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
+        # #                          'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+        # #                          'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']"""
+        # PinternalName = ['rOH9', 'rOH10']
+        # # PinternalName = ['rOH8', 'rOH9',  'rOH10', 'rOH_41','rOH_51', 'rOH_26', 'rOH_27', 'rOO_1', 'rOO_2']
+        #
+        # PinternalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10', 'rOH_41',
+        #                          'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
+        # PinternalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10', 'rOH_41',
+        #                 'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
+        # Gomit = [9,10,11,12,13, 14]
+        # Gomit = [10, 11, 13, 14]
+        # Gomit = [9,12]
+        # # # # # # Gomit = [1,  2,  4,  5,  7,  8]+[9, 10, 11, 12, 13, 14]
+        # # # # # # Gomit2 = [10, 11, 13, 14]
+        # # # # # # Ginclude = [0,1,2,3,4,5,6,7,8,15,16,17,18,19,20,21,22,23]
+        # # # # # # Ginclude2 = [0,1,2,3,4,5,6,7,8,9,12,15,16,17,18,19,20,21,22,23]
+        # self.G[Gomit,:]=0.0
+        # self.G[:,Gomit] = 0.0
+        # mu2Ave[Gomit, :] = 0.0
+        # mu2Ave[:,Gomit] = 0.0
+        # self.G = self.G[self.G!=0.0].reshape(self.nVibs-len(Gomit),self.nVibs-len(Gomit))
+        # mu2Ave = mu2Ave[mu2Ave!=0.0].reshape(self.nVibs-len(Gomit),self.nVibs-len(Gomit))
+        # badTest = len(Gomit)
+        # PinternalName = self.wfn.molecule.internalName[:9]+self.wfn.molecule.internalName[15:]
+        # PinternalName = self.wfn.molecule.internalName[:10]+[self.wfn.molecule.internalName[12]]+self.wfn.molecule.internalName[14:]
+        # PinternalName = self.wfn.molecule.internalName[:9] + self.wfn.molecule.internalName[10:12] + self.wfn.molecule.internalName[13:]
 
+        ########Testing############################
+        # mu2Ave = np.round(mu2Ave,10)
+        # plt.matshow(mu2Ave)
+        # plt.colorbar()
+        # plt.show()
+        # self.G = np.round(self.G,10)
         GHalfInv=self.diagonalizeRootG(self.G)
         mu2AvePrime=np.dot(GHalfInv,np.dot(mu2Ave,GHalfInv)) # mass weights g^-1/2 . sm . g^-1/2
         eigval,vects=np.linalg.eigh(mu2AvePrime)
-        print self.G == self.G.T
+        seigval,svects = sla.eigh(mu2Ave,self.G)
+        # print self.G == self.G.T
         #eigvalt, vectt = sla.eigh(mu2Ave,self.G)
         # self.wfn.molecule.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH', 'theta651',
         #                     'phi651', 'Chi651',
@@ -1061,6 +1093,7 @@ class HarmonicApproxSpectrum(object):
 
         #GAAH                                                              
         TransformationMatrix=np.dot(vects.transpose(),GHalfInv)
+        TmatRy = np.dot(GHalfInv,vects)
         np.save("allGs/vecs_T_L"+setOfWalkers+'_'+eckt+'_'+kil,vects.T)
         np.save("allGs/ghinv_"+setOfWalkers+'_'+eckt+'_'+kil,GHalfInv)
 
@@ -1093,9 +1126,10 @@ class HarmonicApproxSpectrum(object):
             sortedvec=vec[sortvecidx]
 
             sortedNames=use.sortList(abs(vec),self.wfn.molecule.internalName)[::-1]
-            #sortedvecLocalVersion=use.sortList(abs(vec),vec)[::-1]
-            #print 'sorted\n',zip(sortvecidx,sortedvec,sortedNames,sortedvecLocalVersion)
+            # sortedNames=use.sortList(abs(vec),PinternalName)[::-1]
+
             print 'assignments\n',zip(sortedNames,sortvecidx,sortedvec)[0:9]
+            # for hu in range(self.nVibs - badTest):
             for hu in range(self.nVibs):
                 assignF.write("%s %d %5.12f " % (sortedNames[hu],sortvecidx[hu],sortedvec[hu]))
             assignF.write('\n \n')
@@ -1111,6 +1145,17 @@ class HarmonicApproxSpectrum(object):
         #
         # q=np.array(q)
         #
+        # pairz = [(9,12),(10,13),(11,14)]
+        # u=0
+        # for internA in mu2Ave:
+        #     print(u)
+        #     for pair in pairz:
+        #         print('pair')
+        #         print(internA[pair[0]], internA[pair[1]])
+        #         print(np.abs(internA[pair[0]]),np.abs(internA[pair[1]]))
+        #         print(np.abs(internA[pair[0]])-np.abs(internA[pair[1]]))
+        #
+            # u+=1
         q = np.matmul(TransformationMatrix, moments.T).T
         q2=q**2
         # q4=q**4

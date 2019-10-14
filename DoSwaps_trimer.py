@@ -36,7 +36,7 @@ def giveWalkersTheirWeight(wtArray):
 
 
 def writeTheWalkers(someCfww,wfn):
-    wfn = wfn+config[-4:]
+    wfn = wfn +config[-4:]
     wfi = open(wfn,"w")
     for walkInstance in someCfww:
         for each in walkInstance:
@@ -115,7 +115,7 @@ def swapLobe(group1,group2,walkersToSwap):
     return newWalkers
 
 def swapStuff():
-    if 'llH' in config or 'llD' in config or '1Hh' in config or '1Dh' in config:
+    if 'llH' in config or 'llD' in config or '1Hh' in config or '1Dh' in config or 'test' in config:
         print 'Full symmetrize'
         # H4H5Only
         H4H5 = swapTwoCoordinates(4,5,myWalkers)
@@ -131,7 +131,7 @@ def swapStuff():
         # SwapLobes
         for swappedBoy in range(len(big4)):
             new4_45_67[swappedBoy] = swapLobe([5,4,1,9],[6,7,2,10],big4[swappedBoy])
-        return big4+new4_45_67+negZ(copy.deepcopy(big4))+negZ(copy.deepcopy(new4_45_67))
+        return big4+new4_45_67 #+negZ(copy.deepcopy(big4))+negZ(copy.deepcopy(new4_45_67))
 
     elif '1He' in config or '1De' in config:
        print "Eigen Symmetrized"
@@ -154,13 +154,55 @@ def swapStuff():
 
 for config in fileList:
     print config
-    numWalkers,xyzCoords, weightArray = putWalkersInArray2(config)
+    # numWalkers,xyzCoords, weightArray = putWalkersInArray2(config)
+    cds = np.load(config)[:2]
+    dw = np.load(config[:-4]+"_dw.npy")[:2]
+    numWalkers = 2
     myWalkers = [Walker() for i in range(numWalkers)]
-    giveWalkersTheirCoordinates(xyzCoords,myWalkers)
-    giveWalkersTheirWeight(weightArray)
+    for i in range(len(myWalkers)):
+        myWalkers[i].coords = cds[i]
+        myWalkers[i].weight = dw[i]
+        myWalkers[i].WalkerNo = i
+    # giveWalkersTheirCoordinates(xyzCoords,myWalkers)
+    # giveWalkersTheirWeight(weightArray)
     print myWalkers[0].coords
     SymWalkers = swapStuff()
+    newWalker = np.vstack((SymWalkers[0][0].coords,SymWalkers[4][0].coords)).reshape(2,10,3)
+    newWalker2 = ((np.array([[-2.59775025,  4.01583579,  0.        ],
+         [ 5.01997594,  0.,          0.        ],
+         [ 0.        ,  0.,          0.        ],
+         [-2.58397879,  4.73926594,  1.79188723],
+         [-2.09153963,  5.11240722, -1.19390435],
+         [ 6.12111784, -0.70133958,  1.47632935],
+         [ 6.30724951, -1.05529535, -1.09715925],
+         [-0.71314432, -1.40835704,  1.14239943],
+         [-0.67646037,  1.67009982,  0.23098241],
+         [ 1.89389418,  0.47014669,  0.4662693 ]])))
+    newWalker2 = np.vstack((newWalker2,np.array([[-2.72654096,  4.21492438 , 0.        ],
+ [ 4.78286138,  0.        ,  0.        ],
+ [ 0.        ,  0.        ,  0.        ],
+ [-4.31189217,  4.7225661 ,  1.09715925],
+ [-3.91360121,  4.75853826, -1.47632935],
+ [ 5.42856933,  1.02072552,  1.19390435],
+ [ 5.38274093,  0.4045839 , -1.79188723],
+ [-0.79514921, -1.36373828, -1.14239943],
+ [-0.63393465,  1.84553513, -0.4662693 ],
+ [ 1.76969155,  0.33915168, -0.23098241]]))).reshape(2,10,3)
+
+    atmO = newWalker[:, 1-1, :]
+    atmT = newWalker[:, 3-1, :]
+    atmH = newWalker[:, 2-1, :]
+    left = atmO - atmT
+    right = atmH - atmT
+    res = np.degrees(np.arccos((left * right).sum(axis=1) / (la.norm(left, axis=1) * la.norm(right, axis=1))))
+
+    atmO = newWalker2[:, 1-1, :]
+    atmT = newWalker2[:, 3-1, :]
+    atmH = newWalker2[:, 2-1, :]
+    left = atmO - atmT
+    right = atmH - atmT
+    res2 = np.degrees(np.arccos((left * right).sum(axis=1) / (la.norm(left, axis=1) * la.norm(right, axis=1))))
     #name = 'Sym'+config[-10:]
-    name = '../coordinates/trimer/Rotated_Symmetrized_'
+    name = '../coordinates/trimer/Rotated_Symmetrized_test_2H.xyz'
     writeTheWalkers(SymWalkers,name)
     print "Done"

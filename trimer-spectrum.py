@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
+# mpl.use('Agg')
 import matplotlib.pyplot as plt
 import DMCClusters as dmc
 import time
@@ -44,7 +44,6 @@ def plotStuff(symEckRotCoords):
     nm=Wfn.molecule.internalName
     print internals
     x=np.average(internals,axis=0,weights=symDw)
-    print x
     np.savetxt('averageInternalsWithNewEckart_'+coordinateSet,np.average(internals,axis=0,weights=symDw))
     print 'Internal coordinate shape: ', np.shape(internals)
     print 'One attribute shape: ',np.shape(internals[:,0])
@@ -162,6 +161,9 @@ def plotStuff(symEckRotCoords):
                              'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                              'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
 
+    # self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
+    #                      'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+    #                      'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
     PltHists1D('allH', internals[:, 0]*angstr, (0, 3), nm[0], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 1]), (0,180), nm[1], 'trimerInternals/Probability Density', False,
@@ -180,7 +182,18 @@ def plotStuff(symEckRotCoords):
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 8]), (-180,180), nm[8], 'trimerInternals/Probability Density', False,
                symDw)
-
+    PltHists1D('allH', np.degrees(internals[:, 9]), (-360,360), nm[9], 'trimerInternals/Probability Density', False,
+               symDw)
+    PltHists1D('allH', np.degrees(internals[:, 10]), (-360,360), nm[10], 'trimerInternals/Probability Density', False,
+               symDw)
+    PltHists1D('allH', np.degrees(internals[:, 11]), (-360,360), nm[11], 'trimerInternals/Probability Density', False,
+               symDw)
+    PltHists1D('allH', np.degrees(internals[:, 12]), (-360,360), nm[12], 'trimerInternals/Probability Density', False,
+               symDw)
+    PltHists1D('allH', np.degrees(internals[:, 13]), (-360,360), nm[13], 'trimerInternals/Probability Density', False,
+               symDw)
+    PltHists1D('allH', np.degrees(internals[:, 14]), (-360,360), nm[14], 'trimerInternals/Probability Density', False,
+               symDw)
 
 
 

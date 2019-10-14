@@ -400,6 +400,9 @@ class molecule (object):
             internals= self.SymInternalsH3O2minus(x)
             #self.internalNames=internalNames
             return internals#,internalNames
+        elif self.name in Water:
+            internals = self.symInternalsH2O
+            return internals
         elif self.name in ProtonatedWaterTrimer:
             if (x[0,0,2]==0.0) and (x[0,1,1]==0.0) and (x[0,1,2]==0.0) and (x[0,2,0]==0.0) and (x[0,2,1]==0.0) and (x[0,2,2]==0.0):
                 print 'No need to rotate.'
@@ -584,8 +587,11 @@ class molecule (object):
 
     def finalTrimerEuler(self,xx,O1, h1, h2):
         #SharedProtonCoordinateSystem
-        X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1).reshape(-1,1))
-        crs=np.cross(xx[:, 1 - 1]-xx[:,3-1], xx[:, 2 - 1]-xx[:,3-1], axis=1)
+        X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1)[:,np.newaxis])
+        if O1 == 1:
+            crs=np.cross(xx[:, 1 - 1]-xx[:,3-1], xx[:, 2 - 1]-xx[:,3-1], axis=1)
+        else:
+            crs=np.cross(xx[:, 2 - 1]-xx[:,3-1], xx[:, 1 - 1]-xx[:,3-1], axis=1)
         Z = crs / la.norm(crs,axis=1)[:,np.newaxis]
         Y = np.cross(Z, X, axis=1)
 
@@ -601,6 +607,24 @@ class molecule (object):
         Y = np.copy(exX)
 
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
+        # rotMs = self.getEulerMat(Theta,tanPhi,tanChi)
+        # cdsPrime = np.einsum('knj,kij->kni', rotMs, xx).transpose(0, 2, 1)
+        # cdsPrime = np.copy(xx)
+        # for i in range(len(rotMs)):
+        #     for j in [2-1,6-1,7-1]:
+        #         cdsPrime[i,j] = np.dot(rotMs[i],xx[i,j])
+        # fll = open('cdsPrime','w+')
+        # self.printCoordsToFile(cdsPrime,fll)
+        # tanPhi[tanPhi<0.0] += (2 * np.pi)
+        # tanChi[tanChi<0.0] += (2 * np.pi)
+        # print((np.arange(8),Theta,tanPhi,tanChi,X,Y,Z,x,y,z))
+        # degT = np.degrees(Theta)
+        # degP = np.degrees(tanPhi)
+        # degX = np.degrees(tanChi)
+        # print(xx[0])
+        # print(xx[4])
+        # for i in range(8):
+        #     print(i,degT[i],degP[i],degX[i],X[i],Y[i],Z[i],x[i],y[i],z[i])
         return Theta,tanPhi, tanChi
 
 
@@ -756,11 +780,11 @@ class molecule (object):
         Yzdot=(Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1))
         Xzdot=(X*z).sum(axis=1)/(la.norm(X,axis=1) * la.norm(z,axis=1))
         yZdot=(y*Z).sum(axis=1) / (la.norm(y,axis=1) * la.norm(Z,axis=1))
-        xZdot=-(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
+        xZdot=(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
         Theta = np.arccos(zdot)
         tanPhi = np.arctan2(Yzdot,Xzdot)
-        tanChi = np.arctan2(yZdot,xZdot) #negative baked in
-        # tanChi[tanChi < 0]+=(2*np.pi)
+        tanChi = np.arctan2(yZdot,-xZdot) #negative baked in
+        tanChi[tanChi < 0]+=np.pi
         # tanPhi[tanPhi < 0]+=(2*np.pi)
         return Theta, tanPhi, tanChi
 
@@ -821,6 +845,7 @@ class molecule (object):
         return X,Y,Z,x,y,z
 
     def extractEulers(self,rotMs):
+        """To get out euler angles from rotation matrices"""
         # [x]    [. . .][X]
         # [y] =  [. . .][Y]
         # [z]    [. . .][Z]
@@ -846,7 +871,7 @@ class molecule (object):
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th11,phi11,xi11 = self.eulerMatrix(x,y,z,X,Y,Z)
-
+        # th11, phi11, xi11 = self.eckTrimerEuler(xx,o,h1,h2)
         atmnm=12
         h1 = 9
         h2 = 10
@@ -854,6 +879,7 @@ class molecule (object):
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th12,phi12,xi12 = self.eulerMatrix(x,y,z,X,Y,Z)
+        # th12, phi12, xi12 = self.eckTrimerEuler(xx,o,h1,h2)
 
         atmnm=13
         h1 = 6
@@ -862,6 +888,7 @@ class molecule (object):
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
+        # th13, phi13, xi13 = self.eckTrimerEuler(xx,o,h1,h2)
 
         umbrella=self.umbrella(xx,4-1,11-1,12-1,13-1)
         dh1,dh2,dh3=self.HDihedral(xx)
@@ -885,7 +912,8 @@ class molecule (object):
 
         print 'eckarting...'
         # ocom, eVecs,kil=self.eckartRotate(xx,cart=True)
-        ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+        # ocom, eVecs,kil=self.eckartRotate(xx,justO=True,planar=True,lst=[1,2,3,4])
+        ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1])
 
         print 'got matrix'
         xx-=ocom[:,np.newaxis,:]
@@ -896,7 +924,9 @@ class molecule (object):
         print 'af'
         print xx[0]
         print 'fully rotated'
-        ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+        # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+        ocomH, eVecsH, kilH = self.eckartRotate(xx, planar=True,lst=[4-1,11-1,12-1,13-1], yz=True)
+
         eVecsH=eVecsH.transpose(0,2,1)
         thH,phiH,xiH=self.extractEulers(eVecsH)
         return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
@@ -972,7 +1002,7 @@ class molecule (object):
                          [np.cos(ph) * np.sin(th),
                           np.sin(ph) * np.sin(th),
                           np.cos(th)]
-                         ])
+                         ]).transpose(2,0,1)
     def SymInternalsH9O4plus(self,x):
         print 'Commence getting internal coordinates for tetramer'
         start = time.time()
@@ -1046,57 +1076,52 @@ class molecule (object):
         if self.name in DeprotonatedWaterDimer:
             self.internalName=[]
         elif self.name in ProtonatedWaterTrimer:
-            self.internalName = ['rOH9', 'rOH10', 'spHOH', 'rH8', 'thH8', 'phiH8', 'thH', 'phiH', 'xiH',
+            self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
                                  'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                                  'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
         elif self.name in ProtonatedWaterTetramer:
-            self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH',
-                                 'theta651',
-                                 'phi651', 'Chi651',
-                                 'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-                                 'HOH516', 'rOH7', 'rOH8', 'HOH728',
-                                 'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'xo4', 'yo4', 'zo4']
+            octopus
 
-    def finalTrimerHydEuler(self,xx):
-        print 'eckarting...'
-        # ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
-        ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
-        # ocom, eVecs, kil = self.eckartRotate_Lindsey(xx)  # currently giving me bad results.
-        # SOTOPTPO
-        print 'got Cart matrix'
-        xx-=ocom[:,np.newaxis,:]
-        print 'done'
-        print 'b4'
-        print xx[0]
-        xx = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
-        print 'af'
-        print xx[0]
-        print 'fully rotated'
-        # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
-        ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro_water=True,yz=True)
-        # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True)
+    # def finalTrimerHydEuler(self,xx):
+    #     print 'eckarting...'
+    #     # ocom, eVecs,kil=self.eckartRotate(xx,justO=True)
+    #     ocom, eVecs,kil=self.eckartRotate(xx) #currently giving me bad results.
+    #     # ocom, eVecs, kil = self.eckartRotate_Lindsey(xx)  # currently giving me bad results.
+    #     # SOTOPTPO
+    #     print 'got Cart matrix'
+    #     xx-=ocom[:,np.newaxis,:]
+    #     print 'done'
+    #     print 'b4'
+    #     print xx[0]
+    #     xx = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
+    #     print 'af'
+    #     print xx[0]
+    #     print 'fully rotated'
+    #     # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True,yz=True)
+    #     ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro_water=True,yz=True)
+    #     # ocomH,eVecsH,kilH=self.eckartRotate(xx,hydro=True)
+    #
+    #     print 'got Hydro matrix'
+    #     eVecsH=eVecsH.transpose(0,2,1)
+    #     print 'ROTM FOR HYD',eVecsH[0]
+    #     thH,phiH,xiH=self.extractEulers(eVecsH)
+    #
+    #     phiH[phiH<0.0]+=(2*np.pi)
+    #     xiH[xiH< 0.0] += (2 * np.pi)
+    #
+    #     return thH,phiH,xiH
 
-        print 'got Hydro matrix'
-        eVecsH=eVecsH.transpose(0,2,1)
-        print 'ROTM FOR HYD',eVecsH[0]
-        thH,phiH,xiH=self.extractEulers(eVecsH)
-
-        phiH[phiH<0.0]+=(2*np.pi)
-        xiH[xiH< 0.0] += (2 * np.pi)
-
-        return thH,phiH,xiH
-
-    def finalTrimerHydEuler_FromAxes(self,xx):
-        X,Y,Z,x,y,z = self.getHydroniumAxes(xx,[1,3,2],[9,8,10])
-        rotM = np.array([[0., 0., 1.],
-                         [0, 1, 0],
-                         [-1., 0, 0.]
-                         ])
-        x,y,z = np.dot(rotM,np.array([x,y,z]).transpose(1,0,2))
-        thH, phiH, xiH = self.eulerMatrix(x, y, z, X, Y, Z)
-        phiH[phiH<0.0]+=(2*np.pi)
-        xiH[xiH< 0.0] += (2 * np.pi)
-        return thH,phiH,xiH
+    # def finalTrimerHydEuler_FromAxes(self,xx):
+    #     X,Y,Z,x,y,z = self.getHydroniumAxes(xx,[1,3,2],[9,8,10])
+    #     rotM = np.array([[0., 0., 1.],
+    #                      [0, 1, 0],
+    #                      [-1., 0, 0.]
+    #                      ])
+    #     x,y,z = np.dot(rotM,np.array([x,y,z]).transpose(1,0,2))
+    #     thH, phiH, xiH = self.eulerMatrix(x, y, z, X, Y, Z)
+    #     phiH[phiH<0.0]+=(2*np.pi)
+    #     xiH[xiH< 0.0] += (2 * np.pi)
+    #     return thH,phiH,xiH
 
     # def SymInternalsH7O3plus(self,x):
     #     print 'Commence getting internal coordinates for trimer'
@@ -1132,7 +1157,12 @@ class molecule (object):
     #                          'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
     #     return internal
 
-    
+    def eckTrimerEuler(self,x,atm1,atm2,atm3):
+        ocomH,HOHevecc,kilH = self.eckartRotate(x,planar=True,lst=[atm1-1,atm2-1,atm3-1])
+        eVecsH = HOHevecc.transpose(0, 2, 1)
+        thphixi = self.extractEulers(eVecsH)
+        return thphixi
+
     def SymInternalsH7O3plus(self,x):
         print 'Commence getting internal coordinates for trimer'
         #Hydronium
@@ -1145,8 +1175,12 @@ class molecule (object):
         rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
         rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
         print 'done with FH'
+        # thphixi1 = self.eckTrimerEuler(x,2,7,6)
+        # thphixi2 = self.eckTrimerEuler(x,1,5,4)
+
         thphixi1= self.finalTrimerEuler(x,2,7,6)
         print 'done with Euler1'
+        # x = self.rotateBackToFrame(x,3,1,2)
         thphixi2 = self.finalTrimerEuler(x,1,4,5)
         print 'done with Euler2'
         # thH,phiH,xiH = self.finalTrimerHydEuler(x)
@@ -1169,6 +1203,7 @@ class molecule (object):
         self.internalName = ['rOH8', 'thH8', 'phiH8','rOH9', 'thH9', 'phiH9','rOH10', 'thH10', 'phiH10',
                              'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                              'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
+
         return internal
 
     def SymInternalsH3O2minus(self,x): #get an array of all the internal coordinates associated with H3O2 minus
@@ -1210,7 +1245,7 @@ class molecule (object):
         self.internalConversion=[bohr2ang,bohr2ang,bohr2ang,rad2deg,rad2deg,rad2deg,bohr2ang,bohr2ang,bohr2ang]
         return internal
 
-    def pullTrimerRefPos(self,yz=False): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
+    def pullTrimerRefPos(self,yz=False,dip=False): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
         #This one is good.
         # myBetterRef = np.array(
         #                 [
@@ -1238,39 +1273,42 @@ class molecule (object):
         #          [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
         #          [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]])
 
-        myBetterRef = np.array(
-            [
-                 [-2.34906009e+00,  4.06869143e+00,  0.00000000e+00],
-                 [ 4.69812018e+00,  0.00000000e+00,  0.00000000e+00],
-                 [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-                 [-2.88862583e+00,  5.00324669e+00,  1.47532198e+00],
-                 [-2.88862583e+00,  5.00324669e+00, -1.47532198e+00],
-                 [ 5.77725164e+00, -2.46900000e-09,  1.47532198e+00],
-                 [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],
-                 [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
-                 [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
-                 [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]]) #6 and 7 better alinged with walkers themselves rather than my printout.
-
-        # myBetterRef  = np.array(
+        # myBetterRef = np.array(
         #     [
-        #         [0.00000000E+00 , 4.09812725E+00 ,-7.66773992E-01 ],
-        #         [-5.01875842E-16, -4.09812725E+00 ,-7.66773992E-01],
-        #         [1.23259516E-31,  0.00000000E+00,  1.59928088E+00],
-        #         [0.00000000E+00,  5.76624514E+00, -1.83972876E-02 ],
-        #         [-1.97215226E-31,  4.32405303E+00, -2.58026572E+00],
-        #         [-5.29543770E-16, -4.32405303E+00, -2.58026572E+00],
-        #         [-7.06161366E-16, -5.76624514E+00, -1.83972876E-02],
-        #         [2.95822839E-31,  0.00000000E+00,  3.42362148E+00],
-        #         [9.86076132E-32,  1.68937343E+00,  6.23920678E-01],
-        #         [-2.06888576E-16, -1.68937343E+00,  6.23920678E-01],
-        #     ] #TOTALLY PLANAR
-        # )
+        #          [-2.34906009e+00,  4.06869143e+00,  0.00000000e+00],
+        #          [ 4.69812018e+00,  0.00000000e+00,  0.00000000e+00],
+        #          [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+        #          [-2.88862583e+00,  5.00324669e+00,  1.47532198e+00],
+        #          [-2.88862583e+00,  5.00324669e+00, -1.47532198e+00],
+        #          [ 5.77725164e+00, -2.46900000e-09,  1.47532198e+00],
+        #          [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],
+        #          [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
+        #          [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
+        #          [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00]]) #6 and 7 better alinged with walkers themselves rather than my printout.
+        myBetterRef  = np.array(
+            [
+                [0.00000000E+00 , 4.09812725E+00 ,-7.66773992E-01 ],
+                [-5.01875842E-16, -4.09812725E+00 ,-7.66773992E-01],
+                [1.23259516E-31,  0.00000000E+00,  1.59928088E+00],
+                [0.00000000E+00,  5.76624514E+00, -1.83972876E-02 ],
+                [-1.97215226E-31,  4.32405303E+00, -2.58026572E+00],
+                [-5.29543770E-16, -4.32405303E+00, -2.58026572E+00], #6
+                [-7.06161366E-16, -5.76624514E+00, -1.83972876E-02], #7
+                [2.95822839E-31,  0.00000000E+00,  3.42362148E+00],
+                [9.86076132E-32,  1.68937343E+00,  6.23920678E-01],
+                [-2.06888576E-16, -1.68937343E+00,  6.23920678E-01],
+            ] #TOTALLY PLANAR
+        )
         myBetterRef = self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,2,1)[0]
-        print myBetterRef
-        if not yz:
-            print 'normal ref pos'
-            return myBetterRef
-        else:
+
+
+        if dip:
+            myBetterRef = self.rotateBackToFrame(np.array([myBetterRef,myBetterRef]),3,8,2)[0]
+        # fll = open("newEckart_trimer_allH.xyz","w+")
+        # self.printCoordsToFile(np.array([myBetterRef,myBetterRef]),fll)
+        print(myBetterRef)
+        # print myBetterRef
+        if yz:
             print 'yz - ref structure turned'
             rotM = np.array([[0.,0.,1.],
                          [0, 1, 0],
@@ -1282,37 +1320,37 @@ class molecule (object):
             #              [0.,1.,0.]])
             myBetterRef= np.dot(rotM,myBetterRef.T).T
 
-            return myBetterRef #myRef2
+        return myBetterRef #myRef2
 
-    def pullTetramerRefPos(self,yz): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
+    def pullTetramerRefPos(self,yz,dip): #Eckart reference for the trimer is in an xyz file. Need just a 3xNatom array of reference structures. I can hard code this in
         """goes O1,O2,O3,O4,..H12"""
-        myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
-                           [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
-                           [-4.16865752E+00, -2.40677554E+00, 1.18329136E-30],
-                           [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
-                           [1.79529146E-16,  5.90334467E+00, -1.46596673E+00],
-                           [-3.94430453E-31,  5.90334467E+00,  1.46596673E+00],
-                           [5.11244645E+00, -2.95167233E+00,  1.46596673E+00],
-                           [5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
-                           [-5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
-                           [-5.11244645E+00, -2.95167233E+00, 1.46596673E+00],
-                           [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
-                           [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
-                           [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
-        # myRefCOM = np.array([[0.00000000E+00 , 4.85061327E+00, 0.00000000E+00],
-        #                      [-4.20075432E+00, -2.42530663E+00, -3.29752226E-32 ],
-        #                      [4.20075432E+00, -2.42530663E+00, -3.29752226E-32],
-        #                      [0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
-        #                      [1.46095651E+00 , 5.94728732E+00,  6.90545654E-33],
-        #                      [-1.46095651E+00,  5.94728732E+00, -1.78915572E-16  ],
-        #                      [-5.88098016E+00, -1.70841820E+00, -2.32281848E-32 ],
-        #                      [-4.42002364E+00, -4.23886911E+00,  7.20212353E-16],
-        #                      [4.42002364E+00, -4.23886911E+00,  1.39582245E-31],
-        #                      [5.88098016E+00, -1.70841820E+00, -5.41296781E-16 ],
-        #                      [-1.64844284E+00, -9.51728920E-01, -1.29400021E-32 ],
-        #                      [1.64844284E+00, -9.51728920E-01, -1.29400021E-32],
-        #                      [4.93038066E-32,  1.90345784E+00, -5.47382213E-48],
-        #                      ]) #TOTALLY PLANAR
+        # myRefCOM = np.array([[0.00000000E+00,  4.81355109E+00, -4.53345972E-32],
+        #                    [4.16865752E+00, -2.40677554E+00, -1.38050658E-30],
+        #                    [-4.16865752E+00, -2.40677554E+00, 1.18329136E-30],
+        #                    [-0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
+        #                    [1.79529146E-16,  5.90334467E+00, -1.46596673E+00],
+        #                    [-3.94430453E-31,  5.90334467E+00,  1.46596673E+00],
+        #                    [5.11244645E+00, -2.95167233E+00,  1.46596673E+00],
+        #                    [5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
+        #                    [-5.11244645E+00, -2.95167233E+00, -1.46596673E+00],
+        #                    [-5.11244645E+00, -2.95167233E+00, 1.46596673E+00],
+        #                    [-1.65058312E+00, -9.52964606E-01,  3.94430453E-31],
+        #                    [1.65058312E+00, -9.52964606E-01, -4.93038066E-31],
+        #                    [0.00000000E+00,  1.90592921E+00, -1.72916465E-32]])
+        myRefCOM = np.array([[0.00000000E+00 , 4.85061327E+00, 0.00000000E+00],
+                             [-4.20075432E+00, -2.42530663E+00, -3.29752226E-32 ],
+                             [4.20075432E+00, -2.42530663E+00, -3.29752226E-32],
+                             [0.00000000E+00,  0.00000000E+00,  0.00000000E+00],
+                             [1.46095651E+00 , 5.94728732E+00,  6.90545654E-33],
+                             [-1.46095651E+00,  5.94728732E+00, -1.78915572E-16  ],
+                             [-5.88098016E+00, -1.70841820E+00, -2.32281848E-32 ],
+                             [-4.42002364E+00, -4.23886911E+00,  7.20212353E-16],
+                             [4.42002364E+00, -4.23886911E+00,  1.39582245E-31],
+                             [5.88098016E+00, -1.70841820E+00, -5.41296781E-16 ],
+                             [-1.64844284E+00, -9.51728920E-01, -1.29400021E-32 ],
+                             [1.64844284E+00, -9.51728920E-01, -1.29400021E-32],
+                             [4.93038066E-32,  1.90345784E+00, -5.47382213E-48],
+                             ]) #TOTALLY PLANAR
         myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
         # print 'rachel!'
         # myRefCOM = np.array([[   0.000000,    2.547200,    0.000010 ],
@@ -1386,77 +1424,97 @@ class molecule (object):
             masss = la.det(eckVecs)
         return newCoord
 
-    def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False,hydro_water=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+    # def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False,hydro_water=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
+    #     """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
+    #     one should transpose the matrix, or do eck.dot(___)"""
+    #     killList2=0
+    #     if cart or justO or hydro or hydro_water:
+    #         planar = True
+    #     else:
+    #         planar = False
+    #     if self.name in ProtonatedWaterTrimer:
+    #         # planar=True
+    #         self.refPos = self.pullTrimerRefPos(yz)
+    #     else:
+    #         # planar=True
+    #         self.refPos = self.pullTetramerRefPos(yz)
+    #     if len(pos.shape)<3:
+    #         pos=np.array([pos])
+    #     #Center of Mass
+    #     print 'getting mass'
+    #     mass=self.get_mass()
+    #     print 'got mass, here it is', mass
+    #     if self.name in ProtonatedWaterTetramer:
+    #         if justO: #the OOO plane
+    #             self.refPos=self.refPos[:3]
+    #             refCOM = np.dot(mass[:3], self.refPos) / np.sum(mass[:3])  # same as overal COM
+    #             com = np.dot(mass[:3],pos[:,:3])/np.sum(mass[:3])
+    #             mass = mass[:3]
+    #             pos = pos[:,:3,:]
+    #         elif cart: #include central oxygen
+    #             self.refPos = self.refPos[:4]
+    #             com = np.dot(mass[:4], pos[:, :4]) / np.sum(mass[:4])
+    #             refCOM =  np.dot(mass[:4], self.refPos) / np.sum(mass[:4]) #same as overal COM
+    #             mass = mass[:4]
+    #             pos = pos[:, :4, :]
+    #         elif hydro:
+    #             self.refPos = self.refPos[[4-1,13-1,11-1,12-1]]
+    #             com = np.dot(mass[[4-1,13-1,11-1,12-1]], pos[:, [4-1,13-1,11-1,12-1]]) / np.sum(mass[[4-1,13-1,11-1,12-1]])
+    #             refCOM = np.dot(mass[[4-1,13-1,11-1,12-1]], self.refPos) / np.sum(mass[[4-1,13-1,11-1,12-1]])  # same as overal COM
+    #             mass = mass[[4-1,13-1,11-1,12-1]]
+    #             pos = pos[:, [4-1,13-1,11-1,12-1],:]
+    #         else:
+    #             #rachel!!!
+    #             # mass = mass[[[0, 1, 2, 5, 8, 11, 12]]]
+    #             com = np.dot(mass, pos) / np.sum(mass)
+    #             refCOM = np.dot(mass,self.refPos) / np.sum(mass)
+    #
+    #     elif self.name in ProtonatedWaterTrimer:
+    #         if justO or cart:  # the OOO plane
+    #             self.refPos = self.refPos[:3]
+    #             refCOM = np.dot(mass[:3], self.refPos) / np.sum(mass[:3])  # same as overal COM
+    #             com = np.dot(mass[:3], pos[:, :3]) / np.sum(mass[:3])
+    #             mass = mass[:3]
+    #             pos = pos[:, :3, :]
+    #         elif hydro:
+    #             self.refPos = self.refPos[[3 - 1, 9-1,8-1,10-1]]
+    #             com = np.dot(mass[[3-1, 9-1,8-1,10-1]], pos[:, [3-1, 9-1,8-1,10-1]]) / np.sum(
+    #                 mass[[3-1, 9-1,8-1,10-1]])
+    #             refCOM = np.dot(mass[[3-1, 9-1,8-1,10-1]], self.refPos) / np.sum(
+    #                 mass[[3-1, 9-1,8-1,10-1]])  # same as overal COM
+    #             mass = mass[[3-1, 9-1,8-1,10-1]]
+    #             pos = pos[:, [3-1, 9-1,8-1,10-1], :]
+    #         elif hydro_water:
+    #             self.refPos = self.refPos[[3 - 1, 9 - 1,  10 - 1]]
+    #             com = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], pos[:, [3 - 1, 9 - 1,  10 - 1]]) / np.sum(
+    #                 mass[[3 - 1, 9 - 1,  10 - 1]])
+    #             refCOM = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], self.refPos) / np.sum(
+    #                 mass[[3 - 1, 9 - 1,  10 - 1]])  # same as overal COM
+    #             mass = mass[[3 - 1, 9 - 1,  10 - 1]]
+    #             pos = pos[:, [3 - 1, 9 - 1,  10 - 1], :]
+    #         else:
+    #             com = np.dot(mass, pos) / np.sum(mass)
+    #             refCOM = np.dot(mass,self.refPos) / np.sum(mass)
+
+    def eckartRotate(self, pos, planar=False,yz=False,All=False,lst=[],dip=False):  # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
         one should transpose the matrix, or do eck.dot(___)"""
-        killList2=0
-        if cart or justO or hydro or hydro_water:
-            planar = True
-        else:
-            planar = False
+        killList2 = 0
         if self.name in ProtonatedWaterTrimer:
             # planar=True
-            self.refPos = self.pullTrimerRefPos(yz)
+            self.refPos = self.pullTrimerRefPos(yz,dip)
         else:
             # planar=True
-            self.refPos = self.pullTetramerRefPos(yz)
-        if len(pos.shape)<3:
-            pos=np.array([pos])
-        #Center of Mass
-        print 'getting mass'
-        mass=self.get_mass()
+            self.refPos = self.pullTetramerRefPos(yz,dip)
+        mass = self.get_mass()
         print 'got mass, here it is', mass
-        if self.name in ProtonatedWaterTetramer:
-            if justO: #the OOO plane
-                self.refPos=self.refPos[:3]
-                refCOM = np.dot(mass[:3], self.refPos) / np.sum(mass[:3])  # same as overal COM
-                com = np.dot(mass[:3],pos[:,:3])/np.sum(mass[:3])
-                mass = mass[:3]
-                pos = pos[:,:3,:]
-            elif cart: #include central oxygen
-                self.refPos = self.refPos[:4]
-                com = np.dot(mass[:4], pos[:, :4]) / np.sum(mass[:4])
-                refCOM =  np.dot(mass[:4], self.refPos) / np.sum(mass[:4]) #same as overal COM
-                mass = mass[:4]
-                pos = pos[:, :4, :]
-            elif hydro:
-                self.refPos = self.refPos[[4-1,13-1,11-1,12-1]]
-                com = np.dot(mass[[4-1,13-1,11-1,12-1]], pos[:, [4-1,13-1,11-1,12-1]]) / np.sum(mass[[4-1,13-1,11-1,12-1]])
-                refCOM = np.dot(mass[[4-1,13-1,11-1,12-1]], self.refPos) / np.sum(mass[[4-1,13-1,11-1,12-1]])  # same as overal COM
-                mass = mass[[4-1,13-1,11-1,12-1]]
-                pos = pos[:, [4-1,13-1,11-1,12-1],:]
-            else:
-                #rachel!!!
-                # mass = mass[[[0, 1, 2, 5, 8, 11, 12]]]
-                com = np.dot(mass, pos) / np.sum(mass)
-                refCOM = np.dot(mass,self.refPos) / np.sum(mass)
-
-        elif self.name in ProtonatedWaterTrimer:
-            if justO or cart:  # the OOO plane
-                self.refPos = self.refPos[:3]
-                refCOM = np.dot(mass[:3], self.refPos) / np.sum(mass[:3])  # same as overal COM
-                com = np.dot(mass[:3], pos[:, :3]) / np.sum(mass[:3])
-                mass = mass[:3]
-                pos = pos[:, :3, :]
-            elif hydro:
-                self.refPos = self.refPos[[3 - 1, 9-1,8-1,10-1]]
-                com = np.dot(mass[[3-1, 9-1,8-1,10-1]], pos[:, [3-1, 9-1,8-1,10-1]]) / np.sum(
-                    mass[[3-1, 9-1,8-1,10-1]])
-                refCOM = np.dot(mass[[3-1, 9-1,8-1,10-1]], self.refPos) / np.sum(
-                    mass[[3-1, 9-1,8-1,10-1]])  # same as overal COM
-                mass = mass[[3-1, 9-1,8-1,10-1]]
-                pos = pos[:, [3-1, 9-1,8-1,10-1], :]
-            elif hydro_water:
-                self.refPos = self.refPos[[3 - 1, 9 - 1,  10 - 1]]
-                com = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], pos[:, [3 - 1, 9 - 1,  10 - 1]]) / np.sum(
-                    mass[[3 - 1, 9 - 1,  10 - 1]])
-                refCOM = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], self.refPos) / np.sum(
-                    mass[[3 - 1, 9 - 1,  10 - 1]])  # same as overal COM
-                mass = mass[[3 - 1, 9 - 1,  10 - 1]]
-                pos = pos[:, [3 - 1, 9 - 1,  10 - 1], :]
-            else:
-                com = np.dot(mass, pos) / np.sum(mass)
-                refCOM = np.dot(mass,self.refPos) / np.sum(mass)
+        if not All:
+            print('Reduced Eckart')
+            self.refPos = self.refPos[lst]
+            mass = mass[lst]
+            pos = pos[:,lst]
+        com = np.dot(mass, pos) / np.sum(mass)
+        refCOM = np.dot(mass, self.refPos) / np.sum(mass)  # same as overal COM
         self.refPos-=refCOM
         #First Translate:
         print 'shifting molecules'
@@ -1469,7 +1527,7 @@ class molecule (object):
             print 'planar'
             all3 = np.arange(3)
             # myFp=np.copy(myF[:,:2])
-            indZ=np.where(myF.any(axis=2))[1][:2]
+            indZ=np.where(np.around(myF,4).any(axis=2))[1][:2]
             myFp = myF[:,indZ,:]
             myFF = np.matmul(myFp,myFp.transpose(0,2,1))
             peval,pevecs = la.eigh(myFF)

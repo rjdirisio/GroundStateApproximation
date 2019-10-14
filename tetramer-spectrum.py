@@ -368,7 +368,6 @@ else:
 #
 # stop
 
-
 if 'input' in coordinateSet:
     np.save("rotated"+coordinateSet+".npy",symCoords)
     np.save("rotated"+coordinateSet+"_dw.npy",symDw)
