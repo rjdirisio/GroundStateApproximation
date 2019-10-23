@@ -61,9 +61,10 @@ class HarmonicApproxSpectrum(object):
                 gnm=np.loadtxt(GfileName)
             return gnm
 
-
     def calculateG(self,eckartRotatedCoords,descendantWeights):
+        # dx = 1e-6
         dx = 1e-4
+        # dx = 1e-1
         start = time.time()
         mass = self.wfn.molecule.get_mass()
         print 'Start calculating G'
@@ -75,11 +76,10 @@ class HarmonicApproxSpectrum(object):
         for atom in range(self.wfn.molecule.nAtoms):
             for coordinate in range(3):
                 #WHERE INTERNAL COORDINATES ARE USED
-                cycleTime = time.time()
                 print 'dx number',atom*3+(coordinate+1), 'atom:',atom, 'coordinate',coordinate
                 deltax=np.zeros((eckartRotatedCoords.shape))
                 # deltax[:,1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
-                # deltax[:,0,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
+                # deltax[:,5,1]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
                 deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
@@ -87,14 +87,14 @@ class HarmonicApproxSpectrum(object):
                 # coordMinus = np.where(coordMinus== np.isnan(coordMinus), coordMinus, 0.)
                 pnan=np.where(np.isnan(coordPlus))
                 mnan=np.where(np.isnan(coordMinus))
-                print len(pnan[0])/3., 'nans in coordPlus'
-                print len(mnan[0])/3., 'nans in coordMinus'
-                if len(pnan[0]) > 0 or len(mnan[0]) > 0:
-                    print 'setting nans to zero'
-                    descendantWeights[pnan[0]]=0.0
-                    descendantWeights[mnan[0]] = 0.0
-                    coordPlus[pnan]=0.0
-                    coordMinus[mnan]=0.0
+                # print len(pnan[0])/3., 'nans in coordPlus'
+                # print len(mnan[0])/3., 'nans in coordMinus'
+                # if len(pnan[0]) > 0 or len(mnan[0]) > 0:
+                #     print 'setting nans to zero'
+                #     descendantWeights[pnan[0]]=0.0
+                #     descendantWeights[mnan[0]] = 0.0
+                #     coordPlus[pnan]=0.0
+                #     coordMinus[mnan]=0.0
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
                 if self.wfn.molecule.name in ProtonatedWaterTrimer:
@@ -104,30 +104,35 @@ class HarmonicApproxSpectrum(object):
                     badIdx = np.where(bigIdx[1] == 9)
                     # fixAdjustedEckartStuffInTetramer
 
-                # qual = (np.abs(coordPlus - coordMinus) > 1.0) * (np.abs(coordPlus-coordMinus) < (np.pi+0.5))
-                # print len(coordPlus[qual])
-                # coordPlus[qual] += (-1.0 * np.pi) * np.sign(coordPlus[qual])
-                # coordPlus[np.abs(coordPlus-coordMinus) > (np.pi+0.5)]+=(-1.0*2.*np.pi)*np.sign(coordPlus[np.abs(coordPlus-coordMinus) > (np.pi+0.5)])
-                # print len(coordPlus[np.abs(coordPlus-coordMinus) > 1.0]), 'potential theta'
-
                 #For 2pi stuff going from 0 to 2pi
                 # qual1 = np.abs(coordPlus - coordMinus) > 1.0
                 # print np.sum(qual1),'walkers with weird derivatives'
+                qual1 = np.where(np.abs(coordPlus - coordMinus) > 1.0)
+                # if np.any(qual1):
+                #     qual2 = np.logical_or(qual1[1]==11 , qual1[1] == 14)
+                # else:
+                #     qual2 = []
+                # coordPlus[qual1[0][qual2],qual1[1][qual2]] += (np.pi) * np.sign(coordPlus[qual1[0][qual2],qual1[1][qual2]])
                 coordPlus[np.abs(coordPlus - coordMinus) > 1.0] += (-1.0 * 2. * np.pi) * np.sign(coordPlus[np.abs(coordPlus - coordMinus) > 1.0])
                 # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
 
                 partialderv=(coordPlus-coordMinus)/(2.0*dx) #Discretizing stuff - derivative with respect to our perturbation
                 excessCount = len(bigIdx[0])
+                # np.savetxt("pderv_"+str(atom*3+(coordinate+1)),partialderv[:,[3,6]])
+                ######Commented Out
                 print excessCount, 'walkers have bad stuff (other than theta)'
                 if len(bigIdx[0])!=0:
                     for badWalk in np.column_stack(bigIdx):
                         print badWalk[0],badWalk[1], partialderv[badWalk[0],badWalk[1]],coordPlus[badWalk[0],badWalk[1]],coordMinus[badWalk[0],badWalk[1]]
                 if len(badIdx)!=0:
                     print 'Theta H was bad in ',len(badIdx[0]), 'walkers'
+
                 if len(coordPlus[np.abs(coordPlus-coordMinus) > 1.])>0 :
                     badfl = open("badFile.xyz","w+")
                     self.wfn.molecule.printCoordsToFile(eckartRotatedCoords[np.where(np.abs(coordPlus-coordMinus) > 1.0)[0]],badfl)
                     add2pifuckyouuuu
+                ###################
+
 
                 for i,pd in enumerate(partialderv):
                     mwpd2 = (partialderv[i,:,np.newaxis]*partialderv[i,np.newaxis,:])/mass[atom]
@@ -221,8 +226,8 @@ class HarmonicApproxSpectrum(object):
         #octomom
         #vinv=np.linalg.inv(v)
         invRootDiagG=np.diag(1.0/np.sqrt(w))  #1.0/rootDiagG  #MAYBE THIS IS OK??
-        for i,ValinvRootDiagG in enumerate(invRootDiagG):#range(self.nVibs):                                                                                            
-            if verbose: print 'alp[',i,']',ValinvRootDiagG[i]
+        # for i,ValinvRootDiagG in enumerate(invRootDiagG):#range(self.nVibs):
+        #     if verbose: print 'alp[',i,']',ValinvRootDiagG[i]
         invRootG=np.dot(v,np.dot(invRootDiagG,v.transpose()))
         #invG=np.dot(invRootG,invRootG.transpose())
         #checkG=np.linalg.inv(invG)
@@ -407,6 +412,7 @@ class HarmonicApproxSpectrum(object):
                     print 'Have spectrum calc continue through'
                     walkerSet = walkerSet + "_KE"
                 else:
+
                     dov = np.diagonal(overlap2)
                     overlap2 = overlap2 / np.sqrt(dov[:, None])
                     overlap2 = overlap2 / np.sqrt(dov)
@@ -478,7 +484,7 @@ class HarmonicApproxSpectrum(object):
             sumDw = np.sum(dw)
             if self.wfn.molecule.name in ProtonatedWaterTrimer:
                 if 'allH' in walkerSet:
-                    splitArs = 192
+                    splitArs = 96
                 else:
                     splitArs = len(q)  # smallest, least memory, fastest?
             else:
@@ -564,12 +570,15 @@ class HarmonicApproxSpectrum(object):
             h += nvibs2 + 1
             ct = 0
             for [(w, x), (y, z)] in itertools.combinations(lst, 2):
-                print ct
+                if ct % 1000 == 0:
+                    print(ct)
                 qwxyz = q[:, w] * q[:, x] * q[:, y] * q[:, z]
                 overlap2[tuple((g[ct], h[ct]))] = np.average(qwxyz, weights=dw)
                 ham2[tuple((g[ct], h[ct]))] = np.average(qwxyz * potE, weights=dw)
                 ct += 1
         dov = np.diagonal(overlap2)
+        np.save("overlap2NOTTRANSPOSED_notNormed" + walkerSet + ek + kil + '.dat', overlap2)
+        np.save("ham2NOTTRANSPOSED_notNormed" + walkerSet + ek + kil + '.dat', ham2)
         overlap2 = overlap2 / np.sqrt(dov[:, None])
         overlap2 = overlap2 / np.sqrt(dov)
         ham2 = ham2 / np.sqrt(dov[:, None])
@@ -596,9 +605,9 @@ class HarmonicApproxSpectrum(object):
         #     justO = False
         if not ecked:
             if self.wfn.molecule.name in ProtonatedWaterTrimer:
-                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True,lst=[1,2,3])
+                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True,lst=[0,1,2],dip=True)
             else:
-                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True, lst=[1, 2, 3,4])
+                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True, lst=[0,1,2,3],dip=True)
             #
             # print 'getting eckarted dipole moments. . .'
             # if setOfWalkers == 'fSymtet_allD':
@@ -612,6 +621,7 @@ class HarmonicApproxSpectrum(object):
             for den in range(dips.shape[0]):
                 dipoleMoments[den] = np.dot(dips[den],eckVecs[den]) #because eckVecs is .T?
                 #dipoleMoments2[b] = np.dot(eckVecs[b],dips[b]) #This definitely isn't right
+            # dipz=np.dot(dips,eckVecs)
             print 'dipole moment - after eckart rotation: ', dipoleMoments[0]
             np.save(diPath+'eng_dip_'+setOfWalkers+'_eckart.npy',np.column_stack((pe,dipoleMoments)))
             del dips
@@ -669,7 +679,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'
@@ -931,106 +941,86 @@ class HarmonicApproxSpectrum(object):
         return relativePotentialEnergy
 
     def calculateQCoordinates(self,moments, dw,gmf,setOfWalkers,kil,eckt):
-        #def calculateQCoordinates(self,moments,dw,gmf,setOfWalkers):
-        #gmf = gmatrix
         print 'calculating Normal coordinates'
         walkerSize=len(dw)
         if not os.path.isfile("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+".npy"):
             print 'no mu2ave, calculating...'
-            # mu2AveR = np.zeros((self.nVibs,self.nVibs))
             sh = np.memmap('smap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
-            # # dh = np.memmap('dmap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=int(walkerSize))
-            # # dh=dw
-            # ###test###
-            # # sh = np.array(sh)
-            # # dh = np.array(dh)
-            #
-            # ##########
-            # if walkerSize > 1000000:
-            #     chunkSize=1000000
-            # else:
-            #     chunkSize=10
-            # cycle = np.arange(0,walkerSize,chunkSize)
-            # last=False
-            # #Most likely the problem
-            # for j in cycle:
-            #     k = j+chunkSize
-            #     if k > walkerSize:
-            #         last = True
-            #     if not last:
-            #         mu2AveR += np.sum(sh[j:k]*dw[j:k,np.newaxis,np.newaxis],axis=0)
-            #     else:
-            #         mu2AveR += np.sum(sh[j:]*dw[j:,np.newaxis,np.newaxis],axis=0)
-            # #before this
-            # mu2Ave = np.divide(mu2AveR,np.sum(dw)) #/2.00000 #commented this to see what would happen
             mu2Ave = np.average(sh,axis=0,weights=dw)
-            # np.save('mu2ave_'+setOfWalkers+'_'+eckt+'_'+kil+'.npy',mu2Ave)
+            np.save('mu2ave_'+setOfWalkers+'_'+eckt+'_'+kil+'.npy',mu2Ave)
         else:
             print 'loading second moments matrix'
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+'.npy')
-        testing=False
-        if testing:
-            # self.wfn.molecule.internalName=['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
-            #                  'phi651', 'Chi651',
-            #                  'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-            #                  'HOH516', 'rOH7', 'rOH8', 'HOH728',
-            #                  'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xO4', 'yO4', 'zO4']
-            #####testing####
-            # print 'eulers'
-            # a = np.copy(mu2Ave[:9,:9])
-            # b = np.copy(mu2Ave[:9, 18:])
-            # c = np.copy(mu2Ave[18:,:9])
-            # d = np.copy(mu2Ave[18:,18:])
-            # ab=np.hstack((a,b))
-            # cd=np.hstack((c,d))
-            # mu2Ave =np.vstack((ab,cd))
-            #
-            #
-            # a = np.copy(self.G[:9, :9])
-            # b = np.copy(self.G[:9, 18:])
-            # c = np.copy(self.G[18:, :9])
-            # d = np.copy(self.G[18:, 18:])
-            # ab = np.hstack((a, b))
-            # cd = np.hstack((c, d))
-            # self.G = np.vstack((ab, cd))
-            # self.wfn.molecule.internalName = np.concatenate(
-            #     (self.wfn.molecule.internalName[:9], self.wfn.molecule.internalName[18:]))
-            print 'hi'
-            print 'xyzO4 omitted'
-            # mu2Ave=mu2Ave[:-3,:-3]
-            # self.G=self.G[:-3,:-3]
-            # self.wfn.molecule.internalName =self.wfn.molecule.internalName[:-3]
+        # mu2Ave_test = np.load("mu2ave_Sfinal_allH_rn_spc_finalVersion_addPiToChi.npy")
 
-            #just X & Y omitted
-            # print 'x&y'
-            # a = np.copy(mu2Ave[:29,:29])
-            # b = np.copy(mu2Ave[:29, 31:])
-            # c = np.copy(mu2Ave[31:,:29])
-            # d = np.copy(mu2Ave[31:,31:])
-            # ab=np.hstack((a,b))
-            # cd=np.hstack((c,d))
-            # mu2Ave =np.vstack((ab,cd))
-            #
-            # a = np.copy(self.G[:29, :29])
-            # b = np.copy(self.G[:29, 31:])
-            # c = np.copy(self.G[31:, :29])
-            # d = np.copy(self.G[31:, 31:])
-            # ab = np.hstack((a, b))
-            # cd = np.hstack((c, d))
-            # self.G = np.vstack((ab, cd))
-            # self.wfn.molecule.internalName = np.concatenate(
-            #     (self.wfn.molecule.internalName[:29], self.wfn.molecule.internalName[31:]))
-            # Just Z omitted
-            # print 'just z'
-            # mu2Ave=mu2Ave[:-1,:-1]
-            # self.G=self.G[:-1,:-1]
-            # self.wfn.molecule.internalName =self.wfn.molecule.internalName[:-1]
-            print 'off diagonal couplingggs'
-            self.G[:29,29:]=0.0
-            self.G[29:,:29]=0.0
+        # testing=False
+        #
+        # if testing:
+        #     # self.wfn.molecule.internalName=['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
+        #     #                  'phi651', 'Chi651',
+        #     #                  'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
+        #     #                  'HOH516', 'rOH7', 'rOH8', 'HOH728',
+        #     #                  'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xO4', 'yO4', 'zO4']
+        #     #####testing####
+        #     # print 'eulers'
+        #     # a = np.copy(mu2Ave[:9,:9])
+        #     # b = np.copy(mu2Ave[:9, 18:])
+        #     # c = np.copy(mu2Ave[18:,:9])
+        #     # d = np.copy(mu2Ave[18:,18:])
+        #     # ab=np.hstack((a,b))
+        #     # cd=np.hstack((c,d))
+        #     # mu2Ave =np.vstack((ab,cd))
+        #     #
+        #     #
+        #     # a = np.copy(self.G[:9, :9])
+        #     # b = np.copy(self.G[:9, 18:])
+        #     # c = np.copy(self.G[18:, :9])
+        #     # d = np.copy(self.G[18:, 18:])
+        #     # ab = np.hstack((a, b))
+        #     # cd = np.hstack((c, d))
+        #     # self.G = np.vstack((ab, cd))
+        #     # self.wfn.molecule.internalName = np.concatenate(
+        #     #     (self.wfn.molecule.internalName[:9], self.wfn.molecule.internalName[18:]))
+        #     print 'hi'
+        #     print 'xyzO4 omitted'
+        #     # mu2Ave=mu2Ave[:-3,:-3]
+        #     # self.G=self.G[:-3,:-3]
+        #     # self.wfn.molecule.internalName =self.wfn.molecule.internalName[:-3]
+        #
+        #     #just X & Y omitted
+        #     # print 'x&y'
+        #     # a = np.copy(mu2Ave[:29,:29])
+        #     # b = np.copy(mu2Ave[:29, 31:])
+        #     # c = np.copy(mu2Ave[31:,:29])
+        #     # d = np.copy(mu2Ave[31:,31:])
+        #     # ab=np.hstack((a,b))
+        #     # cd=np.hstack((c,d))
+        #     # mu2Ave =np.vstack((ab,cd))
+        #     #
+        #     # a = np.copy(self.G[:29, :29])
+        #     # b = np.copy(self.G[:29, 31:])
+        #     # c = np.copy(self.G[31:, :29])
+        #     # d = np.copy(self.G[31:, 31:])
+        #     # ab = np.hstack((a, b))
+        #     # cd = np.hstack((c, d))
+        #     # self.G = np.vstack((ab, cd))
+        #     # self.wfn.molecule.internalName = np.concatenate(
+        #     #     (self.wfn.molecule.internalName[:29], self.wfn.molecule.internalName[31:]))
+        #     # Just Z omitted
+        #     # print 'just z'
+        #     # mu2Ave=mu2Ave[:-1,:-1]
+        #     # self.G=self.G[:-1,:-1]
+        #     # self.wfn.molecule.internalName =self.wfn.molecule.internalName[:-1]
+        #     print 'off diagonal couplingggs'
+        #     self.G[:29,29:]=0.0
+        #     self.G[29:,:29]=0.0
         ########Testing########################
         # Gomit = [1,2,4,5,7,8,9,10,11,12,13,14,17,20,23]
         # Gomit = [0,1,2,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+        # Gomit = [15 16 18 19]
+        # Gomit = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,17,20,21,22,23]
+        # PinternalName = ['rOH_41','rOH_51', 'rOH_26', 'rOH_27']
+
         # # """self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
         # #                          'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
         # #                          'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']"""
@@ -1060,11 +1050,12 @@ class HarmonicApproxSpectrum(object):
         # PinternalName = self.wfn.molecule.internalName[:9] + self.wfn.molecule.internalName[10:12] + self.wfn.molecule.internalName[13:]
 
         ########Testing############################
-        # mu2Ave = np.round(mu2Ave,10)
+        # mu2Ave = np.round(mu2Ave,11)
         # plt.matshow(mu2Ave)
         # plt.colorbar()
         # plt.show()
-        # self.G = np.round(self.G,10)
+        # self.G = np.round(self.G,11)
+        ########Testing############################
         GHalfInv=self.diagonalizeRootG(self.G)
         mu2AvePrime=np.dot(GHalfInv,np.dot(mu2Ave,GHalfInv)) # mass weights g^-1/2 . sm . g^-1/2
         eigval,vects=np.linalg.eigh(mu2AvePrime)
@@ -1093,6 +1084,7 @@ class HarmonicApproxSpectrum(object):
 
         #GAAH                                                              
         TransformationMatrix=np.dot(vects.transpose(),GHalfInv)
+        # TransformationMatrix = svects.T
         TmatRy = np.dot(GHalfInv,vects)
         np.save("allGs/vecs_T_L"+setOfWalkers+'_'+eckt+'_'+kil,vects.T)
         np.save("allGs/ghinv_"+setOfWalkers+'_'+eckt+'_'+kil,GHalfInv)
@@ -1111,10 +1103,10 @@ class HarmonicApproxSpectrum(object):
         # print 'assignment file name', setOfWalkers+gmf
         # if 'Eck' in gmf:
         #     gmf=setOfWalkers
-        if not testing:
-            assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
-        else:
-            assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
+        # if not testing:
+        #     assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
+        # else:
+        assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
         for i,(vec,q2) in enumerate(zip(TransformationMatrix,eigval)):
             assignF.write("%d\n" % i)
             if verbose: print '\n',i,':<q^2 >=',q2
