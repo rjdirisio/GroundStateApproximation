@@ -952,7 +952,7 @@ class HarmonicApproxSpectrum(object):
                     chunkSize = 1000000
                 else:
                     chunkSize = 10
-                cycle = np.arange(0, walkerSize, chunkSize)
+                cycle = np.arange(0,  walkerSize, chunkSize)
                 last = False
                 mu2AveR = np.zeros((self.nVibs, self.nVibs))
                 for j in cycle:
