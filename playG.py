@@ -2,8 +2,8 @@ import numpy as np
 import numpy.linalg as la
 import matplotlib.pyplot as plt
 
-M = np.load("mu2ave_ffinal_allH_rn_spc_finalVersion_NegZForYInAllCds.npy")
-G = np.loadtxt("../Gmats/trimer/ffinal_allH_rn_spc_finalVersion_NegZForYInAllCds.gmat")
+M = np.load("mu2ave_ffinal_allH_rn_spc_ffinalVersion.npy")
+G = np.loadtxt("../Gmats/trimer/ffinal_allH_rn_spc_ffinalVersion.gmat")
 sqrt2o = 1/np.sqrt(2)
 sqrt4o = 1/np.sqrt(4)
 
@@ -180,6 +180,7 @@ plt.colorbar()
 plt.matshow(np.abs(res),cmap='hot')
 plt.title("Absolute Value of Transformed M")
 plt.colorbar()
+plt.show()
 
 plt.matshow(resG,cmap='hot')
 plt.title("Transformed G")

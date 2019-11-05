@@ -19,7 +19,7 @@ def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     mP = Plot.myPlot(cfg, '1d', bnd, bnd, xl, yl, overly, inin, theLen,(xx[1:]+xx[:-1])/2)
     mP.plotIt()
 
-def PltHists2D(cfg,thing1,thing2,bound1,bound2,yl,xl,overly,weits,bins):
+def PltHists2D(cfg,thing1,thing2,bound1,bound2,xl,yl,overly,weits,bins):
     white=False
     theLen, xx,yy = np.histogram2d(thing1,thing2,bins=bins,range=(bound1,bound2),normed=True,weights=weits) #WEIGHTS=WEIGHTARRAY
     inin=True
@@ -28,21 +28,23 @@ def PltHists2D(cfg,thing1,thing2,bound1,bound2,yl,xl,overly,weits,bins):
     Y = (yy[1:] + yy[:-1]) / 2
     bnd1 = str(bound1[0]).replace(".","").replace("-","")+str(bound1[1]).replace(".","").replace("-","")
     bnd2 = str(bound2[0]).replace(".","").replace("-","")+str(bound2[1]).replace(".","").replace("-","")
-    mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,xl,yl,overly,inin,theLen,X,Y,white)
+    mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,yl,xl,overly,inin,theLen,X,Y,white)
     mP.plotIt()
 
 def plotStuff(symEckRotCoords):
-    # if os.path.isfile("q_" + coordinateSet + ".npy"):
+    # strang="q_" + coordinateSet +'_'+testName+"_"+kill+".npy"
+    # if os.path.isfile("q_" + coordinateSet +'_'+testName+"_"+kill+".npy"):
     #     print 'plotQs'
-    #     q = np.load("q_" + coordinateSet + ".npy")
+    #     q = np.load("q_" + coordinateSet +'_'+testName+"_"+kill+".npy")
     #     for i in range(q.shape[1]):
-    #         PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'trimerInternals/Probability Denisty',
-    #                False, symDw)
+    #         PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'trimerInternals/Probability Denisty',False, symDw)
+    #     PltHists1D('allH', q[:, 5]*q[:,15], (-400, 400), 'q_5_15', 'trimerInternals/Probability Denisty', False, symDw)
+    #     PltHists2D('allH', q[:, 6],q[:, 5]*q[:,15], (-100,100), (-5,5), 'q6', 'q5*q15',
+    #                False, symDw, 30)
     print 'INTERNAL COORDINATES :-O'
-    ocom,evecs,kil = Wfn.molecule.eckartRotate(symEckRotCoords,planar=True,lst=[0,1,2],dip=True)
-    symEckRotCoords -= ocom[:,np.newaxis]
-    symEckRotCoords = np.einsum('knj,kij->kni', evecs.transpose(0, 2, 1), symEckRotCoords).transpose(0, 2, 1)
-
+    # ocom,evecs,kil = Wfn.molecule.eckartRotate(symEckRotCoords,planar=True,lst=[0,1,2],dip=True)
+    # symEckRotCoords -= ocom[:,np.newaxis]
+    # symEckRotCoords = np.einsum('knj,kij->kni', evecs.transpose(0, 2, 1), symEckRotCoords).transpose(0, 2, 1)
 
     # zcomps = symEckRotCoords[:,:,-1]
     # Az1=np.average(zcomps[:,1-1],axis=0,weights=symDw)
@@ -81,18 +83,29 @@ def plotStuff(symEckRotCoords):
     #            False, symDw, 100)
     # PltHists1D('allH', symEckRotCoords[:,8-1,-1] * angstr, (-2, 2), "ZCompH8", 'trimerInternals/Probability Density', False,
     #            symDw)
-    internals = Wfn.molecule.SymInternalsH7O3plus(symEckRotCoords)
+
+    internals = Wfn.molecule.SymInternals(symEckRotCoords)
     nm=Wfn.molecule.internalName
     print internals
     x=np.average(internals,axis=0,weights=symDw)
+    stop
+
+    PltHists2D('allH', np.degrees(internals[:,1]),np.degrees(internals[:,2]),(0,180),(-90,90), 'Theta', 'Phi',
+               False, symDw, 40)
     np.savetxt('averageInternalsWithNewEckart_'+coordinateSet,np.average(internals,axis=0,weights=symDw))
     print 'Internal coordinate shape: ', np.shape(internals)
     print 'One attribute shape: ',np.shape(internals[:,0])
-    print 'number of dws: ', symDw
+    print 'number of dws: ', symDw.shape
 
-    PltHists2D('allH',angstr*(internals[:, 21])+angstr*(internals[:,22]) ,  angstr*(internals[:, 21])-angstr*(internals[:,22]), (4.4,5.6),(-0.6,0.6),'Roo_1+Roo2', 'Roo1-Roo_2',
-               False, symDw, 40)
+    # PltHists2D('allH',angstr*(internals[:, 21])+angstr*(internals[:,22]) ,  angstr*(internals[:, 21])-angstr*(internals[:,22]), (4.4,5.6),(-0.6,0.6),'Roo_1+Roo2', 'Roo1-Roo_2',
+    #            False, symDw, 40)
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 8]), (-360, 360), (-360, 360), 'PhiH9',
+               'PhiH10',False, symDw, 60)
 
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 4]), (-180, 180), (-180, 180), 'PhiH9',
+               'ThH10', False, symDw, 60)
+
+    #            False, symDw, 60)
     PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 9]), (-360,360), (-360,360), 'PhiH8', 'Th627',
                False, symDw, 60)
     PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 10]), (-360,360), (-360,360), 'phiH8', 'Ph627',
@@ -127,29 +140,29 @@ def plotStuff(symEckRotCoords):
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 1]), (0,180), nm[1], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 2]), (0,360), nm[2], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', np.degrees(internals[:, 2]), (-360,360), nm[2], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', internals[:, 3]*angstr, (0, 3), nm[3], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 4]), (0,180), nm[4], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 5]), (-180,180), nm[5], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', np.degrees(internals[:, 5]), (-90,90), nm[5], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', internals[:, 6]*angstr, (0, 3), nm[6], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 7]), (0,180), nm[7], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 8]), (-180,180), nm[8], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', np.degrees(internals[:, 8]), (-90,90), nm[8], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 9]), (-360,360), nm[9], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 10]), (-360,360), nm[10], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', np.degrees(internals[:, 10]), (-180,180), nm[10], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 11]), (-360,360), nm[11], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 12]), (-360,360), nm[12], 'trimerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.degrees(internals[:, 13]), (-360,360), nm[13], 'trimerInternals/Probability Density', False,
+    PltHists1D('allH', np.degrees(internals[:, 13]), (-180,180), nm[13], 'trimerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.degrees(internals[:, 14]), (-360,360), nm[14], 'trimerInternals/Probability Density', False,
                symDw)
@@ -264,7 +277,7 @@ else:
     symEckRotCoords = symCoords
     # symEckRotCoords = symCoords[:len(symCoords)/2]
     # symDw = symDw[:len(symCoords)/2]
-    iwantToPlotStuff=True
+    iwantToPlotStuff=False
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)
     else:

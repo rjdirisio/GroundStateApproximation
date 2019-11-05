@@ -81,6 +81,7 @@ class HarmonicApproxSpectrum(object):
                 # deltax[:,1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
                 # deltax[:,5,1]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
                 deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
+
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
                 # coordPlus=np.where(coordPlus == np.isnan(coordPlus),coordPlus,0.)
@@ -109,10 +110,11 @@ class HarmonicApproxSpectrum(object):
                 # print np.sum(qual1),'walkers with weird derivatives'
                 qual1 = np.where(np.abs(coordPlus - coordMinus) > 1.0)
                 # if np.any(qual1):
-                #     qual2 = np.logical_or(qual1[1]==11 , qual1[1] == 14)
+                #     qual2 = np.logical_or(qual1[1]==10 , qual1[1] == 13)
                 # else:
                 #     qual2 = []
-                # coordPlus[qual1[0][qual2],qual1[1][qual2]] += (np.pi) * np.sign(coordPlus[qual1[0][qual2],qual1[1][qual2]])
+                #if difference is negative, add pi/2.  Otherwise,
+                # coordPlus[qual1[0][qual2],qual1[1][qual2]] += (np.pi/2.0) * np.sign(coordMinus[qual1[0][qual2],qual1[1][qual2]] - coordPlus[qual1[0][qual2],qual1[1][qual2]])
                 coordPlus[np.abs(coordPlus - coordMinus) > 1.0] += (-1.0 * 2. * np.pi) * np.sign(coordPlus[np.abs(coordPlus - coordMinus) > 1.0])
                 # descendantWeights[(np.abs(coordPlus-coordMinus) > 1.)[:,0]]=0.0
 
@@ -281,7 +283,7 @@ class HarmonicApproxSpectrum(object):
 
     def overlapMatrix(self,q,dw,poE,walkerSet,kil,ek):
         nwalkers = len(dw)
-        lg = open("overlapLog.txt","w+")
+        # lg = open("overlapLog.txt","w+")
         potE = np.copy(poE)*au2wn
         #Csontruct constants and on diagonal elements
         a = np.average(q * q * q / np.average(q * q, axis=0, weights=dw), axis=0, weights=dw) * (1 / np.average(q * q, axis=0, weights=dw))
@@ -290,7 +292,6 @@ class HarmonicApproxSpectrum(object):
         #Construct Overlap Matrix
         #Construct diagonal elements
         nvibs2 = self.nVibs * 2
-        lg.write('Construct Diagonal Elements\n')
         engageKineticCoupling=False
         if (not os.path.isfile('ezOvMat_'+walkerSet+"noKEInFunds"+'_'+ek+'_'+kil+".npy")) or engageKineticCoupling:
             print 'ez part of overlap matrix doesnt exist'
@@ -307,7 +308,6 @@ class HarmonicApproxSpectrum(object):
                     #dgnl.append(a1)
                     dgnl2.append(a1)
             del a1sqrt
-            lg.write('time for on diag combos')
             ########combos for overlap 2
             for (x,y) in itertools.combinations(q.T,2):
                 a2p=np.average(x*x*y*y,weights=dw)
@@ -328,14 +328,11 @@ class HarmonicApproxSpectrum(object):
             del a
             del b
             gc.collect()
-            lg.write('Construct Off-Diagonal Elements\n')
-            lg.write('Funds w ground\n')
             overlap2[0,1:self.nVibs+1]=np.average(q,axis=0,weights=dw)
             ham2[0, 1:self.nVibs + 1] = np.average(q*potE[:,np.newaxis], axis=0, weights=dw)
             overlap2[0,self.nVibs+1:self.nVibs*2+1] = np.average(bq2aq1, axis=0, weights=dw)
             ham2[0, self.nVibs + 1:self.nVibs * 2 + 1] = np.average(bq2aq1*potE[:,np.newaxis], axis=0, weights=dw)
             #combinations
-            lg.write('Combinations with ground\n')
             nvibs2 = self.nVibs*2
             vbo=np.flip(np.arange(self.nVibs+1))
             curI = nvibs2+1
@@ -345,9 +342,7 @@ class HarmonicApproxSpectrum(object):
                 ham2[0, curI:nxtI] = np.average(q[:, combo, np.newaxis]*q[:, (combo + 1):]*potE[:,np.newaxis], axis=0, weights=dw)
                 curI = nxtI
                 nxtI += vbo[combo+1]-1
-            lg.write("done\n")
             ##Fundamentals with other funds - already calculated
-            lg.write('Funds with other Funds\n')
             pst=np.triu_indices_from(overlap2[1:self.nVibs+1,1:self.nVibs+1],k=1)
             af=pst[0]+1
             bf=pst[1]+1
@@ -685,6 +680,8 @@ class HarmonicApproxSpectrum(object):
             overlapMs = self.path + 'redH/'
             np.savetxt(overlapMs + 'overlapMatrix2_' + setOfWalkers + testName + kill + '.dat', overlap2)
             np.savetxt(overlapMs + 'offDiagonalCouplingsInPotential2_' + setOfWalkers + testName + kill + '.dat', ham2)
+        else:
+            overlapMs = self.path + 'redH/'
         #V_0=<0|V|0>
         print 'overlap matrix done or skipped'
         print 'Potential Energy',potentialEnergy
@@ -707,6 +704,7 @@ class HarmonicApproxSpectrum(object):
         
         #Now calculate the kinetic energy
         print 'ZPE: average v_0',V_0*au2wn
+        np.save(overlapMs+"v_0"+setOfWalkers + testName + kill,V_0*au2wn)
         print 'Vq', Vq*au2wn
 
         q4 = q*q*q*q
@@ -943,11 +941,32 @@ class HarmonicApproxSpectrum(object):
     def calculateQCoordinates(self,moments, dw,gmf,setOfWalkers,kil,eckt):
         print 'calculating Normal coordinates'
         walkerSize=len(dw)
-        if not os.path.isfile("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+".npy"):
+        if not os.path.isfile("mu2ave_" + setOfWalkers + '_' + eckt + '_' + kil + ".npy"):
             print 'no mu2ave, calculating...'
-            sh = np.memmap('smap'+setOfWalkers+'_'+eckt+'_'+kil, dtype='float64', mode='r', shape=(int(walkerSize),int(self.nVibs),int(self.nVibs)))
-            mu2Ave = np.average(sh,axis=0,weights=dw)
-            np.save('mu2ave_'+setOfWalkers+'_'+eckt+'_'+kil+'.npy',mu2Ave)
+            sh = np.memmap('smap' + setOfWalkers + '_' + eckt + '_' + kil, dtype='float64', mode='r',
+                           shape=(int(walkerSize), int(self.nVibs), int(self.nVibs)))
+            if 'tet' in setOfWalkers:
+                # dh = np.memmap('dmap' + setOfWalkers + '_' + eckt + '_' + kil, dtype='float64', mode='r',
+                #                shape=int(walkerSize))
+                if walkerSize > 1000000:
+                    chunkSize = 1000000
+                else:
+                    chunkSize = 10
+                cycle = np.arange(0, walkerSize, chunkSize)
+                last = False
+                mu2AveR = np.zeros((self.nVibs, self.nVibs))
+                for j in cycle:
+                    k = j + chunkSize
+                    if k > walkerSize:
+                        last = True
+                    if not last:
+                        mu2AveR += np.sum(sh[j:k] * dw[j:k, np.newaxis, np.newaxis], axis=0)
+                    else:
+                        mu2AveR += np.sum(sh[j:] * dw[j:, np.newaxis, np.newaxis], axis=0)
+                mu2Ave = np.divide(mu2AveR, np.sum(dw))
+            else:
+                mu2Ave = np.average(sh, axis=0, weights=dw)
+            np.save('mu2ave_' + setOfWalkers + '_' + eckt + '_' + kil + '.npy', mu2Ave)
         else:
             print 'loading second moments matrix'
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+'.npy')
