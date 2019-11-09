@@ -63,14 +63,6 @@ def swapStuff(myWalkers,dw):
             swap8_4 = swapChunk(np.copy(swap8_1),np.array([5, 6, 1, 13]), np.array([7, 8, 2, 11]))
             swap8_5 = swapChunk(np.copy(swap8_2),np.array([5, 6, 1, 13]), np.array([10, 9, 3, 12]))
 
-            # new8_56_910[swappedBoy] = swapLobe([5, 6, 1, 13], [10, 9, 3, 12], big8[swappedBoy])
-            # new8_56_78[swappedBoy] = swapLobe([5, 6, 1, 13], [7, 8, 2, 11], big8[swappedBoy])
-            # new8_78_910[swappedBoy] = swapLobe([7, 8, 2, 11], [10, 9, 3, 12], big8[swappedBoy])
-            # new8_56_910_65with78 = copy.deepcopy(new8_56_910)
-            # new8_56_78_65with910 = copy.deepcopy(new8_56_78)
-            # new8_56_910_65with78[swappedBoy] = swapLobe([5, 6, 1, 13], [7, 8, 2, 11], new8_56_910[swappedBoy])
-            # new8_56_78_65with910[swappedBoy] = swapLobe([5, 6, 1, 13], [10, 9, 3, 12], new8_56_78[swappedBoy])
-
             oswCds = np.concatenate((big8, swap8_1,swap8_2,swap8_3,swap8_4,swap8_5), axis=0)
             oswCdsZ = np.copy(oswCds)
             oswCdsZ[:,:,-1] *= -1.0
@@ -127,7 +119,7 @@ for config in fileList:
     if trimer:
         ocom, evecs, kil = Wfn.molecule.eckartRotate(cds, planar=True, lst=[0, 1, 2], dip=True)
     else:
-        ocom, evecs, kil = Wfn.molecule.eckartRotate(cds, planar=True, lst=[0,1,2,3], dip=True)
+        ocom, evecs, kil = Wfn.molecule.eckartRotate(cds, planar=True, lst=[0,1,2,3], dip=False)
     cds-=ocom[:,np.newaxis]
     cds = np.einsum('knj,kij->kni', evecs.transpose(0, 2, 1), cds).transpose(0, 2, 1)
     dw = np.load(config[:-4]+"_dw.npy")
@@ -135,13 +127,13 @@ for config in fileList:
     if trimer:
         ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True, lst=[0, 1, 2], dip=True)
     else:
-        ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True, lst=[0, 1, 2, 3], dip=True)
+        ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True, lst=[0, 1, 2, 3], dip=False)
     newCds-=ocom2[:,np.newaxis]
     newCds = np.einsum('knj,kij->kni', evecs2.transpose(0, 2, 1), newCds).transpose(0, 2, 1)
     if trimer:
         np.save("../coordinates/trimer/ffinal_"+config[-8:],newCds)
         np.save("../coordinates/trimer/ffinal_"+config[-8:-4]+"_dw",newDw)
     else:
-        np.save("../coordinates/tetramer/tetffinal_" + config[-8:], newCds)
-        np.save("../coordinates/tetramer/tetffinal_" + config[-8:-4] + "_dw", newDw)
+        np.save("../coordinates/tetramer/tetffinal2_" + config[-8:], newCds)
+        np.save("../coordinates/tetramer/tetffinal2_" + config[-8:-4] + "_dw", newDw)
     print "Done"

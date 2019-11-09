@@ -21,17 +21,30 @@ def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     mP = Plot.myPlot(cfg, '1d', bnd, bnd, xl, yl, overly, inin, theLen,(xx[1:]+xx[:-1])/2)
     mP.plotIt()
 
-def PltHists2D(cfg,thing1,thing2,bound1,bound2,xl,yl,overly,weits,bins):
-    white=False
+# def PltHists2D(cfg,thing1,thing2,bound1,bound2,xl,yl,overly,weits,bins):
+#     white=False
+#     theLen, xx,yy = np.histogram2d(thing1,thing2,bins=bins,range=(bound1,bound2),normed=True,weights=weits) #WEIGHTS=WEIGHTARRAY
+#     inin=True
+#     overlay=False
+#     X = (xx[1:] + xx[:-1]) / 2
+#     Y = (yy[1:] + yy[:-1]) / 2
+#     bnd1 = str(bound1[0]).replace(".","").replace("-","")+str(bound1[1]).replace(".","").replace("-","")
+#     bnd2 = str(bound2[0]).replace(".","").replace("-","")+str(bound2[1]).replace(".","").replace("-","")
+#     mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,yl,xl,overly,inin,theLen,X,Y,white)
+#     mP.plotIt()
+
+def PltHists2D(cfg,thing1,thing2,bound1,bound2,label1,label2,weits,bins):
     theLen, xx,yy = np.histogram2d(thing1,thing2,bins=bins,range=(bound1,bound2),normed=True,weights=weits) #WEIGHTS=WEIGHTARRAY
-    inin=True
-    overlay=False
     X = (xx[1:] + xx[:-1]) / 2
     Y = (yy[1:] + yy[:-1]) / 2
-    bnd1 = str(bound1[0]).replace(".","").replace("-","")+str(bound1[1]).replace(".","").replace("-","")
-    bnd2 = str(bound2[0]).replace(".","").replace("-","")+str(bound2[1]).replace(".","").replace("-","")
-    mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,yl,xl,overly,inin,theLen,X,Y,white)
-    mP.plotIt()
+    theLen = theLen.T
+    plt.contour(X,Y,theLen,c='k')
+    plt.contourf(X,Y,theLen)
+    plt.xlabel(label1)
+    plt.ylabel(label2)
+    plt.colorbar()
+    plt.savefig(cfg+"_"+label2+"vs"+label1+'.png',dpi=300)
+    plt.close()
 
 def ba(xx, atm1, atm2, atm3):  # left center right
     # Rotation of O1 to xyplane
@@ -103,27 +116,62 @@ def plotStuff(symEckRotCoords):
                             'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
                             'HOH516', 'rOH7', 'rOH8', 'HOH728',
                             'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']"""
-    PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 6]), (-180, 180), (-180, 180), 'Umbrella', 'thetaH',
-               False, symDw, 40)
-    PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 7]), (-180, 180), (-180, 180), 'Umbrella','phiH',
-               False, symDw, 40)
-    PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 8]), (-180, 180), (-180, 180), 'Umbrella','xiH',
-               False, symDw, 40)
-    PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 9]), (-180, 180), (-180, 180), 'Umbrella', 'theta651',
-               False, symDw, 40)
-    PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 10]), (-180, 180), (-180, 180), 'Umbrella','phi651',
-               False, symDw, 40)
-    PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 11]), (-180, 180), (-180, 180), 'Umbrella','xi651',
-               False, symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 6]), (-180, 180), (-180, 180), 'Umbrella', 'thetaH',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 7]), (-180, 180), (-180, 180), 'Umbrella','phiH',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 8]), (-180, 180), (-180, 180), 'Umbrella','xiH',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 9]), (-180, 180), (-180, 180), 'Umbrella', 'theta651',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 10]), (-180, 180), (-180, 180), 'Umbrella','phi651',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 11]), (-180, 180), (-180, 180), 'Umbrella','xi651',
+    #             symDw, 40)
+    # """'theta651','phi651', 'Chi651','theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728'"""
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 12]), (-180, 180), (-180, 180), 'Umbrella',
+    #            'theta1039',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 13]), (-180, 180), (-180, 180), 'Umbrella',
+    #            'phi1039',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 14]), (-180, 180), (-180, 180), 'Umbrella',
+    #            'xi1039',
+    #             symDw, 40)
+    #
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 15]), (-180, 180), (-180, 180), 'Umbrella',
+    #            'theta728',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 16]), (-180, 180), (-180, 180), 'Umbrella',
+    #            'phi728',
+    #             symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), np.degrees(internals[:, 17]), (-180, 180), (-180, 180), 'Umbrella',
+    #            'xi728',
+    #             symDw, 40)
 
-    PltHists2D('allH', np.degrees(internals[:, 3]), internals[:, -1], (-180, 180), (-2,2), 'Umbrella','Zo4',
-               False, symDw, 40)
-    PltHists2D('allH', internals[:, -2], internals[:, -1], (-2,2), (-2,2), 'Yo4','Zo4',
-               False, symDw, 40)
-    PltHists2D('allH', internals[:, -3], internals[:, -1], (-2,2), (-2,2), 'Xo4','Zo4',
-               False, symDw, 40)
-    PltHists2D('allH', internals[:, -3], internals[:, -2], (-2,2), (-2,2), 'Xo4','Yo4',
-               False, symDw, 40)
+    # PltHists2D('allH', np.degrees(internals[:, 3]), internals[:, -1], (-180, 180), (-2,2), 'Umbrella','Zo4',
+    #             symDw, 40)
+    # PltHists2D('allH', internals[:, -2], internals[:, -1], (-2,2), (-2,2), 'Yo4','Zo4',
+    #             symDw, 40)
+    # PltHists2D('allH', internals[:, -3], internals[:, -1], (-2,2), (-2,2), 'Xo4','Zo4',
+    #             symDw, 40)
+    # PltHists2D('allH', internals[:, -3], internals[:, -2], (-2,2), (-2,2), 'Xo4','Yo4',
+    #             symDw, 40)
+
+    PltHists2D('allH', internals[:, 0]*angstr, internals[:, -2], (0.5,1.5), (-0.5,0.5), 'rOH11', 'Yo4n',
+                symDw, 40)
+    PltHists2D('allH', internals[:, 1]*angstr, internals[:, -2], (0.5,1.5), (-0.5,0.5), 'rOH12', 'Yo4n',
+               symDw, 40)
+    PltHists2D('allH', internals[:, 2]*angstr, internals[:, -2], (0.5,1.5), (-0.5,0.5), 'rOH13', 'Yo4n',
+                symDw, 40)
+
+    PltHists2D('allH', internals[:, 0]*angstr, internals[:, -3], (0.5,1.5), (-0.5,0.5), 'rOH11', 'Xo4n',
+                symDw, 40)
+    PltHists2D('allH', internals[:, 1]*angstr, internals[:, -3], (0.5,1.5), (-0.5,0.5), 'rOH12', 'Xo4n',
+                symDw, 40)
+    PltHists2D('allH', internals[:, 2]*angstr, internals[:, -3], (0.5,1.5), (-0.5,0.5), 'rOH13', 'Xo4n',
+                symDw, 40)
+    print("GGGGGGGGGGGGGG")
     #ZComps as a sanity check
     PltHists1D('allH', symEckRotCoords[:, 0, -1], (-2, 2), 'zo1', 'tetramerInternals/Probability Denisty',
                False, symDw)
@@ -196,19 +244,19 @@ def plotStuff(symEckRotCoords):
                symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 10]), (-360, 360), nm[10], 'tetramerInternals/Probability Density',False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 11]), (0, 360), nm[11],'tetramerInternals/Probability Density', False,
+    PltHists1D('allH', np.rad2deg(internals[:, 11]), (-360, 360), nm[11],'tetramerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 12]), (0, 360), nm[12],'tetramerInternals/Probability Density', False,
+    PltHists1D('allH', np.rad2deg(internals[:, 12]), (-360, 360), nm[12],'tetramerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 13]), (-360, 360), nm[13],'tetramerInternals/Probability Density',False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 14]), (0, 360), nm[14],'tetramerInternals/Probability Density', False,
+    PltHists1D('allH', np.rad2deg(internals[:, 14]), (-360, 360), nm[14],'tetramerInternals/Probability Density', False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 15]), (0, 360), nm[15],'tetramerInternals/Probability Density', False,
+    PltHists1D('allH', np.rad2deg(internals[:, 15]), (-360, 360), nm[15],'tetramerInternals/Probability Density', False,
                symDw)
     PltHists1D('allH', np.rad2deg(internals[:, 16]), (-360, 360), nm[16],'tetramerInternals/Probability Density',False,
                symDw)
-    PltHists1D('allH', np.rad2deg(internals[:, 17]), (0, 360), nm[17],'tetramerInternals/Probability Density', False,
+    PltHists1D('allH', np.rad2deg(internals[:, 17]), (-360, 360), nm[17],'tetramerInternals/Probability Density', False,
                symDw)
     #roh&theta
     PltHists1D('allH', internals[:, 18]*angstr,(1,3), nm[18], 'tetramerInternals/Probability Density', False,
@@ -391,6 +439,9 @@ elif 'RSwapped' in coordinateSet:
     #     wf.write("\n")
     # wf.close()
 else:
+    # fl = open('walker12.xyz','w+')
+    # Wfn.molecule.printCoordsToFile(symCoords,fl)
+    # stop
     print 'Symcoords shape',symCoords.shape
     print 'Got symCoords!'
     #print symCoords
@@ -398,7 +449,7 @@ else:
     # symDw = symDw[:len(symDw) / 2]
     print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
     symEckRotCoords = symCoords
-    iwantToPlotStuff=True
+    iwantToPlotStuff=False
     path='../spectra/'
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)

@@ -656,8 +656,9 @@ class molecule (object):
         zaxis = ze / la.norm(ze, axis=1)[:, None]
         sgn = np.where((ZBig * zaxis).sum(axis=1) < 0)[0]
         zaxis[sgn] = np.negative(zaxis[sgn])
+        zaxis[len(zaxis)/2:] = np.negative(zaxis[len(zaxis)/2:])
         yaxis = np.cross(zaxis, xaxis, axis=1)
-        zaxis[sgn] = np.negative(zaxis[sgn])
+        zaxis[len(zaxis)/2:] = np.negative(zaxis[len(zaxis)/2:])
         return xaxis,yaxis,zaxis
 
 
@@ -800,7 +801,7 @@ class molecule (object):
         rOH13=self.bL(xx,13-1,4-1)
 
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1],dip=True)
+        ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1],dip=False)
 
         print 'got matrix'
         xx-=ocom[:,np.newaxis,:]
@@ -812,9 +813,18 @@ class molecule (object):
         print xx[0]
         print 'fully rotated'
         # ocomH, eVecsH, kilH = self.eckartRotate(xx, planar=True,lst=[4-1,11-1,12-1,13-1],dip=True)
-        ocomH, eVecsH, kilH = self.eckartRotate(xx, planar=True,lst=[4-1,11-1,12-1,13-1],yz=True,dip=True)
+        ocomH, eVecsH, kilH = self.eckartRotate(xx, planar=True,lst=[4-1,11-1,12-1,13-1],yz=True,dip=False)
         eVecsH=eVecsH.transpose(0,2,1)
         thH,phiH,xiH=self.extractEulers(eVecsH)
+
+        #flip x and y for second half, makes coordinate system work.
+        # half=len(ocomH)/2
+        # truX = np.copy(ocomH[half:,1])
+        # ocomH[half:,1]=ocomH[half:,0]
+        # ocomH[half:, 0]=truX
+
+        print('dur')
+        print('hurdur')
         # return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
         return ocomH[:,0],ocomH[:,1],ocomH[:,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
 
@@ -1065,7 +1075,7 @@ class molecule (object):
                              [4.93038066E-32,  1.90345784E+00, -5.47382213E-48],
                              ]) #TOTALLY PLANAR
         if dip:
-            myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 4, 2, 3)[0]
+            myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
         else:
             myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
 

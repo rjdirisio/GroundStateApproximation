@@ -1169,5 +1169,4 @@ class HarmonicApproxSpectrum(object):
             # u+=1
         q = np.matmul(TransformationMatrix, moments.T).T
         q2=q**2
-        # q4=q**4
-        return q, q2  # ,q4
+        return q, q2
