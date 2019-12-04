@@ -70,30 +70,61 @@ def swapStuff(myWalkers,dw):
             return np.concatenate((oswCds,oswCdsZ)), np.tile(dw,96)
 
         elif '1He' in config or '1De' in config:
-            print('1He')
-            newWalkers45 = SwapTwoAtoms(np.copy(myWalkers),4,5)
-            newWalkers67 = SwapTwoAtoms(np.copy(myWalkers), 6, 7)
-            newWalkers4567 = SwapTwoAtoms(np.copy(newWalkers45), 6, 7)
-            big4 = np.concatenate((origWalkers,newWalkers45,newWalkers67,newWalkers4567),axis=0)
-            oswCdsZ = np.copy(big4)
+            # H5H6Only
+            H6H5 = SwapTwoAtoms(np.copy(origWalkers), 5, 6)
+            print "1He"
+            # H7H8Only
+            H8H7 = SwapTwoAtoms(np.copy(origWalkers), 7, 8)
+            # H9H10Only
+            H10H9 = SwapTwoAtoms(np.copy(origWalkers), 9, 10)
+            # SwapTwoAtOnce
+            # H6H5,H7H8
+            H6H5H8H7 = SwapTwoAtoms(np.copy(H6H5), 7, 8)
+            # H6H5,H9H10
+            H6H5H10H9 = SwapTwoAtoms(np.copy(H6H5), 9, 10)
+            # H7H8,H9H10
+            H8H7H10H9 = SwapTwoAtoms(np.copy(H8H7), 9, 10)
+            # AllSwapped
+            H6H5H8H7H10H9 = SwapTwoAtoms(np.copy(H6H5H8H7), 9, 10)
+            big8 = np.concatenate(
+                (origWalkers, H6H5, H8H7, H10H9, H6H5H8H7, H6H5H10H9, H8H7H10H9, H6H5H8H7H10H9),
+                axis=0)
+            swap8_1 = swapChunk(np.copy(big8), np.array([5, 6, 1, 13]), np.array([10, 9, 3, 12]))
+            oswCds = np.concatenate((big8,swap8_1))
+            oswCdsZ = np.copy(oswCds)
             oswCdsZ[:,:,-1] *= -1.0
             print('caw')
-            return np.concatenate((big4,oswCdsZ)), np.tile(dw,8)
+            return np.concatenate((oswCds,oswCdsZ)), np.tile(dw,32)
 
         elif '1Hw' in config or '1Dw' in config:
             print('1Hw')
-            newWalkers67 = SwapTwoAtoms(np.copy(myWalkers), 6, 7)
-            big2 = np.concatenate((origWalkers,newWalkers67),axis=0)
-            oswCdsZ = np.copy(big2)
-            oswCdsZ[:,:,-1] *= -1.0
+            # H7H8Only
+            H8H7 = SwapTwoAtoms(np.copy(origWalkers), 7, 8)
+            # H9H10Only
+            H10H9 = SwapTwoAtoms(np.copy(origWalkers), 9, 10)
+            # H7H8,H9H10
+            H8H7H10H9 = SwapTwoAtoms(np.copy(H8H7), 9, 10)
+            big4 = np.concatenate(
+                (origWalkers, H8H7, H10H9, H8H7H10H9),
+                axis=0)
+            swap8_3 = swapChunk(np.copy(big4), np.array([7, 8, 2, 11]), np.array([10, 9, 3, 12]))
+            oswCds = np.concatenate((big4, swap8_3))
+            oswCdsZ = np.copy(oswCds)
+            oswCdsZ[:, :, -1] *= -1.0
             print('caw')
-            return np.concatenate((big2,oswCdsZ)), np.tile(dw,4)
+            return np.concatenate((oswCds,oswCdsZ)), np.tile(dw,16)
     else:
-        if 'llH' in config or 'llD' in config:
-            fix
-
+        if 'llH' in config or 'llD' in config or '1Hh' in config or '1Dh' in config:
+            newWalkers45 = SwapTwoAtoms(np.copy(myWalkers), 4, 5)
+            newWalkers67 = SwapTwoAtoms(np.copy(myWalkers), 6, 7)
+            newWalkers4567 = SwapTwoAtoms(np.copy(newWalkers45), 6, 7)
+            big4 = np.concatenate((origWalkers, newWalkers45, newWalkers67, newWalkers4567), axis=0)
+            swap4 = swapChunk(np.copy(big4), np.array([9, 1, 4, 5]), np.array([10, 2, 6, 7]))
             print('caw')
-            return np.concatenate((big4, swap4), axis=0), np.tile(dw, 16)
+            oswCds = np.concatenate((big4, swap4), axis=0)
+            oswCdsZ = np.copy(oswCds)
+            oswCdsZ[:, :, -1] *= -1.0
+            return np.concatenate((oswCds, oswCdsZ)), np.tile(dw, 16)
         elif '1He' in config or '1De' in config:
             print('1He')
             newWalkers45 = SwapTwoAtoms(np.copy(myWalkers), 4, 5)
@@ -134,6 +165,6 @@ for config in fileList:
         np.save("../coordinates/trimer/ffinal_"+config[-8:],newCds)
         np.save("../coordinates/trimer/ffinal_"+config[-8:-4]+"_dw",newDw)
     else:
-        np.save("../coordinates/tetramer/tetffinal2_" + config[-8:], newCds)
-        np.save("../coordinates/tetramer/tetffinal2_" + config[-8:-4] + "_dw", newDw)
+        np.save("../coordinates/tetramer/tetffinal_" + config[-8:], newCds)
+        np.save("../coordinates/tetramer/tetffinal_" + config[-8:-4] + "_dw", newDw)
     print "Done"
