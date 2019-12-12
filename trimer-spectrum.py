@@ -42,52 +42,30 @@ def plotStuff(symEckRotCoords):
     #     PltHists2D('allH', q[:, 6],q[:, 5]*q[:,15], (-100,100), (-5,5), 'q6', 'q5*q15',
     #                False, symDw, 30)
     print 'INTERNAL COORDINATES :-O'
-    # ocom,evecs,kil = Wfn.molecule.eckartRotate(symEckRotCoords,planar=True,lst=[0,1,2],dip=True)
-    # symEckRotCoords -= ocom[:,np.newaxis]
-    # symEckRotCoords = np.einsum('knj,kij->kni', evecs.transpose(0, 2, 1), symEckRotCoords).transpose(0, 2, 1)
-
-    # zcomps = symEckRotCoords[:,:,-1]
-    # Az1=np.average(zcomps[:,1-1],axis=0,weights=symDw)
-    # Az2=np.average(zcomps[:,2-1],axis=0,weights=symDw)
-    # Az3=np.average(zcomps[:,3-1],axis=0,weights=symDw)
-    # Az4=np.average(zcomps[:,4-1],axis=0,weights=symDw)
-    # Az5 = np.average(zcomps[:, 5 - 1], axis=0,weights=symDw)
-    # Az6 = np.average(zcomps[:, 6 - 1], axis=0,weights=symDw)
-    # Az7 = np.average(zcomps[:, 7 - 1], axis=0,weights=symDw)
-    # Az8 = np.average(zcomps[:, 8 - 1], axis=0, weights=symDw)
-    # Az9 = np.average(zcomps[:, 9 - 1], axis=0, weights=symDw)
-    # Az10 = np.average(zcomps[:, 10 - 1], axis=0, weights=symDw)
-
-
-
-    # ggg=np.average(np.array([[(zcomps[:,4-1]-Az4)*(zcomps[:,4-1]-Az4),
-    #                (zcomps[:,6-1]-Az6)*(zcomps[:,4-1]-Az4)],
-    #               [(zcomps[:,6-1]-Az6)*(zcomps[:,4-1]-Az4),
-    #               (zcomps[:,6-1]-Az6)*(zcomps[:,6-1]-Az6)]]),axis=-1,weights=symDw)
-
-
-
-    # PltHists1D('allH', zcomps[:,4-1] * angstr, (-1.2,1.2), 'ZcompH4InvertedInverted', 'Probability Density', False,symDw)
-    # bisectZ = Wfn.molecule.getBisectingVector(symEckRotCoords[:,4-1],symEckRotCoords[:,1-1],symEckRotCoords[:,5-1])[:,-1]
-    # avBisectZ = np.average(bisectZ,weights=symDw) #0.007397
-    # PltHists1D('allH', bisectZ, (-1, 1), 'bisectNotInverted', 'Probability Density', False,
-    #            symDw)
-    #
-    # PltHists2D('allH', (symEckRotCoords[:,4-1,-1]),(symEckRotCoords[:,5-1,-1]), (-3,3), (-3,3), 'Z1', 'Z2_o',
-    #            False, symDw, 100)
-    # PltHists2D('allH', (symEckRotCoords[:,4-1,-1]),(symEckRotCoords[:,6-1,-1]), (-3,3), (-3,3), 'Z1', 'Z3_o',
-    #            False, symDw, 100)
-    # PltHists2D('allH', (symEckRotCoords[:,4-1,-1]),(symEckRotCoords[:,7-1,-1]), (-3,3), (-3,3), 'Z1', 'Z4_o',
-    #            False, symDw, 100)
-    # PltHists2D('allH', (symEckRotCoords[:,6-1,-1]),(symEckRotCoords[:,7-1,-1]), (-3,3), (-3,3), 'Z3', 'Z4_o',
-    #            False, symDw, 100)
-    # PltHists1D('allH', symEckRotCoords[:,8-1,-1] * angstr, (-2, 2), "ZCompH8", 'trimerInternals/Probability Density', False,
-    #            symDw)
-
+    #theta: align the z axes
+    #phi: align the two x axes
+    #chi: bring to reference structure(?)
+    #Applied Chi -> Theta -> Phi(vector)
+    #or Phi -> Theta -> Chi(vector) if applying to xyz as opposed to XYZ
     internals = Wfn.molecule.SymInternals(symEckRotCoords)
     nm=Wfn.molecule.internalName
-    print internals
+    nm = [nm[g].lower() for g in range(len(nm))]
+    units = []
+    print(units)
+    for name in nm:
+        if 'ph' in name or 'th' in name or 'chi' in name or 'xi' in name or 'hoh' in name:
+            units.append('degrees')
+        else:
+            units.append('angstroms')
     x=np.average(internals,axis=0,weights=symDw)
+    print('average',x)
+    for qi in range(24):
+        if units[qi] == 'degrees':
+            PltHists1D('allH', np.degrees(internals[:, qi]), (-360,360), nm[qi], 'pubtrimerInternals/Probability Density', False,
+                       symDw)
+        else:
+            PltHists1D('allH', internals[:, qi] * angstr, (0, 3), nm[qi], 'pubtrimerInternals/Probability Density', False,
+                       symDw)
     stop
 
     PltHists2D('allH', np.degrees(internals[:,1]),np.degrees(internals[:,2]),(0,180),(-90,90), 'Theta', 'Phi',

@@ -13,7 +13,7 @@ angstr = 0.529177
 au2wn=219474.63
 
 def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
-    theLen, xx = np.histogram(thing, bins=25, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY
+    theLen, xx = np.histogram(thing, bins=100, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY
     inin = True
     overlay = False
     bnd = str(bound[0]).replace(".", "").replace("-", "") + str(bound[1]).replace(".", "").replace("-", "")
@@ -106,10 +106,28 @@ def plotStuff(symEckRotCoords):
     x=np.average(internals,axis=0,weights=symDw)
     print x
     np.savetxt('averageInternalsWithNewEckart_'+coordinateSet,np.average(internals,axis=0,weights=symDw))
-    print 'Internal coordinate shape: ', np.shape(internals)
-    print 'One attribute shape: ',np.shape(internals[:,0])
-    print 'number of dws: ', symDw
-    symEckRotCoords*=angstr
+    nm = [nm[g].lower() for g in range(len(nm))]
+    units = []
+    print(units)
+    for name in nm:
+        if 'ph' in name or 'th' in name or 'chi' in name or 'xi' in name or 'hoh' in name:
+            units.append('degrees')
+        else:
+            units.append('angstroms')
+    x=np.average(internals,axis=0,weights=symDw)
+    print('average',x)
+    for qi in range(33):
+        if units[qi] == 'degrees':
+            PltHists1D('allH', np.degrees(internals[:, qi]), (-360,360), nm[qi], 'pubtetInternals/Probability Density', False,
+                       symDw)
+        else:
+            PltHists1D('allH', internals[:, qi] * angstr, (0, 3), nm[qi], 'pubtetInternals/Probability Density', False,
+                       symDw)
+    stop
+    # print 'Internal coordinate shape: ', np.shape(internals)
+    # print 'One attribute shape: ',np.shape(internals[:,0])
+    # print 'number of dws: ', symDw
+    # symEckRotCoords*=angstr
 
     """self.internalName = 'rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH', 'theta651',
                             'phi651', 'Chi651',
@@ -449,7 +467,7 @@ else:
     # symDw = symDw[:len(symDw) / 2]
     print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
     symEckRotCoords = symCoords
-    iwantToPlotStuff=False
+    iwantToPlotStuff=True
     path='../spectra/'
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)

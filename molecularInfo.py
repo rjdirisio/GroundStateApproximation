@@ -678,6 +678,7 @@ class molecule (object):
         Theta = np.arccos(zdot)
         tanPhi = np.arctan2(Yzdot,Xzdot)
         tanChi = np.arctan2(yZdot,-xZdot) #negative baked in
+        tanChi = np.absolute(tanChi)
         # tanChi[tanChi < 0]+=np.pi
         # tanPhi[tanPhi < 0]+=np.pi/2.0
 
