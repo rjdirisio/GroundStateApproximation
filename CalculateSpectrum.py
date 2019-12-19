@@ -649,6 +649,8 @@ class HarmonicApproxSpectrum(object):
                     print 'moments already calculated'
                     moments = np.load("moments_"+setOfWalkers+'_'+testName+'_'+kill+".npy")
             q,q2=self.calculateQCoordinates(moments,dw,GfileName,setOfWalkers,kill,testName)
+            # kill = kill+'test'
+            # testName = testName+'asdfasdfasfd'
             print 'done with normal modes'
             #q4ave=np.average(q4,axis=0,weights=dw)
             q2ave=np.average(q2,axis=0,weights=dw)
@@ -674,7 +676,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'
@@ -939,6 +941,9 @@ class HarmonicApproxSpectrum(object):
         return relativePotentialEnergy
 
     def calculateQCoordinates(self,moments, dw,gmf,setOfWalkers,kil,eckt):
+        ###testing##
+        # self.G = self.LoadG('../Gmats/trimer/ffinal_allH_rn_spc_xfinAx.gmat')
+        ############
         print 'calculating Normal coordinates'
         walkerSize=len(dw)
         if not os.path.isfile("mu2ave_" + setOfWalkers + '_' + eckt + '_' + kil + ".npy"):
@@ -970,161 +975,65 @@ class HarmonicApproxSpectrum(object):
         else:
             print 'loading second moments matrix'
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+'.npy')
-        # mu2Ave_test = np.load("mu2ave_Sfinal_allH_rn_spc_finalVersion_addPiToChi.npy")
 
-        # testing=False
+        ########testing################
+        # idx = [0,3,6,15,16,18,19,2,5,8,17,20,21,22,23,1,4,7,9,10,11,12,13,14]
+        # self.wfn.molecule.internalName = [self.wfn.molecule.internalName[k] for k in idx]
+        # self.G = self.G[idx,:][:,idx]
+        # mu2Ave = mu2Ave[idx,:][:,idx]
+        # print('hi')
+        # self.G[0:7,7:] = 0.0
+        # self.G[7:,0:7] = 0.0
         #
-        # if testing:
-        #     # self.wfn.molecule.internalName=['xH11', 'yH11', 'zH11', 'xH12', 'yH12', 'zH12', 'xH13', 'yH13', 'zH13', 'theta651',
-        #     #                  'phi651', 'Chi651',
-        #     #                  'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-        #     #                  'HOH516', 'rOH7', 'rOH8', 'HOH728',
-        #     #                  'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xO4', 'yO4', 'zO4']
-        #     #####testing####
-        #     # print 'eulers'
-        #     # a = np.copy(mu2Ave[:9,:9])
-        #     # b = np.copy(mu2Ave[:9, 18:])
-        #     # c = np.copy(mu2Ave[18:,:9])
-        #     # d = np.copy(mu2Ave[18:,18:])
-        #     # ab=np.hstack((a,b))
-        #     # cd=np.hstack((c,d))
-        #     # mu2Ave =np.vstack((ab,cd))
-        #     #
-        #     #
-        #     # a = np.copy(self.G[:9, :9])
-        #     # b = np.copy(self.G[:9, 18:])
-        #     # c = np.copy(self.G[18:, :9])
-        #     # d = np.copy(self.G[18:, 18:])
-        #     # ab = np.hstack((a, b))
-        #     # cd = np.hstack((c, d))
-        #     # self.G = np.vstack((ab, cd))
-        #     # self.wfn.molecule.internalName = np.concatenate(
-        #     #     (self.wfn.molecule.internalName[:9], self.wfn.molecule.internalName[18:]))
-        #     print 'hi'
-        #     print 'xyzO4 omitted'
-        #     # mu2Ave=mu2Ave[:-3,:-3]
-        #     # self.G=self.G[:-3,:-3]
-        #     # self.wfn.molecule.internalName =self.wfn.molecule.internalName[:-3]
+        # self.G[7:12, 12:] = 0.0
+        # self.G[12:, 7:12] = 0.0
         #
-        #     #just X & Y omitted
-        #     # print 'x&y'
-        #     # a = np.copy(mu2Ave[:29,:29])
-        #     # b = np.copy(mu2Ave[:29, 31:])
-        #     # c = np.copy(mu2Ave[31:,:29])
-        #     # d = np.copy(mu2Ave[31:,31:])
-        #     # ab=np.hstack((a,b))
-        #     # cd=np.hstack((c,d))
-        #     # mu2Ave =np.vstack((ab,cd))
-        #     #
-        #     # a = np.copy(self.G[:29, :29])
-        #     # b = np.copy(self.G[:29, 31:])
-        #     # c = np.copy(self.G[31:, :29])
-        #     # d = np.copy(self.G[31:, 31:])
-        #     # ab = np.hstack((a, b))
-        #     # cd = np.hstack((c, d))
-        #     # self.G = np.vstack((ab, cd))
-        #     # self.wfn.molecule.internalName = np.concatenate(
-        #     #     (self.wfn.molecule.internalName[:29], self.wfn.molecule.internalName[31:]))
-        #     # Just Z omitted
-        #     # print 'just z'
-        #     # mu2Ave=mu2Ave[:-1,:-1]
-        #     # self.G=self.G[:-1,:-1]
-        #     # self.wfn.molecule.internalName =self.wfn.molecule.internalName[:-1]
-        #     print 'off diagonal couplingggs'
-        #     self.G[:29,29:]=0.0
-        #     self.G[29:,:29]=0.0
-        ########Testing########################
-        # Gomit = [1,2,4,5,7,8,9,10,11,12,13,14,17,20,23]
-        # Gomit = [0,1,2,4,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
-        # Gomit = [15 16 18 19]
-        # Gomit = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,17,20,21,22,23]
-        # PinternalName = ['rOH_41','rOH_51', 'rOH_26', 'rOH_27']
+        # self.G[7:10, 10:] = 0.0
+        # self.G[10:, 7:10] = 0.0
+        # self.G[10:12, 12:] = 0.0
+        # self.G[12:, 10:12] = 0.0
+        #
+        # self.G[12:15, 15:] = 0.0
+        # self.G[15:, 12:15] = 0.0
+        # self.G[15:18, 18:] = 0.0
+        # self.G[18:, 15:18] = 0.0
+        #
+        # mu2Ave[0:7,7:] = 0.0
+        # mu2Ave[7:,0:7] = 0.0
+        #
+        # mu2Ave[7:12, 12:] = 0.0
+        # mu2Ave[12:, 7:12] = 0.0
+        #
+        # mu2Ave[7:10, 10:] = 0.0
+        # mu2Ave[10:, 7:10] = 0.0
+        # mu2Ave[10:12, 12:] = 0.0
+        # mu2Ave[12:, 10:12] = 0.0
+        #
+        # mu2Ave[12:15, 15:] = 0.0
+        # mu2Ave[15:, 12:15] = 0.0
+        # mu2Ave[15:18, 18:] = 0.0
+        # mu2Ave[18:, 15:18] = 0.0
+        #
+        # # momentsO = np.copy(moments)
+        # moments = moments[:,idx]
+        ##testing###################
 
-        # # """self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
-        # #                          'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
-        # #                          'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']"""
-        # PinternalName = ['rOH9', 'rOH10']
-        # # PinternalName = ['rOH8', 'rOH9',  'rOH10', 'rOH_41','rOH_51', 'rOH_26', 'rOH_27', 'rOO_1', 'rOO_2']
-        #
-        # PinternalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10', 'rOH_41',
-        #                          'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
-        # PinternalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10', 'rOH_41',
-        #                 'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
-        # Gomit = [9,10,11,12,13, 14]
-        # Gomit = [10, 11, 13, 14]
-        # Gomit = [9,12]
-        # # # # # # Gomit = [1,  2,  4,  5,  7,  8]+[9, 10, 11, 12, 13, 14]
-        # # # # # # Gomit2 = [10, 11, 13, 14]
-        # # # # # # Ginclude = [0,1,2,3,4,5,6,7,8,15,16,17,18,19,20,21,22,23]
-        # # # # # # Ginclude2 = [0,1,2,3,4,5,6,7,8,9,12,15,16,17,18,19,20,21,22,23]
-        # self.G[Gomit,:]=0.0
-        # self.G[:,Gomit] = 0.0
-        # mu2Ave[Gomit, :] = 0.0
-        # mu2Ave[:,Gomit] = 0.0
-        # self.G = self.G[self.G!=0.0].reshape(self.nVibs-len(Gomit),self.nVibs-len(Gomit))
-        # mu2Ave = mu2Ave[mu2Ave!=0.0].reshape(self.nVibs-len(Gomit),self.nVibs-len(Gomit))
-        # badTest = len(Gomit)
-        # PinternalName = self.wfn.molecule.internalName[:9]+self.wfn.molecule.internalName[15:]
-        # PinternalName = self.wfn.molecule.internalName[:10]+[self.wfn.molecule.internalName[12]]+self.wfn.molecule.internalName[14:]
-        # PinternalName = self.wfn.molecule.internalName[:9] + self.wfn.molecule.internalName[10:12] + self.wfn.molecule.internalName[13:]
-
-        ########Testing############################
-        # mu2Ave = np.round(mu2Ave,11)
-        # plt.matshow(mu2Ave)
-        # plt.colorbar()
-        # plt.show()
-        # self.G = np.round(self.G,11)
-        ########Testing############################
         GHalfInv=self.diagonalizeRootG(self.G)
         mu2AvePrime=np.dot(GHalfInv,np.dot(mu2Ave,GHalfInv)) # mass weights g^-1/2 . sm . g^-1/2
         eigval,vects=np.linalg.eigh(mu2AvePrime)
-        seigval,svects = sla.eigh(mu2Ave,self.G)
-        # print self.G == self.G.T
-        #eigvalt, vectt = sla.eigh(mu2Ave,self.G)
-        # self.wfn.molecule.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH', 'theta651',
-        #                     'phi651', 'Chi651',
-        #                     'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-        #                     'HOH516', 'rOH7', 'rOH8', 'HOH728',
-        #                     'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
-        #print 'test'
-        """testVect = np.dot(self.G,vects)
-        testest = np.dot(np.dot(vects.conj(),self.G),vects)
-        testest2 = np.dot(np.dot(vects, mu2Ave), vects)
-
-        s1=np.sum(np.square(vects1),axis=1)
-        s2=np.sum(np.square(vects),axis=1)
-        vects3=vects/np.linalg.norm(vects,axis=1)[:,np.newaxis]
-        s3 = np.sum(np.square(vects3),axis=1)"""
-
+        # seigval,svects = sla.eigh(mu2Ave,self.G)
         print 'diagonalized <mu^2>'
-        #for i in range(self.wfn.molecule.nVibs):
-        #    print 'v[',i,',]:',eigval[i]
-        #    print vects[:,i]
 
         #GAAH                                                              
         TransformationMatrix=np.dot(vects.transpose(),GHalfInv)
-        # TransformationMatrix = svects.T
-        TmatRy = np.dot(GHalfInv,vects)
         np.save("allGs/vecs_T_L"+setOfWalkers+'_'+eckt+'_'+kil,vects.T)
         np.save("allGs/ghinv_"+setOfWalkers+'_'+eckt+'_'+kil,GHalfInv)
 
-        # oppTmat = np.dot(GHalfInv,vects)
-        # whatHappens = np.dot()
-        #print 'RESULTS'
         Tnorm=1.0*TransformationMatrix # NEED TO DEEP COPY :-0
         alpha=1.0*eigval #AS in alpha_j in equation 5 of the JPC A 2011 h5o2 dier paper                                          
         #save the transformation matrix for future reference                                                                      
         TMatFileName='TransformationMatrix'+setOfWalkers+'_'+eckt+'_'+kil+'.data'
-        #stop
-        #TMatFileName = 'allHTesting/spectra/TransformationMatrix.data'
         np.savetxt(TMatFileName+"test",TransformationMatrix)
-        # gmf = gmf[30:-5]
-        # print 'assignment file name', setOfWalkers+gmf
-        # if 'Eck' in gmf:
-        #     gmf=setOfWalkers
-        # if not testing:
-        #     assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
-        # else:
         assignF = open(self.path+'assignments_'+setOfWalkers+"_"+eckt+kil,'w+')
         for i,(vec,q2) in enumerate(zip(TransformationMatrix,eigval)):
             assignF.write("%d\n" % i)
@@ -1146,27 +1055,6 @@ class HarmonicApproxSpectrum(object):
             assignF.write('\n \n')
         assignF.close()
 
-        #stop
-
-        #calculate q from the moments and the transformation matrix
-        # q=[]
-        # #print moments.shape
-        # for s in moments:
-        #     q.append(np.dot(TransformationMatrix,s))
-        #
-        # q=np.array(q)
-        #
-        # pairz = [(9,12),(10,13),(11,14)]
-        # u=0
-        # for internA in mu2Ave:
-        #     print(u)
-        #     for pair in pairz:
-        #         print('pair')
-        #         print(internA[pair[0]], internA[pair[1]])
-        #         print(np.abs(internA[pair[0]]),np.abs(internA[pair[1]]))
-        #         print(np.abs(internA[pair[0]])-np.abs(internA[pair[1]]))
-        #
-            # u+=1
         q = np.matmul(TransformationMatrix, moments.T).T
         q2=q**2
         return q, q2

@@ -677,15 +677,10 @@ class molecule (object):
         xZdot=(x*Z).sum(axis=1) / (la.norm(x,axis=1) * la.norm(Z,axis=1))
         Theta = np.arccos(zdot)
         tanPhi = np.arctan2(Yzdot,Xzdot)
+        # tanPhi = np.absolute(tanPhi)
         tanChi = np.arctan2(yZdot,-xZdot) #negative baked in
         tanChi = np.absolute(tanChi)
-        # tanChi[tanChi < 0]+=np.pi
-        # tanPhi[tanPhi < 0]+=np.pi/2.0
 
-        # tanChi[tanChi < 0.] += 2 * np.pi
-        # tanPhi[tanPhi < 0.]+=2*np.pi
-        # tanChi[tanChi < np.pi] += np.pi
-        # tanPhi[tanPhi < np.pi] += np.pi
 
         return Theta, tanPhi, tanChi
 
@@ -772,7 +767,6 @@ class molecule (object):
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th11,phi11,xi11 = self.eulerMatrix(x,y,z,X,Y,Z)
-        # th11, phi11, xi11 = self.eckTrimerEuler(xx,o,h1,h2)
         atmnm=12
         h1 = 9
         h2 = 10
@@ -780,8 +774,6 @@ class molecule (object):
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th12,phi12,xi12 = self.eulerMatrix(x,y,z,X,Y,Z)
-        # th12, phi12, xi12 = self.eckTrimerEuler(xx,o,h1,h2)
-
         atmnm=13
         h1 = 6
         h2 = 5
@@ -789,20 +781,17 @@ class molecule (object):
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
-        # th13, phi13, xi13 = self.eckTrimerEuler(xx,o,h1,h2)
 
-        umbrella,dh1,dh2,dh3=self.umbrellaDi(xx,4-1,11-1,12-1,13-1)
-        # dh1,dh2,dh3=self.HDihedral(xx)
-        dh1[dh1<0.0]+=2*np.pi
-        dh2[dh2 < 0.0] += 2*np.pi
-        dh3[dh3 < 0.0] += 2*np.pi
+        # umbrella,dh1,dh2,dh3=self.umbrellaDi(xx,4-1,11-1,12-1,13-1)
+        # # dh1,dh2,dh3=self.HDihedral(xx)
+        # dh1[dh1<0.0]+=2*np.pi
+        # dh2[dh2 < 0.0] += 2*np.pi
+        # dh3[dh3 < 0.0] += 2*np.pi
 
-        rOH11=self.bL(xx,11-1,4-1)
-        rOH12=self.bL(xx,12-1,4-1)
-        rOH13=self.bL(xx,13-1,4-1)
+        
 
         print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1],dip=False)
+        ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1],dip=True)
 
         print 'got matrix'
         xx-=ocom[:,np.newaxis,:]
@@ -813,34 +802,47 @@ class molecule (object):
         print 'af'
         print xx[0]
         print 'fully rotated'
-        # ocomH, eVecsH, kilH = self.eckartRotate(xx, planar=True,lst=[4-1,11-1,12-1,13-1],dip=True)
-        ocomH, eVecsH, kilH = self.eckartRotate(xx, planar=True,lst=[4-1,11-1,12-1,13-1],yz=True,dip=False)
-        eVecsH=eVecsH.transpose(0,2,1)
-        thH,phiH,xiH=self.extractEulers(eVecsH)
+        #calculate center of mass of central hydronium
+        lst = [4-1,11-1,12-1,13-1]
+        mass = self.get_mass()
+        mass = mass[lst]
+        hyd = xx[:, lst]
+        ocomH = np.dot(mass, hyd) / np.sum(mass)
+        del hyd
+        del mass
 
-        #flip x and y for second half, makes coordinate system work.
-        # half=len(ocomH)/2
-        # truX = np.copy(ocomH[half:,1])
-        # ocomH[half:,1]=ocomH[half:,0]
-        # ocomH[half:, 0]=truX
+        oh11 = xx[:,11-1]-xx[:,4-1]
+        oh12 = xx[:,12-1]-xx[:,4-1]
+        oh13 = xx[:,13-1]-xx[:,4-1]
 
-        print('dur')
-        print('hurdur')
-        # return xx[:,4-1,0],xx[:,4-1,1],xx[:,4-1,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
-        return ocomH[:,0],ocomH[:,1],ocomH[:,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
+        roh11 = la.norm(oh11, axis=1)
+        roh12 = la.norm(oh12, axis=1)
+        roh13 = la.norm(oh13, axis=1)
+
+        thH11 = np.arccos(oh11[:, -1] / roh11) #z/r
+        thH12 = np.arccos(oh12[:, -1] / roh12)
+        thH13 = np.arccos(oh13[:, -1] / roh13)
+
+        phH11= np.arctan2(oh11[:, 1], oh11[:, 0])  # y / x
+        phH12 = np.arctan2(oh12[:, 1], oh12[:, 0])
+        phH13 = np.arctan2(oh13[:, 1], oh13[:, 0])
+        
+        
+        return ocomH[:, 0], ocomH[:, 1], ocomH[:,2], roh11,roh12,roh13,thH11,thH12,thH13,phH11,phH12,phH13,th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
+        # return ocomH[:,0],ocomH[:,1],ocomH[:,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
 
     def SymInternalsH9O4plus(self,x):
         print 'Commence getting internal coordinates for tetramer'
         start = time.time()
         #good defs
         all = self.finalPlaneShareEuler(x)
+        xyzO4 = all[0:3]
         rOHHyd = all[3:6]
-        umbDi = all[6:9]
-        eulHyd = all[9:12]
+        thHyd = all[6:9]
+        phHyd = all[9:12]
         thphixi1=all[12:15]
         thphixi2=all[15:18]
         thphixi3=all[18:21]
-        xyzO4 = all[0:3]
         print 'done hydronium XYZ'
         print 'time it took to get xyzs,eulers: ',str(time.time()-start)
         third = time.time()
@@ -858,16 +860,26 @@ class molecule (object):
         rO2O3 = self.bL(x,2-1,3-1)
         print 'time for rOO/rOH', str(time.time() - third)
         print 'Done with all internals'
-        internal= np.array(
-            (rOHHyd[0], rOHHyd[1], rOHHyd[2], umbDi[0], umbDi[1], umbDi[2], eulHyd[0], eulHyd[1], eulHyd[2],
-                thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
-                thphixi3[2], rOH5, rOH6, HOH516, rOH7, rOH8, HOH728, rOH9, rOH10, HOH9310, rO1O2, rO1O3, rO2O3,
-                xyzO4[0], xyzO4[1], xyzO4[2])).T
-        self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH', 'theta651',
-                            'phi651', 'Chi651',
-                            'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-                            'HOH516', 'rOH7', 'rOH8', 'HOH728',
-                            'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
+        # internal= np.array(
+        #     (rOHHyd[0], rOHHyd[1], rOHHyd[2], umbDi[0], umbDi[1], umbDi[2], eulHyd[0], eulHyd[1], eulHyd[2],
+        #         thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
+        #         thphixi3[2], rOH5, rOH6, HOH516, rOH7, rOH8, HOH728, rOH9, rOH10, HOH9310, rO1O2, rO1O3, rO2O3,
+        #         xyzO4[0], xyzO4[1], xyzO4[2])).T
+        # self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH', 'theta651',
+        #                     'phi651', 'Chi651',
+        #                     'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
+        #                     'HOH516', 'rOH7', 'rOH8', 'HOH728',
+        #                     'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
+
+        internal = np.array(
+            (rOHHyd[0], rOHHyd[1], rOHHyd[2], thHyd[0], thHyd[1], thHyd[2], phHyd[0], phHyd[1], phHyd[2],
+             thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
+             thphixi3[2], rOH5, rOH6, HOH516, rOH7, rOH8, HOH728, rOH9, rOH10, HOH9310, rO1O2, rO1O3, rO2O3,
+             xyzO4[0], xyzO4[1], xyzO4[2])).T
+        self.internalName = ['rOH11', 'rOH12', 'rOH13', 'thH11','thH12','thH13','phH11','phH12','phH13',
+                             'theta651','phi651', 'Chi651','theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728',
+                             'Chi728', 'rOH5', 'rOH6','HOH516', 'rOH7', 'rOH8', 'HOH728','rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3',
+                             'xo4', 'yo4', 'zo4']
         print 'internal shape: ',np.shape(internal)
         print 'internal[0] shape: ',np.shape(internal[0])
         return internal
@@ -887,20 +899,44 @@ class molecule (object):
                                  'HOH516', 'rOH7', 'rOH8', 'HOH728',
                                  'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'xo4', 'yo4', 'zo4']
 
+    def sphericalTrimer(self,xx):
+        com, eckVecs, killList = self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)
+        xx -= com[:, np.newaxis, :]
+        print xx[0]
+        print xx[len(xx)/2]
+        xx = np.einsum('knj,kij->kni', eckVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
+        print 'fully rotated'
+        print xx[0]
+        print xx[len(xx)/2]
+
+        oh8 = xx[:,8-1]-xx[:,3-1]
+        oh9 = xx[:, 9 - 1] - xx[:, 3 - 1]
+        oh10 = xx[:, 10 - 1] - xx[:, 3 - 1]
+
+        roh8 = la.norm(oh8,axis=1)
+        roh9 = la.norm(oh9,axis=1)
+        roh10 = la.norm(oh10,axis=1)
+
+        thH8 = np.arccos(oh8[:,-1]/roh8) #z / r
+        thH9 = np.arccos(oh9[:, -1] / roh9)
+        thH10 = np.arccos(oh10[:, -1] / roh10)
+
+        phH8 = np.arctan2(oh8[:,1],oh8[:,0]) #y / x
+        phH9 = np.arctan2(oh9[:,1],oh9[:,0])
+        phH10 = np.arctan2(oh10[:,1],oh10[:,0])
+
+        return roh8, roh9, roh10, thH8,thH9,thH10,phH8,phH9,phH10
+
     def SymInternalsH7O3plus(self,x):
         print 'Commence getting internal coordinates for trimer'
         #Hydronium
-        # rOH9 = self.bL(x,3-1,9-1)
-        # rOH10 = self.bL(x,3-1,10-1)
-        # spHOH = self.ba(x,9-1,3-1,10-1)
-        # rthphi8 = self.xyzFreeHydronium(x)  # *ang2bohr     #Spherical free hydrogen 3xnwalkers in degrees
-        # rOH8,thH8,phH8 = self.spcoords_Water(x,8,9,10)
-        rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
-        rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
-        rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
-        print 'done with FH'
-        # thphixi1 = self.eckTrimerEuler(x,2,7,6)
-        # thphixi2 = self.eckTrimerEuler(x,1,5,4)
+
+        # rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
+        # rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
+        # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
+        # print 'done with FH'
+        rOH8,rOH9,rOH10,thH8,thH9,thH10,phH8,phH9,phH10 = self.sphericalTrimer(x)
+        print 'hydronium'
 
         thphixi1= self.finalTrimerEuler(x,2,7,6)
         print 'done with Euler1'
@@ -1076,7 +1112,8 @@ class molecule (object):
                              [4.93038066E-32,  1.90345784E+00, -5.47382213E-48],
                              ]) #TOTALLY PLANAR
         if dip:
-            myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
+            # myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
+            myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 4, 2, 1)[0]
         else:
             myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
 
@@ -1099,115 +1136,6 @@ class molecule (object):
             myRefCOM= np.dot(rotM,myRefCOM.T).T
             print 'yz - ref structure turned'
         return myRefCOM
-
-
-    #Testing to make sure I get the same answer, I did!
-    def eckartRotate_Lindsey(self,pos,specialCond=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
-        newCoord=np.zeros(pos.shape)
-        self.refPos = self.pullTrimerRefPos()
-        #Center of Mass
-        mass=self.get_mass()
-        com=np.dot(mass,pos)/np.sum(mass)
-        #First Translate:
-        ShiftedMolecules=pos-com[:,np.newaxis,:]
-        #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
-        for moli,molecule in enumerate(ShiftedMolecules):
-            Fvec=np.zeros((3,3))
-            for atom,massa,eckatom in zip(molecule,mass,self.refPos):
-                Fvec=Fvec+massa*np.outer(eckatom,atom)
-            #F from eqn 3.4b             - vectorsthat connect the dotz
-            FF=np.dot(Fvec,Fvec.transpose())
-            #Diagonalize FF
-            sortEigValsF,sortEigVecF=np.linalg.eigh(FF)
-            sortEigVecFT=-sortEigVecF.transpose()
-            if len(np.where(sortEigValsF<=0)[0])!=0:
-                #sortEigVecFT=np.abs(sortEigVecFT)
-                sortEigValsF=np.abs(sortEigValsF)
-                invRootDiagF=sortEigValsF
-                for e,element in enumerate(sortEigValsF):
-                    if element>0:
-                        invRootDiagF[e]=1.0/np.sqrt(element)
-            #Get the inverse sqrt of diagonalized(FF)
-            else:
-                invRootDiagF=1.0/np.sqrt(sortEigValsF)
-            # F^{-1/2}
-            invRootF=np.dot(invRootDiagF[np.newaxis,:]*-sortEigVecF,sortEigVecFT)
-            eckVecs=np.dot(Fvec.transpose(),invRootF)
-            newCoord[moli]= np.dot(molecule,eckVecs)
-            masss = la.det(eckVecs)
-        return newCoord
-
-    # def eckartRotate(self,pos,justO=False,cart=False,hydro=False,yz=False,hydro_water=False): # pos coordinates = walkerCoords numwalkersxnumAtomsx3
-    #     """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
-    #     one should transpose the matrix, or do eck.dot(___)"""
-    #     killList2=0
-    #     if cart or justO or hydro or hydro_water:
-    #         planar = True
-    #     else:
-    #         planar = False
-    #     if self.name in ProtonatedWaterTrimer:
-    #         # planar=True
-    #         self.refPos = self.pullTrimerRefPos(yz)
-    #     else:
-    #         # planar=True
-    #         self.refPos = self.pullTetramerRefPos(yz)
-    #     if len(pos.shape)<3:
-    #         pos=np.array([pos])
-    #     #Center of Mass
-    #     print 'getting mass'
-    #     mass=self.get_mass()
-    #     print 'got mass, here it is', mass
-    #     if self.name in ProtonatedWaterTetramer:
-    #         if justO: #the OOO plane
-    #             self.refPos=self.refPos[:3]
-    #             refCOM = np.dot(mass[:3], self.refPos) / np.sum(mass[:3])  # same as overal COM
-    #             com = np.dot(mass[:3],pos[:,:3])/np.sum(mass[:3])
-    #             mass = mass[:3]
-    #             pos = pos[:,:3,:]
-    #         elif cart: #include central oxygen
-    #             self.refPos = self.refPos[:4]
-    #             com = np.dot(mass[:4], pos[:, :4]) / np.sum(mass[:4])
-    #             refCOM =  np.dot(mass[:4], self.refPos) / np.sum(mass[:4]) #same as overal COM
-    #             mass = mass[:4]
-    #             pos = pos[:, :4, :]
-    #         elif hydro:
-    #             self.refPos = self.refPos[[4-1,13-1,11-1,12-1]]
-    #             com = np.dot(mass[[4-1,13-1,11-1,12-1]], pos[:, [4-1,13-1,11-1,12-1]]) / np.sum(mass[[4-1,13-1,11-1,12-1]])
-    #             refCOM = np.dot(mass[[4-1,13-1,11-1,12-1]], self.refPos) / np.sum(mass[[4-1,13-1,11-1,12-1]])  # same as overal COM
-    #             mass = mass[[4-1,13-1,11-1,12-1]]
-    #             pos = pos[:, [4-1,13-1,11-1,12-1],:]
-    #         else:
-    #             #rachel!!!
-    #             # mass = mass[[[0, 1, 2, 5, 8, 11, 12]]]
-    #             com = np.dot(mass, pos) / np.sum(mass)
-    #             refCOM = np.dot(mass,self.refPos) / np.sum(mass)
-    #
-    #     elif self.name in ProtonatedWaterTrimer:
-    #         if justO or cart:  # the OOO plane
-    #             self.refPos = self.refPos[:3]
-    #             refCOM = np.dot(mass[:3], self.refPos) / np.sum(mass[:3])  # same as overal COM
-    #             com = np.dot(mass[:3], pos[:, :3]) / np.sum(mass[:3])
-    #             mass = mass[:3]
-    #             pos = pos[:, :3, :]
-    #         elif hydro:
-    #             self.refPos = self.refPos[[3 - 1, 9-1,8-1,10-1]]
-    #             com = np.dot(mass[[3-1, 9-1,8-1,10-1]], pos[:, [3-1, 9-1,8-1,10-1]]) / np.sum(
-    #                 mass[[3-1, 9-1,8-1,10-1]])
-    #             refCOM = np.dot(mass[[3-1, 9-1,8-1,10-1]], self.refPos) / np.sum(
-    #                 mass[[3-1, 9-1,8-1,10-1]])  # same as overal COM
-    #             mass = mass[[3-1, 9-1,8-1,10-1]]
-    #             pos = pos[:, [3-1, 9-1,8-1,10-1], :]
-    #         elif hydro_water:
-    #             self.refPos = self.refPos[[3 - 1, 9 - 1,  10 - 1]]
-    #             com = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], pos[:, [3 - 1, 9 - 1,  10 - 1]]) / np.sum(
-    #                 mass[[3 - 1, 9 - 1,  10 - 1]])
-    #             refCOM = np.dot(mass[[3 - 1, 9 - 1,  10 - 1]], self.refPos) / np.sum(
-    #                 mass[[3 - 1, 9 - 1,  10 - 1]])  # same as overal COM
-    #             mass = mass[[3 - 1, 9 - 1,  10 - 1]]
-    #             pos = pos[:, [3 - 1, 9 - 1,  10 - 1], :]
-    #         else:
-    #             com = np.dot(mass, pos) / np.sum(mass)
-    #             refCOM = np.dot(mass,self.refPos) / np.sum(mass)
 
     def eckartRotate(self, pos, planar=False,yz=False,All=False,lst=[],dip=False):  # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,

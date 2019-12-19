@@ -118,10 +118,10 @@ def plotStuff(symEckRotCoords):
     print('average',x)
     for qi in range(33):
         if units[qi] == 'degrees':
-            PltHists1D('allH', np.degrees(internals[:, qi]), (-360,360), nm[qi], 'pubtetInternals/Probability Density', False,
+            PltHists1D(coordinateSet[-4:], np.degrees(internals[:, qi]), (-360,360), nm[qi], 'pubtetInternals/Probability Density', False,
                        symDw)
         else:
-            PltHists1D('allH', internals[:, qi] * angstr, (0, 3), nm[qi], 'pubtetInternals/Probability Density', False,
+            PltHists1D(coordinateSet[-4:], internals[:, qi] * angstr, (0, 3), nm[qi], 'pubtetInternals/Probability Density', False,
                        symDw)
     stop
     # print 'Internal coordinate shape: ', np.shape(internals)

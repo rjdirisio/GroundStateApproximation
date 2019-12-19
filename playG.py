@@ -2,8 +2,8 @@ import numpy as np
 import numpy.linalg as la
 import matplotlib.pyplot as plt
 
-M = np.load("mu2ave_ffinal_allH_rn_spc_ffinalVersion.npy")
-G = np.loadtxt("../Gmats/trimer/ffinal_allH_rn_spc_ffinalVersion.gmat")
+M = np.load("mu2ave_ffinal_allH_rn_spc_xfinAx.npy")
+G = np.loadtxt("../Gmats/trimer/ffinal_allH_rn_spc_xfinAx.gmat")
 sqrt2o = 1/np.sqrt(2)
 sqrt4o = 1/np.sqrt(4)
 

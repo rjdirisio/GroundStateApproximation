@@ -61,12 +61,12 @@ def plotStuff(symEckRotCoords):
     print('average',x)
     for qi in range(24):
         if units[qi] == 'degrees':
-            PltHists1D('allH', np.degrees(internals[:, qi]), (-360,360), nm[qi], 'pubtrimerInternals/Probability Density', False,
+            PltHists1D('allH', np.degrees(internals[:, qi]), (-180,180), nm[qi], 'pubtrimerInternals/Probability Density', False,
                        symDw)
         else:
             PltHists1D('allH', internals[:, qi] * angstr, (0, 3), nm[qi], 'pubtrimerInternals/Probability Density', False,
                        symDw)
-    stop
+
 
     PltHists2D('allH', np.degrees(internals[:,1]),np.degrees(internals[:,2]),(0,180),(-90,90), 'Theta', 'Phi',
                False, symDw, 40)
@@ -77,39 +77,52 @@ def plotStuff(symEckRotCoords):
 
     # PltHists2D('allH',angstr*(internals[:, 21])+angstr*(internals[:,22]) ,  angstr*(internals[:, 21])-angstr*(internals[:,22]), (4.4,5.6),(-0.6,0.6),'Roo_1+Roo2', 'Roo1-Roo_2',
     #            False, symDw, 40)
-    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 8]), (-360, 360), (-360, 360), 'PhiH9',
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 8]), (-180, 180), (-180, 180), 'PhiH9',
                'PhiH10',False, symDw, 60)
 
     PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 4]), (-180, 180), (-180, 180), 'PhiH9',
                'ThH10', False, symDw, 60)
 
     #            False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 9]), (-360,360), (-360,360), 'PhiH8', 'Th627',
+    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 9]), (-180,180), (-180,180), 'phiH8', 'Th627',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 10]), (-360,360), (-360,360), 'phiH8', 'Ph627',
+    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 10]), (-180,180), (-180,180), 'phiH8', 'Ph627',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 11]), (-360,360), (-360,360), 'phiH8', 'Chi627',
+    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 11]), (-180,180), (-180,180), 'phiH8', 'Chi627',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 12]), (-360,360), (-360,360), 'phiH8', 'Th514',
+    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 12]), (-180,180), (-180,180), 'phiH8', 'Th514',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 13]), (-360,360), (-360,360), 'phiH8', 'Ph514',
+    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 13]), (-180,180), (-180,180), 'phiH8', 'Ph514',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 14]), (-360,360), (-360,360), 'phiH8', 'Chi514',
+    PltHists2D('allH', np.degrees(internals[:, 2]), np.degrees(internals[:, 14]), (-180,180), (-180,180), 'phiH8', 'Chi514',
+               False, symDw, 60)
+    
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 9]), (-180,180), (-180,180), 'phiH9', 'Th627',
+               False, symDw, 60)
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 10]), (-180,180), (-180,180), 'phiH9', 'Ph627',
+               False, symDw, 60)
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 11]), (-180,180), (-180,180), 'phiH9', 'Chi627',
+               False, symDw, 60)
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 12]), (-180,180), (-180,180), 'phiH9', 'Th514',
+               False, symDw, 60)
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 13]), (-180,180), (-180,180), 'phiH9', 'Ph514',
+               False, symDw, 60)
+    PltHists2D('allH', np.degrees(internals[:, 5]), np.degrees(internals[:, 14]), (-180,180), (-180,180), 'phiH9', 'Chi514',
                False, symDw, 60)
 
-    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 9]), (-360,360), (-360,360), 'thH8', 'Th627',
+    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 9]), (-180,180), (-180,180), 'thH8', 'Th627',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 10]), (-360,360), (-360,360), 'thH8', 'Ph627',
+    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 10]), (-180,180), (-180,180), 'thH8', 'Ph627',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 11]), (-360,360), (-360,360), 'thH8', 'Chi627',
+    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 11]), (-180,180), (-180,180), 'thH8', 'Chi627',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 12]), (-360,360), (-360,360), 'thH8', 'Th514',
+    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 12]), (-180,180), (-180,180), 'thH8', 'Th514',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 13]), (-360,360), (-360,360), 'thH8', 'Ph514',
+    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 13]), (-180,180), (-180,180), 'thH8', 'Ph514',
                False, symDw, 60)
-    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 14]), (-360,360), (-360,360), 'thH8', 'Chi514',
+    PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 14]), (-180,180), (-180,180), 'thH8', 'Chi514',
                False, symDw, 60)
-
+    stop
     internalName = ['rOH8', 'thH8', 'phiH8','rOH9', 'thH9', 'phiH9','rOH10', 'thH10', 'phiH10',
                              'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                              'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
