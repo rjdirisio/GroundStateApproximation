@@ -902,12 +902,7 @@ class molecule (object):
     def sphericalTrimer(self,xx):
         com, eckVecs, killList = self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)
         xx -= com[:, np.newaxis, :]
-        print xx[0]
-        print xx[len(xx)/2]
         xx = np.einsum('knj,kij->kni', eckVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
-        print 'fully rotated'
-        print xx[0]
-        print xx[len(xx)/2]
 
         oh8 = xx[:,8-1]-xx[:,3-1]
         oh9 = xx[:, 9 - 1] - xx[:, 3 - 1]

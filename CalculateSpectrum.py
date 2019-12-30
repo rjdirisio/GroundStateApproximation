@@ -108,7 +108,7 @@ class HarmonicApproxSpectrum(object):
                 #For 2pi stuff going from 0 to 2pi
                 # qual1 = np.abs(coordPlus - coordMinus) > 1.0
                 # print np.sum(qual1),'walkers with weird derivatives'
-                qual1 = np.where(np.abs(coordPlus - coordMinus) > 1.0)
+                # qual1 = np.where(np.abs(coordPlus - coordMinus) > 1.0)
                 # if np.any(qual1):
                 #     qual2 = np.logical_or(qual1[1]==10 , qual1[1] == 13)
                 # else:
@@ -171,14 +171,14 @@ class HarmonicApproxSpectrum(object):
                 # coordMinus = np.where(coordMinus== np.isnan(coordMinus), coordMinus, 0.)
                 pnan=np.where(np.isnan(coordPlus))
                 mnan=np.where(np.isnan(coordMinus))
-                print len(pnan[0])/3., 'nans in coordPlus'
-                print len(mnan[0])/3., 'nans in coordMinus'
-                if len(pnan[0]) > 0 or len(mnan[0]) > 0:
-                    print 'setting nans to zero'
-                descendantWeights[pnan[0]]=0.0
-                descendantWeights[mnan[0]] = 0.0
-                coordPlus[pnan]=0.0
-                coordMinus[mnan]=0.0
+                # print len(pnan[0])/3., 'nans in coordPlus'
+                # print len(mnan[0])/3., 'nans in coordMinus'
+                # if len(pnan[0]) > 0 or len(mnan[0]) > 0:
+                #     print 'setting nans to zero'
+                # descendantWeights[pnan[0]]=0.0
+                # descendantWeights[mnan[0]] = 0.0
+                # coordPlus[pnan]=0.0
+                # coordMinus[mnan]=0.0
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
                 if self.wfn.molecule.name in ProtonatedWaterTrimer:
@@ -695,15 +695,15 @@ class HarmonicApproxSpectrum(object):
         #Vq2d=<q^2Vq^2> (<> is an average of the descendant weights)
         Vq2d=np.zeros((self.nVibs,self.nVibs)) # one quanta in one mode and 1 quanta in another mode
 
-        #q2ave2d=<q^2 q^2> (<> is an average of the descendant weights)  
+        #q2ave2d=<q^2 q^2> (<> is an average of the descendant weights)
         q2ave2d=np.zeros((self.nVibs,self.nVibs))
 
         for i in range(coords.shape[0]):
             Vq2d=Vq2d+np.outer(q2[i],potentialEnergy[i]*q2[i])*dw[i]
             q2ave2d=q2ave2d+np.outer(q2[i],q2[i])*dw[i]
         Vq2d=Vq2d/np.sum(dw)
-        q2ave2d=q2ave2d/np.sum(dw)        
-        
+        q2ave2d=q2ave2d/np.sum(dw)
+
         #Now calculate the kinetic energy
         print 'ZPE: average v_0',V_0*au2wn
         np.save(overlapMs+"v_0"+setOfWalkers + testName + kill,V_0*au2wn)
@@ -717,6 +717,8 @@ class HarmonicApproxSpectrum(object):
         alphaPrime = np.sqrt(8. * np.average(q4,weights=dw,axis=0) / (np.average(q8,weights=dw,axis=0) - np.average(q4,weights=dw,axis=0) ** 2))
 
         #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
+        # crazyStuff = np.load("dgz_ffinal_allH_rnspc_xfinAx.npy")
+        # mass = np.average(crazyStuff,weights=dw,axis=0)
         #kineticEnergy= hbar**2 nquanta alpha/(2 mass)
         Tq=1.0**2*1.0*alpha/(2.0*1.0) #Equation #10
 
