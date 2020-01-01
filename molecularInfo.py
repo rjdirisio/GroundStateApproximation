@@ -464,9 +464,11 @@ class molecule (object):
         X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1)[:,np.newaxis])
         crs = np.cross(xx[:, 1 - 1] - xx[:, 3 - 1], xx[:, 2 - 1] - xx[:, 3 - 1], axis=1)
         Z = crs / la.norm(crs,axis=1)[:,np.newaxis]
-        Z[len(Z) / 2:] *= -1.0
+        if len(Z) != 2:
+            Z[len(Z) / 2:] *= -1.0
         Y = np.cross(Z, X, axis=1)
-        Z[len(Z) / 2:] *= -1.0
+        if len(Z) != 2:
+            Z[len(Z) / 2:] *= -1.0
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
 
         # exx = np.copy(x)
@@ -667,8 +669,6 @@ class molecule (object):
         #[X]    [. . .][x]
         #[Y] =  [. . .][y]
         #[Z]    [. . .][z]
-        # Z[len(Z)/2:]*= -1.0
-        # z[len(Z)/2:]*=-1.0
 
         zdot=(z * Z).sum(axis=1) / (la.norm(z, axis=1) * la.norm(Z, axis=1))
         Yzdot=(Y * z).sum(axis=1)/(la.norm(Y,axis=1) * la.norm(z,axis=1))
@@ -683,6 +683,10 @@ class molecule (object):
 
 
         return Theta, tanPhi, tanChi
+    def eulerMatrixNotSlick(self,X,Y,Z,x,y,z):
+        """SWITCHING xyz and XYZ !!!!!!"""
+        rPhiz = np.array()
+
 
     def HDihedral(self,xx):
         if xx.shape[1] == 13:
@@ -913,14 +917,27 @@ class molecule (object):
         roh10 = la.norm(oh10,axis=1)
 
         thH8 = np.arccos(oh8[:,-1]/roh8) #z / r
+        # thH8 = np.absolute(thH8-np.pi/2.)+np.pi/2.
         thH9 = np.arccos(oh9[:, -1] / roh9)
+        # thH9 = np.absolute(thH9-np.pi/2.)+np.pi/2.
         thH10 = np.arccos(oh10[:, -1] / roh10)
+        # thH10 = np.absolute(thH10-np.pi/2.)+np.pi/2.
 
         phH8 = np.arctan2(oh8[:,1],oh8[:,0]) #y / x
         phH9 = np.arctan2(oh9[:,1],oh9[:,0])
         phH10 = np.arctan2(oh10[:,1],oh10[:,0])
 
         return roh8, roh9, roh10, thH8,thH9,thH10,phH8,phH9,phH10
+
+    def cartTrimer(self,xx):
+        com, eckVecs, killList = self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)
+        xx -= com[:, np.newaxis, :]
+        xx = np.einsum('knj,kij->kni', eckVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
+        oh8 = xx[:,8-1]-xx[:,3-1]
+        oh9 = xx[:, 9 - 1] - xx[:, 3 - 1]
+        oh10 = xx[:, 10 - 1] - xx[:, 3 - 1]
+        return oh8[:,0],oh9[:,0],oh10[:,0],oh8[:,1],oh9[:,1],oh10[:,1],oh8[:, 2], oh9[:, 2], oh10[:, 2],
+
 
     def SymInternalsH7O3plus(self,x):
         print 'Commence getting internal coordinates for trimer'
@@ -931,6 +948,45 @@ class molecule (object):
         # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
         # print 'done with FH'
         rOH8,rOH9,rOH10,thH8,thH9,thH10,phH8,phH9,phH10 = self.sphericalTrimer(x)
+        print 'hydronium'
+
+        thphixi1= self.finalTrimerEuler(x,2,7,6)
+        print 'done with Euler1'
+        thphixi2 = self.finalTrimerEuler(x,1,4,5)
+        print 'done with Euler2'
+        # thphixi3= self.finalTrimerEuler(x,2,6,7)
+        # print 'done with Euler1'
+        # thphixi4 = self.finalTrimerEuler(x,1,5,4)
+        # print 'done with Euler2'
+        rOH1 = self.bL(x,1-1,4-1)
+        rOH2 = self.bL(x,1-1,5-1)
+        aHOH1= self.ba(x,5-1,1-1,4-1)
+        rOH3 = self.bL(x,2-1,6-1)
+        rOH4 = self.bL(x,2-1,7-1)
+        aHOH2= self.ba(x,6-1,2-1,7-1)
+        rOO1 = self.bL(x,1-1,3-1)
+        rOO2 = self.bL(x,2-1,3-1)
+        aOOO = self.ba(x,1-1,3-1,2-1)
+        print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
+        print 'first Angle: ',np.degrees(aOOO[0])
+        internal = np.array((rOH8, thH8, phH8, rOH9, thH9, phH9, rOH10, thH10, phH10,
+                thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2],
+                             rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
+        self.internalName = ['rOH8', 'thH8', 'phiH8','rOH9', 'thH9', 'phiH9','rOH10', 'thH10', 'phiH10',
+                             'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+                             'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
+
+        return internal
+
+    def SymInternalsH7O3plus_cart(self,x):
+        print 'Commence getting internal coordinates for trimer'
+        #Hydronium
+
+        # rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
+        # rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
+        # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
+        # print 'done with FH'
+        xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10 = self.cartTrimer(x)
         print 'hydronium'
 
         thphixi1= self.finalTrimerEuler(x,2,7,6)
@@ -948,10 +1004,10 @@ class molecule (object):
         aOOO = self.ba(x,1-1,3-1,2-1)
         print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
         print 'first Angle: ',np.degrees(aOOO[0])
-        internal = np.array((rOH8, thH8, phH8, rOH9, thH9, phH9, rOH10, thH10, phH10,
+        internal = np.array((xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10,
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2],
                              rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-        self.internalName = ['rOH8', 'thH8', 'phiH8','rOH9', 'thH9', 'phiH9','rOH10', 'thH10', 'phiH10',
+        self.internalName = ['xH8','xH9','xH10','yH8','yH9','yH10','zH8','zH9','zH10',
                              'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                              'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
 
@@ -1037,20 +1093,20 @@ class molecule (object):
                  [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00], #6 and 7 better alinged with walkers themselves rather than my printout.
                  [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00]])
 
-        myBetterRef  = np.array(
-            [
-                [0.00000000E+00 , 4.09812725E+00 ,-7.66773992E-01 ],
-                [-5.01875842E-16, -4.09812725E+00 ,-7.66773992E-01],
-                [1.23259516E-31,  0.00000000E+00,  1.59928088E+00],
-                [0.00000000E+00,  5.76624514E+00, -1.83972876E-02 ],
-                [-1.97215226E-31,  4.32405303E+00, -2.58026572E+00],
-                [-7.06161366E-16, -5.76624514E+00, -1.83972876E-02], #7
-                [-5.29543770E-16, -4.32405303E+00, -2.58026572E+00],  # 6
-                [2.95822839E-31,  0.00000000E+00,  3.42362148E+00],
-                [9.86076132E-32,  1.68937343E+00,  6.23920678E-01],
-                [-2.06888576E-16, -1.68937343E+00,  6.23920678E-01],
-            ] #TOTALLY PLANAR
-        )
+        # myBetterRef  = np.array(
+        #     [
+        #         [0.00000000E+00 , 4.09812725E+00 ,-7.66773992E-01 ],
+        #         [-5.01875842E-16, -4.09812725E+00 ,-7.66773992E-01],
+        #         [1.23259516E-31,  0.00000000E+00,  1.59928088E+00],
+        #         [0.00000000E+00,  5.76624514E+00, -1.83972876E-02 ],
+        #         [-1.97215226E-31,  4.32405303E+00, -2.58026572E+00],
+        #         [-7.06161366E-16, -5.76624514E+00, -1.83972876E-02], #7
+        #         [-5.29543770E-16, -4.32405303E+00, -2.58026572E+00],  # 6
+        #         [2.95822839E-31,  0.00000000E+00,  3.42362148E+00],
+        #         [9.86076132E-32,  1.68937343E+00,  6.23920678E-01],
+        #         [-2.06888576E-16, -1.68937343E+00,  6.23920678E-01],
+        #     ] #TOTALLY PLANAR
+        # )
 
 
         if dip:

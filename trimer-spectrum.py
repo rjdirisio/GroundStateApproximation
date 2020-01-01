@@ -71,6 +71,7 @@ def plotStuff(symEckRotCoords):
     PltHists2D('allH', np.degrees(internals[:,1]),np.degrees(internals[:,2]),(0,180),(-90,90), 'Theta', 'Phi',
                False, symDw, 40)
     np.savetxt('averageInternalsWithNewEckart_'+coordinateSet,np.average(internals,axis=0,weights=symDw))
+    stop
     print 'Internal coordinate shape: ', np.shape(internals)
     print 'One attribute shape: ',np.shape(internals[:,0])
     print 'number of dws: ', symDw.shape
@@ -268,7 +269,7 @@ else:
     symEckRotCoords = symCoords
     # symEckRotCoords = symCoords[:len(symCoords)/2]
     # symDw = symDw[:len(symCoords)/2]
-    iwantToPlotStuff=False
+    iwantToPlotStuff=True
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)
     else:

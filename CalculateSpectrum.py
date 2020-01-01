@@ -80,22 +80,11 @@ class HarmonicApproxSpectrum(object):
                 deltax=np.zeros((eckartRotatedCoords.shape))
                 # deltax[:,1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
                 # deltax[:,5,1]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
+                # deltax[:,8-1,2]+=dx #perturbs the x,y,z coordinate of the atom of interest - testing
                 deltax[:,atom,coordinate]=deltax[:,atom,coordinate]+dx #perturbs the x,y,z coordinate of the atom of interest
 
                 coordPlus=self.wfn.molecule.SymInternals(eckartRotatedCoords+deltax,False)
                 coordMinus=self.wfn.molecule.SymInternals(eckartRotatedCoords-deltax,False)
-                # coordPlus=np.where(coordPlus == np.isnan(coordPlus),coordPlus,0.)
-                # coordMinus = np.where(coordMinus== np.isnan(coordMinus), coordMinus, 0.)
-                pnan=np.where(np.isnan(coordPlus))
-                mnan=np.where(np.isnan(coordMinus))
-                # print len(pnan[0])/3., 'nans in coordPlus'
-                # print len(mnan[0])/3., 'nans in coordMinus'
-                # if len(pnan[0]) > 0 or len(mnan[0]) > 0:
-                #     print 'setting nans to zero'
-                #     descendantWeights[pnan[0]]=0.0
-                #     descendantWeights[mnan[0]] = 0.0
-                #     coordPlus[pnan]=0.0
-                #     coordMinus[mnan]=0.0
                 bigIdx = np.where(np.abs(coordPlus-coordMinus) > 1.)
                 #Add 2pi
                 if self.wfn.molecule.name in ProtonatedWaterTrimer:
