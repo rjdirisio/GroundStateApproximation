@@ -55,6 +55,8 @@ def plotStuff(symEckRotCoords):
     for name in nm:
         if 'ph' in name or 'th' in name or 'chi' in name or 'xi' in name or 'hoh' in name:
             units.append('degrees')
+        elif 'xh' in name or 'yh' in name or 'zh' in name:
+            units.append('pmAngstroms')
         else:
             units.append('angstroms')
     x=np.average(internals,axis=0,weights=symDw)
@@ -63,6 +65,9 @@ def plotStuff(symEckRotCoords):
         if units[qi] == 'degrees':
             PltHists1D('allH', np.degrees(internals[:, qi]), (-180,180), nm[qi], 'pubtrimerInternals/Probability Density', False,
                        symDw)
+        elif units[qi] == 'pmAngstroms':
+            PltHists1D('allH', internals[:, qi] * angstr, (-2, 2), nm[qi], 'pubtrimerInternals/Probability Density', False,
+                       symDw)
         else:
             PltHists1D('allH', internals[:, qi] * angstr, (0, 3), nm[qi], 'pubtrimerInternals/Probability Density', False,
                        symDw)
@@ -70,8 +75,8 @@ def plotStuff(symEckRotCoords):
 
     PltHists2D('allH', np.degrees(internals[:,1]),np.degrees(internals[:,2]),(0,180),(-90,90), 'Theta', 'Phi',
                False, symDw, 40)
-    np.savetxt('averageInternalsWithNewEckart_'+coordinateSet,np.average(internals,axis=0,weights=symDw))
-    stop
+    np.savetxt('averageInternalsWithNewEckart_'+coordinateSet+'_'+testName+"_"+kill,np.average(internals,axis=0,weights=symDw))
+    
     print 'Internal coordinate shape: ', np.shape(internals)
     print 'One attribute shape: ',np.shape(internals[:,0])
     print 'number of dws: ', symDw.shape
@@ -269,7 +274,7 @@ else:
     symEckRotCoords = symCoords
     # symEckRotCoords = symCoords[:len(symCoords)/2]
     # symDw = symDw[:len(symCoords)/2]
-    iwantToPlotStuff=True
+    iwantToPlotStuff=False
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)
     else:

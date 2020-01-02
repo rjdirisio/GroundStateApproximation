@@ -471,20 +471,20 @@ class molecule (object):
             Z[len(Z) / 2:] *= -1.0
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
 
-        # exx = np.copy(x)
-        # x = np.copy(y)
-        # y = np.copy(z)
-        # z = np.copy(exx)
+        exx = np.copy(x)
+        x = np.copy(y)
+        y = np.copy(z)
+        z = np.copy(exx)
 
         # exy = np.copy(y)
         # y = np.copy(x)
         # x = np.copy(z)
         # z = exy
         print 'lets get weird'
-        # exX = np.copy(X)
-        # X = np.copy(Z)
-        # Z = np.copy(Y)
-        # Y = np.copy(exX)
+        exX = np.copy(X)
+        X = np.copy(Z)
+        Z = np.copy(Y)
+        Y = np.copy(exX)
 
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
         # print(Theta)
@@ -679,7 +679,7 @@ class molecule (object):
         tanPhi = np.arctan2(Yzdot,Xzdot)
         # tanPhi = np.absolute(tanPhi)
         tanChi = np.arctan2(yZdot,-xZdot) #negative baked in
-        tanChi = np.absolute(tanChi)
+        # tanChi = np.absolute(tanChi)
 
 
         return Theta, tanPhi, tanChi
@@ -892,9 +892,13 @@ class molecule (object):
         if self.name in DeprotonatedWaterDimer:
             self.internalName=[]
         elif self.name in ProtonatedWaterTrimer:
-            self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
+            # self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
+            #                      'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+            #                      'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
+            self.internalName = ['xH8', 'xH9', 'xH10', 'yH8', 'yH9', 'yH10', 'zH8', 'zH9', 'zH10',
                                  'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                                  'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
+
         elif self.name in ProtonatedWaterTetramer:
             self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH',
                                  'theta651',
@@ -987,7 +991,7 @@ class molecule (object):
         # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
         # print 'done with FH'
         xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10 = self.cartTrimer(x)
-        print 'hydronium'
+        print 'hydroniumX'
 
         thphixi1= self.finalTrimerEuler(x,2,7,6)
         print 'done with Euler1'
@@ -1088,10 +1092,11 @@ class molecule (object):
                  [-2.88862583e+00,  5.00324669e+00,  1.47532198e+00],
                  [-2.88862583e+00,  5.00324669e+00, -1.47532198e+00],
                  [ 5.77725164e+00, -2.46900000e-09,  1.47532198e+00],
-                 [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],
+                 [ 5.77725164e+00, -2.46900000e-09, -1.47532198e+00],#6 and 7 better alinged with walkers themselves rather than my printout.
                  [-9.12352955e-01, -1.58024167e+00,  0.00000000e+00],
-                 [ 1.95350397e+00, -3.53000000e-09,  0.00000000e+00], #6 and 7 better alinged with walkers themselves rather than my printout.
-                 [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00]])
+                 [-9.76751990e-01,  1.69178407e+00,  0.00000000e+00],
+                [1.95350397e+00, -3.53000000e-09, 0.00000000e+00]
+            ])
 
         # myBetterRef  = np.array(
         #     [

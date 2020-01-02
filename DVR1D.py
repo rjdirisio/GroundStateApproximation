@@ -37,31 +37,30 @@ def diagonalizeH(H):
     return energies, Wfs
 
 def scanPot(cfg):
-    sub.call(['python2','toCoord_new.py',"../scanned_"+cfg+"_"+modeN+".npy"],cwd='annes_getpot')
+    sub.call(['python2','toCoord_new.py',"../scan/scanFiles/scanned_"+cfg+"_"+modeN+".npy"],cwd='annes_getpot')
     potz = np.loadtxt("annes_getpot/eng_dip.dat")[:,0]
     return np.diag(potz)
 #NOrmalScan
 mass=1
 
 V = scanPot(config)
-print(V)
+print(np.diag(V))
 npts = len(V)
-dx=0.01
+dx=0.01*np.loadtxt("tn/tnorm_"+config+"Mode_"+modeN)
 tcoef = hbar ** 2 / (2 * mass * dx * dx)
 T = getKinetic(len(V))
 E,Wf=diagonalizeH(T+V)
 Ecm= E*au2wn
-print Ecm
+print Ecm[:5]
 print 'Delta E 0-->1',Ecm[1]-Ecm[0]
 np.savetxt("DVRResults/deltaE"+config+modeN,np.array([Ecm[1]-Ecm[0]]))
 
 for i in range(3):
     plt.plot(np.diag(V))
     plt.plot(Wf[:,i]**2+(E[i]))
-    #plt.ylim([0.0,0.9])
-    #plt.ylim([0.0,0.2])
-plt.savefig("DVRResults/WavePix"+config+refScanGeom+"_""Mode_"+modeN)
-np.savetxt("DVRResults/Wavefunctions_"+config+refScanGeom+"_""Mode_"+modeN,Wf)
-np.savetxt("DVRResults/EnergiesCM_"+config+refScanGeom+"_""Mode_"+modeN,Ecm)
+plt.show()
+plt.savefig("DVRResults/WavePix"+config+"_""Mode_"+modeN)
+np.savetxt("DVRResults/Wavefunctions_"+config+"_""Mode_"+modeN,Wf)
+np.savetxt("DVRResults/EnergiesCM_"+config+"_""Mode_"+modeN,Ecm)
 plt.show()
 plt.close()
