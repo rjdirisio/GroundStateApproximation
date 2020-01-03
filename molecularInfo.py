@@ -982,40 +982,40 @@ class molecule (object):
 
         return internal
 
-    def SymInternalsH7O3plus_cart(self,x):
-        print 'Commence getting internal coordinates for trimer'
-        #Hydronium
-
-        # rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
-        # rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
-        # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
-        # print 'done with FH'
-        xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10 = self.cartTrimer(x)
-        print 'hydroniumX'
-
-        thphixi1= self.finalTrimerEuler(x,2,7,6)
-        print 'done with Euler1'
-        thphixi2 = self.finalTrimerEuler(x,1,4,5)
-        print 'done with Euler2'
-        rOH1 = self.bL(x,1-1,4-1)
-        rOH2 = self.bL(x,1-1,5-1)
-        aHOH1= self.ba(x,5-1,1-1,4-1)
-        rOH3 = self.bL(x,2-1,6-1)
-        rOH4 = self.bL(x,2-1,7-1)
-        aHOH2= self.ba(x,6-1,2-1,7-1)
-        rOO1 = self.bL(x,1-1,3-1)
-        rOO2 = self.bL(x,2-1,3-1)
-        aOOO = self.ba(x,1-1,3-1,2-1)
-        print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
-        print 'first Angle: ',np.degrees(aOOO[0])
-        internal = np.array((xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10,
-                thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2],
-                             rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-        self.internalName = ['xH8','xH9','xH10','yH8','yH9','yH10','zH8','zH9','zH10',
-                             'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
-                             'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
-
-        return internal
+    # def SymInternalsH7O3plus_cart(self,x): garbage
+    #     print 'Commence getting internal coordinates for trimer'
+    #     #Hydronium
+    #
+    #     # rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
+    #     # rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
+    #     # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
+    #     # print 'done with FH'
+    #     xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10 = self.cartTrimer(x)
+    #     print 'hydroniumX'
+    #
+    #     thphixi1= self.finalTrimerEuler(x,2,7,6)
+    #     print 'done with Euler1'
+    #     thphixi2 = self.finalTrimerEuler(x,1,4,5)
+    #     print 'done with Euler2'
+    #     rOH1 = self.bL(x,1-1,4-1)
+    #     rOH2 = self.bL(x,1-1,5-1)
+    #     aHOH1= self.ba(x,5-1,1-1,4-1)
+    #     rOH3 = self.bL(x,2-1,6-1)
+    #     rOH4 = self.bL(x,2-1,7-1)
+    #     aHOH2= self.ba(x,6-1,2-1,7-1)
+    #     rOO1 = self.bL(x,1-1,3-1)
+    #     rOO2 = self.bL(x,2-1,3-1)
+    #     aOOO = self.ba(x,1-1,3-1,2-1)
+    #     print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
+    #     print 'first Angle: ',np.degrees(aOOO[0])
+    #     internal = np.array((xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10,
+    #             thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2],
+    #                          rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
+    #     self.internalName = ['xH8','xH9','xH10','yH8','yH9','yH10','zH8','zH9','zH10',
+    #                          'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
+    #                          'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
+    #
+    #     return internal
 
     def SymInternalsH3O2minus(self,x): #get an array of all the internal coordinates associated with H3O2 minus
         #print 'calculating the internals...ver 1...'

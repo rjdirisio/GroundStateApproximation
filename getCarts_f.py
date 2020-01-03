@@ -233,7 +233,7 @@ def genCarts(internals):
     return fullCart
 
 def scanNormalModes(Tmatname,modeNumber,numWalkers,fll):
-    averageMoments = np.loadtxt("averageInternalsWithNewEckart_"+)
+    averageMoments = np.loadtxt("averageInternalsWithNewEckart_"+fll)
     tmatr = np.loadtxt(Tmatname)
     normedVec = tmatr[modeNumber]
     np.savetxt("tn/tnorm_"+fll+"Mode_"+str(modeNumber), [la.norm(normedVec)])
@@ -242,7 +242,7 @@ def scanNormalModes(Tmatname,modeNumber,numWalkers,fll):
     scannedGeoms = np.zeros((numWalkers, 10, 3))
     print 'numWalkers/2', numWalkers / 2
 
-    rotRef = Wfn.molecule.pullTrimerRefPos(dip=True)
+    rotRef = genCarts(averageMoments)
     rotRef = np.array([rotRef, rotRef])
     com, eckVecs, killList = Wfn.molecule.eckartRotate(rotRef, planar=True, lst=[1 - 1, 2 - 1, 3 - 1], dip=True)
     rotRef -= com[:, np.newaxis, :]
@@ -262,11 +262,42 @@ def scanNormalModes(Tmatname,modeNumber,numWalkers,fll):
 
     print 'done'
 
+def finDiffFCs(Tmatname,modeNumber,fll):
+    stence = 5
+    averageMoments = np.loadtxt("averageInternalsWithNewEckart_" + fll)
+    tmatr = np.loadtxt(Tmatname)
+    normedVec = tmatr[modeNumber]
+    np.savetxt("tn/tnorm_" + fll + "Mode_" + str(modeNumber), [la.norm(normedVec)])
+    normedVec /= la.norm(normedVec)
+    dx = 0.01
+    scannedGeoms = np.zeros((stence, 10, 3))
+    print 'stence/2', stence / 2
+
+    rotRef = genCarts(averageMoments)
+    rotRef = np.array([rotRef, rotRef])
+    com, eckVecs, killList = Wfn.molecule.eckartRotate(rotRef, planar=True, lst=[1 - 1, 2 - 1, 3 - 1], dip=True)
+    rotRef -= com[:, np.newaxis, :]
+    rotRef = np.einsum('knj,kij->kni', eckVecs.transpose(0, 2, 1), rotRef).transpose(0, 2, 1)[0]
+    scannedGeoms[stence / 2] = rotRef  # assign central point, saddle pt geom.
+
+    for i in range(stence / 2):
+        g = (dx * (i + 1)) * normedVec
+        internalChange = averageMoments + g
+        scannedGeoms[(stence / 2) + 1 + i] = genCarts(internalChange)
+    f = -dx * normedVec
+    for j in range(stence / 2):
+        internalChange = averageMoments + (j + 1) * f
+        scannedGeoms[(stence / 2) - 1 - j] = genCarts(internalChange)
+    np.save("scan/finDiff/scanned_" + fll + "_" + str(modeNumber) + ".npy", scannedGeoms)
+    writeNewWalkers(scannedGeoms, "scan/finDiff/scanned_" + fll + "_" + str(modeNumber) + ".xyz")
+    
+    
 # eqG = getEqGeom()
 # refG = Wfn.molecule.pullTrimerRefPos(dip=True)
 Tmatname ='TransformationMatrix'+coordinateSet+'_'+testName+'_'+kill+'.datatest'
 fll = coordinateSet+'_'+testName+'_'+kill
-for i in range(2):
-    scanNormalModes(Tmatname,i,201,fll)
-averageMoments = np.loadtxt('averageInternalsWithNewEckart_ffinal_allH_rn_spc_xfx')
-cartCds = genCarts(averageMoments+0.001)
+for i in range(24):
+    # scanNormalModes(Tmatname,i,201,fll)
+    finDiffFCs(Tmatname,i,fll)
+# averageMoments = np.loadtxt('averageInternalsWithNewEckart_'+fll)
+# cartCds = genCarts(averageMoments)

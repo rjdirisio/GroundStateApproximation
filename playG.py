@@ -1,9 +1,9 @@
 import numpy as np
 import numpy.linalg as la
 import matplotlib.pyplot as plt
-
-M = np.load("mu2ave_ffinal_allH_rn_spc_xfinAx.npy")
-G = np.loadtxt("../Gmats/trimer/ffinal_allH_rn_spc_xfinAx.gmat")
+cfg = 'ffinal_allH_rn_spc_xfx_NoTweakZIneulers'
+M = np.load("mu2ave_"+cfg+".npy")
+G = np.loadtxt("../Gmats/trimer/"+cfg+".gmat")
 sqrt2o = 1/np.sqrt(2)
 sqrt4o = 1/np.sqrt(4)
 
@@ -171,6 +171,8 @@ Gred = G[idx,:][:,idx]
 # Mtest2 = np.delete(Mtest, [9,10,11,12,13,14], axis=1)
 # Mtest2 = np.delete(Mtest2, [9,10,11,12,13,14], axis=0)
 # Mred = np.copy(Mtest2)
+# res = Mred
+# resG = Gred
 res = np.matmul(k,np.matmul(Mred,k.T))
 resG = np.matmul(k,np.matmul(Gred,k.T))
 print(res)
@@ -180,7 +182,7 @@ plt.colorbar()
 plt.matshow(np.abs(res),cmap='hot')
 plt.title("Absolute Value of Transformed M")
 plt.colorbar()
-plt.show()
+plt.savefig("AbsM"+cfg,dpi=400)
 
 plt.matshow(resG,cmap='hot')
 plt.title("Transformed G")
@@ -188,4 +190,25 @@ plt.colorbar()
 plt.matshow(np.abs(resG),cmap='hot')
 plt.title("Absolute Value of Transformed G")
 plt.colorbar()
-plt.show()
+# plt.show()
+plt.savefig("AbsG"+cfg,dpi=400)
+
+resP = res - np.diag(np.diag(res))
+resGP = resG - np.diag(np.diag(resG))
+
+plt.matshow(resP,cmap='hot')
+plt.title("Transformed M")
+plt.colorbar()
+plt.matshow(np.abs(resP),cmap='hot')
+plt.title("Absolute Value of Transformed M")
+plt.colorbar()
+plt.savefig("RAbsM"+cfg,dpi=400)
+
+plt.matshow(resGP,cmap='hot')
+plt.title("Transformed G")
+plt.colorbar()
+plt.matshow(np.abs(resGP),cmap='hot')
+plt.title("Absolute Value of Transformed G")
+plt.colorbar()
+# plt.show()
+plt.savefig("RAbsG"+cfg,dpi=400)

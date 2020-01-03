@@ -665,7 +665,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=False
+        overlapTime=True
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'
@@ -963,6 +963,7 @@ class HarmonicApproxSpectrum(object):
             else:
                 mu2Ave = np.average(sh, axis=0, weights=dw)
             np.save('mu2ave_' + setOfWalkers + '_' + eckt + '_' + kil + '.npy', mu2Ave)
+            os.remove('smap' + setOfWalkers + '_' + eckt + '_' + kil)
         else:
             print 'loading second moments matrix'
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+'.npy')
