@@ -234,6 +234,10 @@ def genCarts(internals):
 
 def scanNormalModes(Tmatname,modeNumber,numWalkers,fll):
     averageMoments = np.loadtxt("averageInternalsWithNewEckart_"+fll)
+    #for eq cds
+    averageMoments = np.loadtxt("averageInternalsWithNewEckart_" + "eq_allH_rn_spc_eqH")
+    fll = "eq_allH_rn_spc_eqH"
+    #for eq cds
     tmatr = np.loadtxt(Tmatname)
     normedVec = tmatr[modeNumber]
     np.savetxt("tn/tnorm_"+fll+"Mode_"+str(modeNumber), [la.norm(normedVec)])
@@ -265,6 +269,7 @@ def scanNormalModes(Tmatname,modeNumber,numWalkers,fll):
 def finDiffFCs(Tmatname,modeNumber,fll):
     stence = 5
     averageMoments = np.loadtxt("averageInternalsWithNewEckart_" + fll)
+    # averageMoments = np.loadtxt("averageInternalsWithNewEckart_" + "eq_allH_rn_spc_eqH")
     tmatr = np.loadtxt(Tmatname)
     normedVec = tmatr[modeNumber]
     np.savetxt("tn/tnorm_" + fll + "Mode_" + str(modeNumber), [la.norm(normedVec)])
@@ -297,7 +302,6 @@ def finDiffFCs(Tmatname,modeNumber,fll):
 Tmatname ='TransformationMatrix'+coordinateSet+'_'+testName+'_'+kill+'.datatest'
 fll = coordinateSet+'_'+testName+'_'+kill
 for i in range(24):
-    # scanNormalModes(Tmatname,i,201,fll)
-    finDiffFCs(Tmatname,i,fll)
+    scanNormalModes(Tmatname,i,201,fll)
 # averageMoments = np.loadtxt('averageInternalsWithNewEckart_'+fll)
 # cartCds = genCarts(averageMoments)

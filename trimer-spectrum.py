@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
-# import matplotlib.pyplot as plt
+# mpl.use('Agg')
+import matplotlib.pyplot as plt
 import DMCClusters as dmc
 import time
 import glob
@@ -32,16 +32,116 @@ def PltHists2D(cfg,thing1,thing2,bound1,bound2,xl,yl,overly,weits,bins):
     mP.plotIt()
 
 def plotStuff(symEckRotCoords):
+    import matplotlib.cm as cm
+
+    #waterfall Luke plot, histogram rOH based on Bend angle
+    # rOH = Wfn.molecule.bL(symEckRotCoords,9-1,3-1)
+    # H3Obend=Wfn.molecule.ba(symEckRotCoords,10-1,3-1,9-1)
+    # H3Obend = np.degrees(H3Obend)
+    # rOH_eig = Wfn.molecule.bL(symEckRotCoords,10-1,3-1)
+    # rOO_eig = Wfn.molecule.bL(symEckRotCoords,2-1,3-1)
+    # zcompH = symEckRotCoords[:,9-1,-1]
+    # rOH = rOH * angstr
+    # edges = np.linspace(70,170,num=11)
+    # edges = np.linspace(-1.0,1.0,num=11)
+    # edges = np.linspace(0,num=11)
+    #
+    # edgz=(edges[1:] + edges[:-1])*0.5
+    # colors = iter(cm.rainbow(np.linspace(0, 1, 10)))
+    # for i in range(len(edges)-1):
+    #     qual = (H3Obend > edges[i]) * (H3Obend < edges[i + 1])
+    ##     qual = (zcompH > edges[i]) * (zcompH < edges[i + 1])
+        #
+        # idx = np.where(qual)[0]
+        # yar, xx = np.histogram(rOH[idx], bins=15, range=(0.6, 1.5),weights=symDw[idx],
+        #                       density=True)  # histogramming OH distances in a range of OO distances
+        # yar /= 1e5
+        # X = (xx[:-1]+xx[1:]) * 0.5
+        # tc = next(colors)
+        # plt.fill(X, yar, color=tc, alpha=0.7)
+        # plt.plot(X, yar, color='k')
+    ## plt.yticks(edgz)
+    # plt.savefig("rOH_vsIHBBend.png",dpi=500)
+    # plt.close()
+
+
+
+
+
+    #rotations annd bend and wag
+    # roh8, roh9, roh10, thH8,thH9,thH10,phH8,phH9,phH10 = Wfn.molecule.sphericalTrimer(symEckRotCoords)
+    # PltHists1D('allH', np.degrees(phH8+phH9+phH10), (-180, 180), "Phi8+Phi9+Phi10", 'pubtrimerInternals/Probability Density',
+    #            False,symDw)
+    # PltHists1D('allH', np.degrees(-phH8 + phH9 + phH10), (-180, 180), "-Phi8+Phi9+Phi10",
+    #            'pubtrimerInternals/Probability Density',
+    #            False, symDw)
+    # PltHists1D('allH', np.degrees(-phH9 + phH10), (180,360), "-Phi9+Phi10",
+    #            'pubtrimerInternals/Probability Density',
+    #            False, symDw)
+
     # strang="q_" + coordinateSet +'_'+testName+"_"+kill+".npy"
     # if os.path.isfile("q_" + coordinateSet +'_'+testName+"_"+kill+".npy"):
     #     print 'plotQs'
     #     q = np.load("q_" + coordinateSet +'_'+testName+"_"+kill+".npy")
-    #     for i in range(q.shape[1]):
-    #         PltHists1D('allH', q[:, i], (-100, 100), 'q_' + str(i), 'trimerInternals/Probability Denisty',False, symDw)
-    #     PltHists1D('allH', q[:, 5]*q[:,15], (-400, 400), 'q_5_15', 'trimerInternals/Probability Denisty', False, symDw)
-    #     PltHists2D('allH', q[:, 6],q[:, 5]*q[:,15], (-100,100), (-5,5), 'q6', 'q5*q15',
-    #                False, symDw, 30)
+        # for i in range(q.shape[1]):
+        #     PltHists1D('allH', q[:, i], (-150,150), 'q_' + str(i), 'trimerInternals/Probability Denisty',False, symDw)
+        # for j in range(q.shape[1]):
+        #     PltHists2D('allH', q[:, 10], q[:, j], (-50, 50), (-50, 50), 'q10', 'q'+str(j),
+        #                False, symDw, 30)
+        # for k in range(q.shape[1]):
+        #     PltHists2D('allH', q[:, 12], q[:, k], (-50, 50), (-50, 50), 'q12', 'q'+str(k),
+        #                False, symDw, 30)
+    ##
+    # qp = np.copy(q)
+    # waga = qp[:,10]
+    # for f in range(24):
+    #     q[:,f]/=np.amax(q[:,f])
+    # wag = q[:,10]
+    # edges = np.linspace(-1.0,1.0, num=16)
+    # # edges = np.append(edgesb, 1.0)
+    # for mode in range(q.shape[1]):
+    #     choppyList = [[] for x in range(len(edges))]
+    #     cLIndex = [[] for x in range(len(edges))]
+    #     yar = np.zeros((len(edges), 15))
+    #     colors = iter(cm.rainbow(np.linspace(0, 1, 16)))
+    #     dx = 0.1
+    #     dy = 1
+    #     ################
+    #     avg = np.zeros(len(edges)-1)
+    #     for i in (range(len(edges)-1)):
+    #         mde = q[:,mode]
+    #         qual = (mde > edges[i]) * (mde < edges[i + 1])
+    #         idx = np.where(qual)[0]
+    #         if len(idx) != 0:
+    #             avg[i] = np.average(waga[idx]**2 * waga[idx]**2 ,weights=symDw[idx])*(np.sum(symDw[idx]))
+    #             # avg[i] = np.sum(symDw[idx])
+    #         else:
+    #             # avg[i] = 0.0
+    #             avg[i] = 0.0
+    #     X = (edges[:-1]+edges[1:])*0.5
+    #     plt.plot(X,avg)
+    #     plt.xlabel("q_"+str(mode))
+    #     plt.ylabel("<q_wag^2> * weights")
+    #     plt.savefig("WagPlot_weightedWeight_Mode_"+str(mode))
+    #     plt.close()
+    #     ###############
+    #     for i in reversed(range(len(edges))):
+    #         mde = q[:,mode]
+    #         qual = (mde < edges[i]) * (mde > edges[i - 1])
+    #         cLIndex[i] = np.where(qual)[0]
+    #         choppyList[i] = mde[cLIndex[i]]
+    #         yar[i], xx = np.histogram(wag[cLIndex[i]], bins=15, range=(-1.0, 1.0),weights=symDw[cLIndex[i]],
+    #                                   density=True)  # histogramming OH distances in a range of OO distances
+    #         X = (xx[:-1]+xx[1:]) * 0.5
+    #         tc = next(colors)
+    #         # plt.fill(X + i * dx, yar[i] + i * dy + 1, color=tc, alpha=0.7)
+    #         # plt.plot(X + i * dx, yar[i] + i * dy + 1, color='k')
+    #         plt.fill(X, yar[i] + i * dy + 1, color=tc, alpha=0.7)
+    #         plt.plot(X, yar[i] + i * dy + 1, color='k')
+    #     plt.savefig("cascade_Wag_Mode_"+str(mode))
+    #     plt.close()
     print 'INTERNAL COORDINATES :-O'
+    # stop
     #theta: align the z axes
     #phi: align the two x axes
     #chi: bring to reference structure(?)
@@ -207,8 +307,8 @@ elif '1Dh' in coordinateSet:
     Wfn.setIsotope('DeuteratedOnce_hydronium')
 elif 'test' in coordinateSet:
     print 'test,fam'
-else:
-    raise Exception
+# else:
+#     poop
 
 head = '/home/netid.washington.edu/rjdiri/'
 
@@ -227,9 +327,18 @@ print dipF
 if 'nz' in kill:
     GfileName = GfileName[:-4]+'nz.gmat'
     #Same as regular
-#dipF = "dipoles/"+dipF
 
-
+# lukeOOs = 3
+# for f in range(1,lukeOOs+1):
+#     a = np.load("dvr_oo_geoms_shift_"+str(f)+".npy")
+#     fll = open('lukeGeomz_'+str(f)+'.xyz', 'w+')
+#     Wfn.molecule.printCoordsToFile(a,fll)
+# stop
+# fll = open('cdsWagProblem.xyz','w+')
+# Wfn.molecule.printCoordsToFile(a,fll)
+# symDw = np.load("../cdsWagProblem_dw.npy")
+# plotStuff(a)
+# stop
 
 if os.path.isfile(cds+'.npy'):
     symCoords=np.load(cds+'.npy')

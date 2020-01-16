@@ -892,13 +892,9 @@ class molecule (object):
         if self.name in DeprotonatedWaterDimer:
             self.internalName=[]
         elif self.name in ProtonatedWaterTrimer:
-            # self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
-            #                      'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
-            #                      'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
-            self.internalName = ['xH8', 'xH9', 'xH10', 'yH8', 'yH9', 'yH10', 'zH8', 'zH9', 'zH10',
+            self.internalName = ['rOH8', 'thH8', 'phiH8', 'rOH9', 'thH9', 'phiH9', 'rOH10', 'thH10', 'phiH10',
                                  'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                                  'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
-
         elif self.name in ProtonatedWaterTetramer:
             self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH',
                                  'theta651',
@@ -1657,8 +1653,11 @@ class molecule (object):
         au2ang=0.529177249
         xp = np.copy(x)*au2ang
         rachel = False
+        luke=False
         if rachel:
             atomStr =["O","O", "H", "D", "D", "O", "D", "D", "O", "D", "D", "D", "D"]
+        elif luke:
+            atomStr = ["O", "H", "H", "H", "O", "H", "H", "O", "H", "H"]
         else:
             if self.name in ProtonatedWaterTrimer:
                 atomStr=['O','O','O','H','H','H','H','H','H','H']

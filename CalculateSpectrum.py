@@ -676,6 +676,13 @@ class HarmonicApproxSpectrum(object):
         #V_0=<0|V|0>
         print 'overlap matrix done or skipped'
         print 'Potential Energy',potentialEnergy
+        #~!!!!!!!!!!!!!Testing!!!!!!!!!!!!!!
+        # qual = np.logical_or((q[:, 10] > 75.), (q[:, 10] < -75.))
+        # idx = np.where(qual)[0]
+        # q[idx, 10] = 0.0
+        # q2ave = np.average(q * q, axis=0, weights=dw)
+        # dw[dw < 0.1] = 0.0
+        # print('dw!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         V_0=np.average(potentialEnergy[:,None],axis=0,weights=dw)
 
         # Vq= <1_q|V|1_q> bra:state with one quanta in mode q, ket: state with one quanta in mode q
@@ -701,9 +708,11 @@ class HarmonicApproxSpectrum(object):
         q4 = q*q*q*q
         q8 = q4*q4
         alpha=q2ave/(np.average(q4,weights=dw,axis=0)-q2ave**2) # Equation #11
+
         #alphaPrime=0.5/q2ave   #Equation in text after #8
 
         alphaPrime = np.sqrt(8. * np.average(q4,weights=dw,axis=0) / (np.average(q8,weights=dw,axis=0) - np.average(q4,weights=dw,axis=0) ** 2))
+        # alphaPrime = np.copy(alpha)
 
         #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
         # crazyStuff = np.load("dgz_ffinal_allH_rnspc_xfinAx.npy")
@@ -742,7 +751,17 @@ class HarmonicApproxSpectrum(object):
         Eq2d=(Vq2d+Tq2d)-V_0 #related to frequencies later on
         Eq2dP = (Vq2d + T2P) - V_0  # related to frequencies later on
 
+        print("<V>= ", V_0*au2wn)
+        print("Alpha", alpha)
+        print("<qVq>= ", au2wn*(Vq/q2ave))
+        print("v1-v0",(Vq/q2ave-V_0)*au2wn)
+        print("deltaT = ", Tq*au2wn)
+        print("q2ave", q2ave)
+        print("q4ave",np.average(q*q*q*q,axis=0,weights=dw))
         Eq=(Vq/q2ave+Tq)-V_0
+        for i in range(self.nVibs):
+            np.savetxt("realGSADATA_mode"+str(i),zip([q2ave[i], q2ave[i]**2, np.average(q*q*q*q,axis=0,weights=dw)[i],
+                                                      alpha[i], Tq[i] * au2wn, (Vq[i]/q2ave[i]-V_0)*au2wn,Eq[i]*au2wn]))
         #noKE_funds = Vq/q2ave - V_0
         #noKE_combos = Vq2d-V_0
         #Lastly, the dipole moments to calculate the intensities! Ryan - Do you even have to eckart the molecule, why not just eckart rotate the dipole moment?
@@ -887,7 +906,7 @@ class HarmonicApproxSpectrum(object):
         #######################################################################################################
 
         print "m alpha   alpha'=0.5/<q2>        Vq            Vq/q2ave      Tq            Eq          |<1|dipole|0>|"
-        for i in range(9):
+        for i in range(self.nVibs):
             print i, alpha[i], alphaPrime[i],au2wn*Vq[i], au2wn*Vq[i], Vq[i]/q2ave[i]*au2wn, Eq[i]*au2wn, magAvgMu[i]
 
         print 'energies!', zip(Vq2d[0]*au2wn,Tq2d[0]*au2wn,Eq2d[0]*au2wn)
@@ -969,6 +988,7 @@ class HarmonicApproxSpectrum(object):
             mu2Ave=np.load("mu2ave_"+setOfWalkers+'_'+eckt+'_'+kil+'.npy')
 
         ########testing################
+        # 9-14
         # idx = [0,3,6,15,16,18,19,2,5,8,17,20,21,22,23,1,4,7,9,10,11,12,13,14]
         # self.wfn.molecule.internalName = [self.wfn.molecule.internalName[k] for k in idx]
         # self.G = self.G[idx,:][:,idx]
@@ -1008,6 +1028,77 @@ class HarmonicApproxSpectrum(object):
         #
         # # momentsO = np.copy(moments)
         # moments = moments[:,idx]
+        ############################
+        ##More testing#######################
+        #turn off coupling of eulers to every other mode but themselves
+        # mu2Ave[0:9,9:15]= 0.0
+        # mu2Ave[9:15,0:9]= 0.0
+        # mu2Ave[15:, 9:15] = 0.0
+        # mu2Ave[9:15, 15:] = 0.0
+        # self.G[0:9,9:15]= 0.0
+        # self.G[9:15,0:9]= 0.0
+        # self.G[15:, 9:15] = 0.0
+        # self.G[9:15, 15:] = 0.0
+        #turn off coupling of OO stretch and OOO Bend to everything
+        # mu2Ave[21:24,:21]=0.0
+        # mu2Ave[:21, 21:24] = 0.0
+        # self.G[21:24,:21]=0.0
+        # self.G[:21, 21:24] = 0.0
+        #2,5,8 turn off everything to phis
+        # mu2Ave[2,0:2]=0.0
+        # mu2Ave[0:2,2] = 0.0
+        # mu2Ave[2, 3:5] = 0.0
+        # mu2Ave[3:5, 2] = 0.0
+        # mu2Ave[2, 6:8] = 0.0
+        # mu2Ave[6:8,2] = 0.0
+        # mu2Ave[2, 9:] = 0.0
+        # mu2Ave[9:, 2] = 0.0
+        #
+        # mu2Ave[5, 0:2] = 0.0
+        # mu2Ave[0:2, 5] = 0.0
+        # mu2Ave[5, 3:5] = 0.0
+        # mu2Ave[3:5, 5] = 0.0
+        # mu2Ave[5, 6:8] = 0.0
+        # mu2Ave[6:8, 5] = 0.0
+        # mu2Ave[5, 9:] = 0.0
+        # mu2Ave[9:, 5] = 0.0
+        #
+        # mu2Ave[8,0:2] = 0.0
+        # mu2Ave[0:2,8] = 0.0
+        # mu2Ave[8, 3:5] = 0.0
+        # mu2Ave[3:5, 8] = 0.0
+        # mu2Ave[8, 6:8] = 0.0
+        # mu2Ave[6:8, 8] = 0.0
+        # mu2Ave[8, 9:] = 0.0
+        # mu2Ave[9:, 8] = 0.0
+        #
+        # self.G[2,0:2]=0.0
+        # self.G[0:2,2] = 0.0
+        # self.G[2, 3:5] = 0.0
+        # self.G[3:5, 2] = 0.0
+        # self.G[2, 6:8] = 0.0
+        # self.G[6:8,2] = 0.0
+        # self.G[2, 9:] = 0.0
+        # self.G[9:, 2] = 0.0
+        #
+        # self.G[5, 0:2] = 0.0
+        # self.G[0:2, 5] = 0.0
+        # self.G[5, 3:5] = 0.0
+        # self.G[3:5, 5] = 0.0
+        # self.G[5, 6:8] = 0.0
+        # self.G[6:8, 5] = 0.0
+        # self.G[5, 9:] = 0.0
+        # self.G[9:, 5] = 0.0
+        #
+        # self.G[8,0:2] = 0.0
+        # self.G[0:2,8] = 0.0
+        # self.G[8, 3:5] = 0.0
+        # self.G[3:5, 8] = 0.0
+        # self.G[8, 6:8] = 0.0
+        # self.G[6:8, 8] = 0.0
+        # self.G[8, 9:] = 0.0
+        # self.G[9:, 8] = 0.0
+
         ##testing###################
 
         GHalfInv=self.diagonalizeRootG(self.G)
