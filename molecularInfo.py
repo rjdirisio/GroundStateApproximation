@@ -923,7 +923,11 @@ class molecule (object):
         thH10 = np.arccos(oh10[:, -1] / roh10)
         # thH10 = np.absolute(thH10-np.pi/2.)+np.pi/2.
 
-        phH8 = np.arctan2(oh8[:,1],oh8[:,0]) #y / x
+        # phH8 = np.arctan2(oh8[:,1],oh8[:,0]) #y / x
+        # self.ba(x, 1 - 1, 3 - 1, 2 - 1)
+        hoh1 = self.ba(xx,8-1,3-1,9-1)
+        hoh2 = self.ba(xx,8-1,3-1,10-1)
+        phH8 = hoh1-hoh2
         phH9 = np.arctan2(oh9[:,1],oh9[:,0])
         phH10 = np.arctan2(oh10[:,1],oh10[:,0])
 

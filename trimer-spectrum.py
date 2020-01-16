@@ -28,10 +28,16 @@ def PltHists2D(cfg,thing1,thing2,bound1,bound2,xl,yl,overly,weits,bins):
     Y = (yy[1:] + yy[:-1]) / 2
     bnd1 = str(bound1[0]).replace(".","").replace("-","")+str(bound1[1]).replace(".","").replace("-","")
     bnd2 = str(bound2[0]).replace(".","").replace("-","")+str(bound2[1]).replace(".","").replace("-","")
-    mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,yl,xl,overly,inin,theLen,X,Y,white)
+    # mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,yl,xl,overly,inin,np.log10(theLen),X,Y,white)
+    mP = Plot.myPlot(cfg, '2d', bnd1, bnd2, yl, xl, overly, inin, theLen, X, Y, white)
     mP.plotIt()
 
 def plotStuff(symEckRotCoords):
+    # internals = Wfn.molecule.SymInternals(symEckRotCoords)
+    # nm = Wfn.molecule.internalName
+    # PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 2]), (0, 180), (-180, 180), 'Theta', 'Phi',
+    #            False, symDw, 40)
+    # stop
     import matplotlib.cm as cm
 
     #waterfall Luke plot, histogram rOH based on Bend angle
@@ -335,7 +341,8 @@ if 'nz' in kill:
 #     Wfn.molecule.printCoordsToFile(a,fll)
 # stop
 # fll = open('cdsWagProblem.xyz','w+')
-# Wfn.molecule.printCoordsToFile(a,fll)
+# a = np.load("../cdsWagProblem.npy")
+# # Wfn.molecule.printCoordsToFile(a,fll)
 # symDw = np.load("../cdsWagProblem_dw.npy")
 # plotStuff(a)
 # stop
