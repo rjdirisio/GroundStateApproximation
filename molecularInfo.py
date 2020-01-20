@@ -457,10 +457,6 @@ class molecule (object):
         return rdistOH, thetaOH, phiOH
 
     def finalTrimerEuler(self,xx,O1, h1, h2):
-        # if O1 == 2:
-        #     xx = self.rotateBackToFrame(xx,3,2,1)
-        # else:
-        #     xx = self.rotateBackToFrame(xx, 3, 1, 2)
         X = np.divide((xx[:, O1 - 1, :] - xx[:,3-1]) , la.norm(xx[:, O1 - 1, :] - xx[:,3-1], axis=1)[:,np.newaxis])
         crs = np.cross(xx[:, 1 - 1] - xx[:, 3 - 1], xx[:, 2 - 1] - xx[:, 3 - 1], axis=1)
         Z = crs / la.norm(crs,axis=1)[:,np.newaxis]
@@ -470,45 +466,16 @@ class molecule (object):
         if len(Z) != 2:
             Z[len(Z) / 2:] *= -1.0
         x,y,z=self.H9GetHOHAxis(xx[:, O1 - 1], xx[:, h1 - 1], xx[:, h2 - 1])
-
         exx = np.copy(x)
         x = np.copy(y)
         y = np.copy(z)
         z = np.copy(exx)
-
-        # exy = np.copy(y)
-        # y = np.copy(x)
-        # x = np.copy(z)
-        # z = exy
         print 'lets get weird'
         exX = np.copy(X)
         X = np.copy(Z)
         Z = np.copy(Y)
         Y = np.copy(exX)
-
         Theta,tanPhi,tanChi=self.eulerMatrix(x,y,z,X,Y,Z)
-        # print(Theta)
-        # print(tanPhi)
-        # print(tanChi)
-
-        # rotMs = self.getEulerMat(Theta,tanPhi,tanChi)
-        # cdsPrime = np.einsum('knj,kij->kni', rotMs, xx).transpose(0, 2, 1)
-        # cdsPrime = np.copy(xx)
-        # for i in range(len(rotMs)):
-        #     for j in [2-1,6-1,7-1]:
-        #         cdsPrime[i,j] = np.dot(rotMs[i],xx[i,j])
-        # fll = open('cdsPrime','w+')
-        # self.printCoordsToFile(cdsPrime,fll)
-        # tanPhi[tanPhi<0.0] += (2 * np.pi)
-        # tanChi[tanChi<0.0] += (2 * np.pi)
-        # print((np.arange(8),Theta,tanPhi,tanChi,X,Y,Z,x,y,z))
-        # degT = np.degrees(Theta)
-        # degP = np.degrees(tanPhi)
-        # degX = np.degrees(tanChi)
-        # print(xx[0])
-        # print(xx[4])
-        # for i in range(8):
-        #     print(i,degT[i],degP[i],degX[i],X[i],Y[i],Z[i],x[i],y[i],z[i])
         return Theta,tanPhi, tanChi
 
 
@@ -770,33 +737,55 @@ class molecule (object):
         o  = 2
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
+        exx = np.copy(x)
+        x = np.copy(y)
+        y = np.copy(z)
+        z = np.copy(exx)
+        print 'lets get weird'
+        exX = np.copy(X)
+        X = np.copy(Z)
+        Z = np.copy(Y)
+        Y = np.copy(exX)
         th11,phi11,xi11 = self.eulerMatrix(x,y,z,X,Y,Z)
+
+
         atmnm=12
         h1 = 9
         h2 = 10
         o = 3
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
+        exx = np.copy(x)
+        x = np.copy(y)
+        y = np.copy(z)
+        z = np.copy(exx)
+        print 'lets get weird'
+        exX = np.copy(X)
+        X = np.copy(Z)
+        Z = np.copy(Y)
+        Y = np.copy(exX)
         th12,phi12,xi12 = self.eulerMatrix(x,y,z,X,Y,Z)
+
+
         atmnm=13
         h1 = 6
         h2 = 5
         o = 1
         X,Y,Z = self.getfinalOOAxes(atmnm,xx)
         x,y,z = self.H9GetHOHAxis(xx[:,o-1],xx[:,h1-1],xx[:,h2-1])
+        exx = np.copy(x)
+        x = np.copy(y)
+        y = np.copy(z)
+        z = np.copy(exx)
+        print 'lets get weird'
+        exX = np.copy(X)
+        X = np.copy(Z)
+        Z = np.copy(Y)
+        Y = np.copy(exX)
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
-
-        # umbrella,dh1,dh2,dh3=self.umbrellaDi(xx,4-1,11-1,12-1,13-1)
-        # # dh1,dh2,dh3=self.HDihedral(xx)
-        # dh1[dh1<0.0]+=2*np.pi
-        # dh2[dh2 < 0.0] += 2*np.pi
-        # dh3[dh3 < 0.0] += 2*np.pi
-
-        
 
         print 'eckarting...'
         ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1],dip=True)
-
         print 'got matrix'
         xx-=ocom[:,np.newaxis,:]
         print 'done'
@@ -830,10 +819,8 @@ class molecule (object):
         phH11= np.arctan2(oh11[:, 1], oh11[:, 0])  # y / x
         phH12 = np.arctan2(oh12[:, 1], oh12[:, 0])
         phH13 = np.arctan2(oh13[:, 1], oh13[:, 0])
-        
-        
+
         return ocomH[:, 0], ocomH[:, 1], ocomH[:,2], roh11,roh12,roh13,thH11,thH12,thH13,phH11,phH12,phH13,th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
-        # return ocomH[:,0],ocomH[:,1],ocomH[:,2],rOH11, rOH12, rOH13, umbrella, 2 * dh1 - dh2 - dh3, dh2 - dh3, thH, phiH, xiH, th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
 
     def SymInternalsH9O4plus(self,x):
         print 'Commence getting internal coordinates for tetramer'
