@@ -48,7 +48,7 @@ class HarmonicApproxSpectrum(object):
             allGs, gnm = self.calculateG_all(self.coords, self.dw)  # tested and gives same results
             gspl = GfileName.split("/")
             walkSet, _ = gspl[-1].split(".")
-            np.save("allGs/allGM" + walkSet + ".npy", allGs)
+            # np.save("allGs/allGM" + walkSet + ".npy", allGs)
             return gnm
         else:
             if not os.path.isfile(GfileName):
@@ -340,9 +340,9 @@ class HarmonicApproxSpectrum(object):
             if engageKineticCoupling:
 
                 ########KINETIC COUPLING#######
-                gmats = np.load("allGs/allGM" + walkerSet + '_' + ek + '_' + kil+".npy")
-                ghinv = np.load("allGs/ghinv_" + walkerSet+ '_' + ek + '_' + kil+".npy")
-                vecc = np.load("allGs/vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
+                # gmats = np.load("allGs/allGM" + walkerSet + '_' + ek + '_' + kil+".npy")
+                # ghinv = np.load("allGs/ghinv_" + walkerSet+ '_' + ek + '_' + kil+".npy")
+                # vecc = np.load("allGs/vecs_T_L" + walkerSet+ '_' + ek + '_' + kil+".npy")
                 # tmat = np.loadtxt("TransformationMatrix" + walkerSet +'_'+ek+'_'+kil+ ".datatest")
                 gmatz = np.matmul(vecc.T, np.matmul(ghinv, np.matmul(gmats, np.matmul(ghinv, vecc))))
                 # gmatz2 = np.matmul(la.inv(vecc),np.matmul(ghinv,np.matmul(gmats,np.matmul(ghinv,vecc))))
@@ -637,19 +637,18 @@ class HarmonicApproxSpectrum(object):
                 else:
                     print 'moments already calculated'
                     moments = np.load("moments_"+setOfWalkers+'_'+testName+'_'+kill+".npy")
+            # ##test
+            # moments = np.load("moments_" + setOfWalkers + '_' + testName + '_' + kill + ".npy")
+            # ##/test
             q,q2=self.calculateQCoordinates(moments,dw,GfileName,setOfWalkers,kill,testName)
-            # kill = kill+'test'
-            # testName = testName+'asdfasdfasfd'
+
             print 'done with normal modes'
-            #q4ave=np.average(q4,axis=0,weights=dw)
             q2ave=np.average(q2,axis=0,weights=dw)
             qave =np.average(q,axis=0,weights=dw)
-            #print q.shape
             print '/\/\/\/\/\/\/\/\/\/\ '
             print 'some averages',
             print 'q\n',qave
             print 'q^2 \n',q2ave #average of q-squared
-            #print 'q^4 \n',q4ave
             print '/\/\/\/\/\/\/\/\/\/\ '
             if 'test' not in setOfWalkers and 'top' not in setOfWalkers:
                 np.save("q_"+setOfWalkers+'_'+testName+'_'+kill+".npy",q)
@@ -665,7 +664,7 @@ class HarmonicApproxSpectrum(object):
         print 'calculating PE'
         potentialEnergy=self.calculatePotentialEnergy(coords,pe)
         print 'Potential Energy', potentialEnergy
-        overlapTime=True
+        overlapTime=False
         if overlapTime:
             ham2,overlap2=self.overlapMatrix(q,dw,potentialEnergy,setOfWalkers,kill,testName)
             overlapMs = self.path + 'redH/'
@@ -760,7 +759,7 @@ class HarmonicApproxSpectrum(object):
         print("q4ave",np.average(q*q*q*q,axis=0,weights=dw))
         Eq=(Vq/q2ave+Tq)-V_0
         for i in range(self.nVibs):
-            np.savetxt("realGSADATA_mode"+str(i),zip([q2ave[i], q2ave[i]**2, np.average(q*q*q*q,axis=0,weights=dw)[i],
+            np.savetxt("GSAData/realGSADATA_mode"+str(i),zip([q2ave[i], q2ave[i]**2, np.average(q*q*q*q,axis=0,weights=dw)[i],
                                                       alpha[i], Tq[i] * au2wn, (Vq[i]/q2ave[i]-V_0)*au2wn,Eq[i]*au2wn]))
         #noKE_funds = Vq/q2ave - V_0
         #noKE_combos = Vq2d-V_0
@@ -1099,6 +1098,17 @@ class HarmonicApproxSpectrum(object):
         # self.G[8, 9:] = 0.0
         # self.G[9:, 8] = 0.0
 
+        # if 'tet' in setOfWalkers:
+        #     idx = [0,1,2,3,4,5,6,7,8,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32]
+        # else:
+        #     idx = [0,1,2,3,4,5,6,7,8,15,16,17,18,19,20,21,22,23]
+        # self.G = self.G[idx, :][:, idx]
+        # mu2Ave = mu2Ave[idx, :][:, idx]
+        # self.nVibs = len(self.G)
+        # self.wfn.molecule.setInternalName()
+        # nm = self.wfn.molecule.internalName
+        # self.wfn.molecule.internalName = [nm[i] for i in idx]
+        # moments = moments[:,idx]
         ##testing###################
 
         GHalfInv=self.diagonalizeRootG(self.G)
@@ -1109,8 +1119,8 @@ class HarmonicApproxSpectrum(object):
 
         #GAAH                                                              
         TransformationMatrix=np.dot(vects.transpose(),GHalfInv)
-        np.save("allGs/vecs_T_L"+setOfWalkers+'_'+eckt+'_'+kil,vects.T)
-        np.save("allGs/ghinv_"+setOfWalkers+'_'+eckt+'_'+kil,GHalfInv)
+        # np.save("allGs/vecs_T_L"+setOfWalkers+'_'+eckt+'_'+kil,vects.T)
+        # np.save("allGs/ghinv_"+setOfWalkers+'_'+eckt+'_'+kil,GHalfInv)
 
         Tnorm=1.0*TransformationMatrix # NEED TO DEEP COPY :-0
         alpha=1.0*eigval #AS in alpha_j in equation 5 of the JPC A 2011 h5o2 dier paper                                          

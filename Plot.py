@@ -37,7 +37,7 @@ class myPlot:
         titlemod = ''
         if self.type == '1d':
             if self.indv == True: #Standard 1dHists
-                print self.xl,self.yl
+                # print self.xl,self.yl
                 plt.xlabel(self.xl)
                 plt.ylabel(self.yl)
                 plt.plot(self.binCenters1,self.pltdata,'r',linewidth=2)
@@ -80,7 +80,7 @@ class myPlot:
                     plt.colorbar()
 
                 else:
-                    print 'white BG activated)'
+                    # print 'white BG activated)'
                     cmap = mpl.cm.Greys
                     norm = mpl.colors.Normalize(vmin=np.amin(self.pltdata), vmax=np.amax(self.pltdata))
                     ax = plt.contourf(self.binCenters1, self.binCenters2, self.pltdata, norm=norm, cmap=cmap)
@@ -95,9 +95,9 @@ class myPlot:
                 if self.overlay==False:
                     maxDat = self.determineSmallestMax2D()
                     num=1
-                    print np.size(self.pltdata)
-                    print np.size(self.pltdata[0])
-                    print np.size(self.pltdata[:][:][0])
+                    # print np.size(self.pltdata)
+                    # print np.size(self.pltdata[0])
+                    # print np.size(self.pltdata[:][:][0])
                     
                     for i in self.pltdata:
                         self.pltdata[self.pltdata>maxDat] = maxDat

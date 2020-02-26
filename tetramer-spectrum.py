@@ -14,6 +14,8 @@ au2wn=219474.63
 
 def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     theLen, xx = np.histogram(thing, bins=100, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY
+    np.savetxt("brel_H9O4",zip(0.5*(xx[1:]+xx[:-1]),theLen))
+
     inin = True
     overlay = False
     bnd = str(bound[0]).replace(".", "").replace("-", "") + str(bound[1]).replace(".", "").replace("-", "")
@@ -86,6 +88,9 @@ def bondAngPlot(cds,wts):
     np.savetxt(coordinateSet+'2dOOvsOHO_b',zip(binzx,binzy))
 
 def plotStuff(symEckRotCoords):
+    # brel, di1, di2, di3 = Wfn.molecule.umbrellaDi(symEckRotCoords, 4-1,11-1,12-1,13-1)
+    # PltHists1D('brelH9O4', np.degrees(brel), (0, 180), 'Umbrella', 'ProbDense', overly=False, weits=symDw)
+    # stop
     # if os.path.isfile("q_" + coordinateSet + ".npy"):
     #     print 'plotQs'
     #     q = np.load("q_" + coordinateSet + ".npy")
@@ -106,6 +111,7 @@ def plotStuff(symEckRotCoords):
     x=np.average(internals,axis=0,weights=symDw)
     print x
     np.savetxt('averageInternalsWithNewEckart_'+coordinateSet,np.average(internals,axis=0,weights=symDw))
+    stop
     nm = [nm[g].lower() for g in range(len(nm))]
     units = []
     print(units)
@@ -121,7 +127,7 @@ def plotStuff(symEckRotCoords):
             PltHists1D(coordinateSet[-4:], np.degrees(internals[:, qi]), (-360,360), nm[qi], 'pubtetInternals/Probability Density', False,
                        symDw)
         else:
-            PltHists1D(coordinateSet[-4:], internals[:, qi] * angstr, (0, 3), nm[qi], 'pubtetInternals/Probability Density', False,
+            PltHists1D(coordinateSet[-4:], internals[:, qi] * angstr, (-3, 3), nm[qi], 'pubtetInternals/Probability Density', False,
                        symDw)
     stop
     # print 'Internal coordinate shape: ', np.shape(internals)
@@ -423,11 +429,7 @@ else:
     #np.save(cds,symCoords)
     #np.save(cds+'_dw',symDw)
 
-# anglePlot(symCoords,symDw)
-# bondPlot(symCoords,symDw)
-# bondAngPlot(symCoords,symDw)
-#
-# stop
+# Wfn.molecule.rotateBackToFrame(symCoords,2,1,3)
 
 if 'input' in coordinateSet:
     np.save("rotated"+coordinateSet+".npy",symCoords)
@@ -467,7 +469,7 @@ else:
     # symDw = symDw[:len(symDw) / 2]
     print 'NUMBER OF WALKERS IN allH: ',symCoords.shape[0]
     symEckRotCoords = symCoords
-    iwantToPlotStuff=True
+    iwantToPlotStuff=False
     path='../spectra/'
     if iwantToPlotStuff:
         plotStuff(symEckRotCoords)

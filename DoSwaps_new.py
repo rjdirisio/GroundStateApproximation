@@ -2,8 +2,8 @@ import os, numpy as np
 import glob
 import sys
 import DMCClusters as dmc
-trimer = False
-tetramer = True
+trimer = True
+tetramer = False
 if trimer:
     Wfn=dmc.wavefunction('H7O3+', 1)
     print "../coordinates/trimer/" + sys.argv[1]

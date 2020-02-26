@@ -12,6 +12,7 @@ angstr = 0.529177
 
 def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
     theLen, xx = np.histogram(thing, bins=100, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY
+    np.savetxt("brel_H7O3",zip(0.5*(xx[1:]+xx[:-1]),theLen))
     inin = True
     overlay = False
     bnd = str(bound[0]).replace(".", "").replace("-", "") + str(bound[1]).replace(".", "").replace("-", "")
@@ -31,8 +32,10 @@ def PltHists2D(cfg,thing1,thing2,bound1,bound2,xl,yl,overly,weits,bins):
     # mP = Plot.myPlot(cfg,'2d',bnd1,bnd2,yl,xl,overly,inin,np.log10(theLen),X,Y,white)
     mP = Plot.myPlot(cfg, '2d', bnd1, bnd2, yl, xl, overly, inin, theLen, X, Y, white)
     mP.plotIt()
-
+0
 def plotStuff(symEckRotCoords):
+    brel,di1,di2,di3 = Wfn.molecule.umbrellaDi(symEckRotCoords,3-1,8-1,9-1,10-1)
+    PltHists1D('brelH7O3',np.degrees(brel),(0,180),'Umbrella','ProbDense',overly=False,weits=symDw)
     # internals = Wfn.molecule.SymInternals(symEckRotCoords)
     # nm = Wfn.molecule.internalName
     # PltHists2D('allH', np.degrees(internals[:, 1]), np.degrees(internals[:, 2]), (0, 180), (-180, 180), 'Theta', 'Phi',
@@ -182,7 +185,7 @@ def plotStuff(symEckRotCoords):
     PltHists2D('allH', np.degrees(internals[:,1]),np.degrees(internals[:,2]),(0,180),(-90,90), 'Theta', 'Phi',
                False, symDw, 40)
     np.savetxt('averageInternalsWithNewEckart_'+coordinateSet+'_'+testName+"_"+kill,np.average(internals,axis=0,weights=symDw))
-    
+    stop
     print 'Internal coordinate shape: ', np.shape(internals)
     print 'One attribute shape: ',np.shape(internals[:,0])
     print 'number of dws: ', symDw.shape

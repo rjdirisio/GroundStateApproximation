@@ -18,7 +18,7 @@ class wavefunction (object):
     def __init__(self,moleculeName, nWalkers, potentialName='Ground State',dtau=10.0):
         self.molecule=molecularInfo.molecule(moleculeName)
 
-        print 'initialized', nWalkers,' coordinates for ', self.molecule.name
+        # print 'initialized', nWalkers,' coordinates for ', self.molecule.name
         self.nAtoms=self.molecule.nAtoms
         self.nDim=3
 
@@ -41,16 +41,16 @@ class wavefunction (object):
         self.molecule.set_isotope(keyword)
         self.mass=self.molecule.get_mass()
         self.sigma_dx=(2.0000*self.D*self.dtau/self.mass)**0.5
-        print 'isotope made! new masses: ', self.mass
+        # print 'isotope made! new masses: ', self.mass
         
     def set_dtau(self,dtau=10.0):
         self.dtau=dtau        
-        print 'dtau is ', self.dtau, 'imaginary atomic time units'
+        # print 'dtau is ', self.dtau, 'imaginary atomic time units'
 
     def exchange(self,x, listOfExchanges): #Symmetry ops. exch(wv)
         xprime=1.0*x
         for (exAtom1,exAtom2) in listOfExchanges:
-            print 'exchanging atom #',exAtom1,'with atom #',exAtom2
+            # print 'exchanging atom #',exAtom1,'with atom #',exAtom2
             temp=1.0*xprime[:,exAtom1]
             xprime[:,exAtom1]=xprime[:,exAtom2]*1.0
             xprime[:,exAtom2]=temp
@@ -83,10 +83,10 @@ class wavefunction (object):
 
 
     def loadCoords(self,fileName):  #xyz coords -> coords and dWs
-        print 'Loading: ', fileName
-        print 'Commence loadCoords'
-        print 'fileName = ',fileName
-        print 'numberOfAtoms, ',self.nAtoms
+        # print 'Loading: ', fileName
+        # print 'Commence loadCoords'
+        # print 'fileName = ',fileName
+        # print 'numberOfAtoms, ',self.nAtoms
 
         filein=open(fileName,'r')
         filedata=filein.readlines()
@@ -139,7 +139,7 @@ class wavefunction (object):
         printRate=100
 
         for step in range(nSteps):
-            if step%printRate==0 and printCensus: print 'step #',step, 
+            # if step%printRate==0 and printCensus: print 'step #',step,
             dx=self.diffuse()
             x=x+dx
 
@@ -153,14 +153,14 @@ class wavefunction (object):
             mask_survive=(Diff>0)
             nDeaths=np.sum(np.array(Diff<0).astype(int))
 
-            if step%printRate==0 and printCensus: print 'Census: Current Population:',self.currentPop,'Deaths:',nDeaths,
+            # if step%printRate==0 and printCensus: print 'Census: Current Population:',self.currentPop,'Deaths:',nDeaths,
             
             #LASSIE MODE
             #DEATH BY PES HOLES
             mask_not_holes=(v>-0.0000005) #mask
             inHole=(v<=-0.0000005)
             mask_survive=np.logical_and(mask_survive,mask_not_holes)
-            if step%printRate==0 and printCensus: print 'Death by holes',np.sum(np.array(v<0.0).astype(int)),
+            # if step%printRate==0 and printCensus: print 'Death by holes',np.sum(np.array(v<0.0).astype(int)),
             # removal of all walkers that cross and a random selection of walkers that are too close to the node
 
             if self.recrossing:
@@ -187,7 +187,7 @@ class wavefunction (object):
                 #if len(swapped)>0: print step,'     swapped walkers that survived',swapped, 'crossed:',crossed[swapped],'died by recrossing:',mask_died_by_recrossing[swapped],'survived:',mask_survive[swapped]
                 #if len(swapped)>0 or len(newswapped)>0:print 'P_rec death: ',P_recrossDeath[swapped],P_recrossDeath[newswapped],
                 #if len(swapped)>0 or len(newswapped)>0 : print 'did they survive?',mask_survive[swapped], mask_survive[newswapped],v[swapped],v[newswapped]
-                if step%printRate==0 and  printCensus: print 'Deaths by recrossing: ',tempRecrossCensus, 'crossed',np.sum(crossed.astype(int))
+                # if step%printRate==0 and  printCensus: print 'Deaths by recrossing: ',tempRecrossCensus, 'crossed',np.sum(crossed.astype(int))
 
 
 
@@ -222,10 +222,10 @@ class wavefunction (object):
                 if weight>0: #i.e. the dead can't reproduce                              
                     if weight>10:
                         #this really shouldn't happen                                   
-                        print 'weight of ',n,' is too big, resetting to 0'
-                        print v[n]*au2wn,'<',v_ref*au2wn, weight, '\n',x[n]
-                        print 'is it in a hole?',inHole[n], P_exp_b[n]
-                        print 'this really should not be happening is a sign of a larger issue!'
+                        # print 'weight of ',n,' is too big, resetting to 0'
+                        # print v[n]*au2wn,'<',v_ref*au2wn, weight, '\n',x[n]
+                        # print 'is it in a hole?',inHole[n], P_exp_b[n]
+                        # print 'this really should not be happening is a sign of a larger issue!'
                         weight=0
 
                     addBirthtot=addBirthtot+weight
@@ -256,19 +256,19 @@ class wavefunction (object):
 #               end
             
             self.currentPop=x.shape[0]
-            if step%printRate==0 and printCensus: print 'Births:',nBirths, "Extra Births: ", addBirthtot,
+            # if step%printRate==0 and printCensus: print 'Births:',nBirths, "Extra Births: ", addBirthtot,
 
             #readjust V_ref
             #v_average=np.average(self.molecule.V(new_population))!!!!!!!!!!!!!!!!!!!!!!
             v_average = np.average(self.getPot(new_population))
             if not setV_ref:
                 v_ref=v_average+(self.alpha*(1.00-float(self.currentPop)/float(initialPop)))
-            if step%printRate==0 and printCensus: print 'v_ref',v_ref, '=', v_average,'+', (self.alpha*(1-float(self.currentPop)/float(initialPop)))
+            # if step%printRate==0 and printCensus: print 'v_ref',v_ref, '=', v_average,'+', (self.alpha*(1-float(self.currentPop)/float(initialPop)))
             vRefList.append(v_ref)
             population.append(self.currentPop)
             if self.currentPop<5:
-                print 'massive walker die off!', end
-
+                # print 'massive walker die off!', end
+                end
         for anc in whoYaFrom:
             descendants[anc]=descendants[anc]+1
         sys.stdout.flush()

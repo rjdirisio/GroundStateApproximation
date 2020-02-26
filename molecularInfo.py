@@ -17,6 +17,8 @@ rad2deg=180.000/np.pi
 au2wn=219474.63
 global Water
 Water={'H2O', 'water', 'HOH', 'h2o'}
+global Hydronium
+hydronium = {'H3O+'}
 global WaterDimer
 WaterDimer = {'water dimer', 'H4O2'}
 global ProtonatedWaterDimer
@@ -36,6 +38,9 @@ class molecule (object):
         if self.name in DeprotonatedWaterDimer:
             self.nAtoms=5
             self.names=['H','O','H','O','H']
+        elif self.name in hydronium:
+            self.nAtoms = 4
+            self.names = ['H', 'H','H','O']
         elif self.name in ProtonatedWaterDimer:
             self.natoms=7
             self.names=['O','O','H','H','H','H','H']
@@ -57,7 +62,7 @@ class molecule (object):
         self.nVibs=3*self.nAtoms-6
 
     def set_isotope(self,keyword):
-        print 'resetting isotope to ', keyword
+        print('resetting isotope to ', keyword)
         if self.name in ProtonatedWaterTrimer:
             self.isotope = keyword
             if self.isotope == 'DeuteratedOnce_eigen':
@@ -95,94 +100,13 @@ class molecule (object):
     def setNodalSurface(self,surfaceName,side):
         self.surfaceName=surfaceName
         if not self.surfaceName in surfaceOptions:
-            print "THAT IS NOT A SURFACE! you have likely made a typo."
+            print("HAT IS NOT A SURFACE! you have likely made a typo.")
         self.side=side
         self.state=1
 
-    def getPES(self):
-        sys.path.insert(0,self.pathDict["potentialPath"+self.name])
-        print self.pathDict["potentialPath"+self.name]
-        import pes
-        if self.name in DeprotonatedWaterDimer:
-            pes.prepot()
-            potential=pes.getpot
-            print 'potential retrieved for HOHOH. Be sure to feed one walker in at a time!'
-        elif self.name in ProtonatedWaterTrimer:
-            print 'idk lmao'
-            #potential =
-            return potential
-
-
-    def getDIPOLE(self):
-        sys.path.insert(0,self.pathDict["dipolePath"+self.name])
-        import h3o2dms2 as dms
-        if self.name in DeprotonatedWaterDimer:
-            dms.predip()
-            dip=dms.mycalcdip
-        #since all dipole moment calculations need eckart rotation...loading the reference coordinates
-        self.refPos=self.loadRefCoord()
-        return dip
-
-    def loadDict(self,fileName):
-        fileIn=open(fileName,'r')
-        pathDict={}
-        for line in fileIn:
-            [key,element]=line.split()
-            pathDict[key]=element
-        return pathDict
-    def loadRefCoord(self):
-        if self.name in DeprotonatedWaterDimer:
-            coordsMin=np.array([[ 0.2981678882048853 ,   -2.4557992072743176E-002,  -5.5485232545510215E-002],
-                                [ -2.354423404994569 ,     0.000000000000000     ,    0.000000000000000],
-                                [ -2.858918674095194 ,     1.111268022307282     ,   -1.352651141853729],
-                                [  2.354423404994569 ,     0.000000000000000     ,    0.000000000000000],
-                                [  2.671741580470489 ,     1.136107563104921     ,    1.382886181959795]])
-
-
-            coordsSADDLE=np.array([[ 0.000000000000000 , 0.000000000000000 , 0.000000000000000],
-                                   [ -2.303263755760085, 0.000000000000000 ,0.000000000000000 ],
-                                   [ -2.720583162407882, 1.129745554266140 ,-1.363735721982301   ],
-                                   [ 2.303263755760085, 0.000000000000000, 0.000000000000000     ],
-                                   [ 2.720583162407882, 1.129745554266140, 1.363735721982301]])
-
-
-        return coordsSADDLE
-
-    def getEquilibriumEnergy(self):
-        if self.name in DeprotonatedWaterDimer:
-            equilibriumCoords=np.array([[ 0.2981678882048853 , -2.4557992072743176E-002,  -5.5485232545510215E-002 ],
-                                        [  -2.354423404994569 ,   0.000000000000000   ,      0.000000000000000 ],
-                                        [  -2.858918674095194 ,   1.111268022307282   ,     -1.352651141853729 ],
-                                        [   2.354423404994569 ,   0.000000000000000  ,       0.000000000000000 ],
-                                        [   2.671741580470489 ,   1.136107563104921   ,      1.382886181959795]])
-            equilibriumE=self.V([equilibriumCoords])
-            #print 'equilibrium position',equilibriumCoords*bohr2ang, 'and energy:',equilibriumE*au2wn,'1/cm'
-        elif self.name in ProtonatedWaterTrimer:
-            equilibriumE =  -9.129961286575450E-002
-
-        elif self.name in ProtonatedWaterTetramer:
-            equilibriumE = -0.12214685901476255
-        return equilibriumE
-
-
-    def V(self,x):
-        if self.name in Water:
-            print '0.0'
-        v=np.array([self.potential(cart_in) for cart_in in x])
-        return v
-
-    def calcDipole(self,x,eckartRotated=False):
-        if not eckartRotated:
-            eckRotx=self.eckartRotate(x)
-        else:
-            eckRotx=x
-        dipoleVectors=self.dipole(eckRotx)
-
-        return dipoleVectors
-
     def rotateBackToFrame(self,coordz,a,b,c,dips=None):        #use the rotation matrices that I always use to reshape each coordinate back to its reference frame
-        #print coordz[1]
-        print 'RotatingWalkers'
+        print(coordz[1])
+        print('RotatingWalkers')
         numWalkers = coordz.shape[0]
         #translation back to Origin
         o3 = coordz[:,a-1].reshape(numWalkers,1,3)
@@ -212,12 +136,12 @@ class molecule (object):
         r2[:, 2, :] = np.tile([0, 0, 1], len(trCoordz)).reshape(len(trCoordz),3)
 
         rotM = np.matmul(r2, r1)
-        #print trCoordz.shape
+        #print(trCoordz.shape)
         xaxtrCoordz = np.matmul(rotM,trCoordz.transpose(0,2,1)).transpose(0,2,1)
         if dips is not None:
             for i in range(len(dips)):
                 dips[i] = np.dot(rotM[i],dips[i])
-        #print xaxtrCoordz[0]
+        #print(xaxtrCoordz[0])
         #Rotation of O1 to xyplane
         o1 = xaxtrCoordz[:,c-1,:]
         z = o1[:,2]
@@ -231,12 +155,12 @@ class molecule (object):
         r[:,1,:]=np.column_stack((np.zeros(len(trCoordz)),cbeta,-1*sbeta))
         r[:,2,:]=np.column_stack((np.zeros(len(trCoordz)),sbeta,cbeta))
         # mas = np.where(np.around(la.det(r),10)!=1.0)
-        # print mas
+        # print(mas)
         finalCoords = np.matmul(r, xaxtrCoordz.transpose(0, 2, 1)).transpose(0, 2, 1)
         if dips is not None:
             for i in range(len(dips)):
                 dips[i] = np.dot(r[i], dips[i])
-        #print finalCoords[0]
+        # print(finalCoords[0])
         # if dips is not None:
         #     return np.round(finalCoords,19), dips
         # else:
@@ -263,8 +187,8 @@ class molecule (object):
 
 
     def SymInternals(self,x,rotato=True,weights=0):
-        #print 'called SymInternals'
-        #print 'returning values in bohr [or radians]'
+        #print('called SymInternals')
+        #print('returning values in bohr [or radians]')
         if self.name in DeprotonatedWaterDimer:
             internals= self.SymInternalsH3O2minus(x)
             #self.internalNames=internalNames
@@ -278,43 +202,12 @@ class molecule (object):
         elif self.name in ProtonatedWaterTetramer:
             internals = self.SymInternalsH9O4plus(x)
             return internals
+        elif self.name in hydronium:
+            internals = self.SymInternalsH3O(x)
+            return internals
         else:
-            print 'woefully unprepared to handle the calculation of the SymInternals for ', self.molecule
+            # print('woefully unprepared to handle the calculation of the SymInternals for ', self.molecule)
             crash
-
-    def PltHists1D(self,cfg, thing, bound, xl, yl, overly, weits):
-        if len(thing) > 90: #if len(thing) == 2: Just changed currently for plotting purposes
-            theLen, xx = np.histogram(thing, bins=75, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY
-            inin = True
-        else:
-            inin = False
-            c = 0
-            theLen = np.zeros((np.size(thing), 75))
-            for i in thing:
-                theLen[c], xx = np.histogram(i, bins=75, range=bound, normed=True,weights=weits[c])  # WEIGHTS=WEIGHTARRAY
-                c += 1
-        bnd = str(bound[0]).replace(".", "").replace("-", "") + str(bound[1]).replace(".", "").replace("-", "")
-        print bnd
-        mP = Plot.myPlot(cfg, '1d', bnd, bnd, xl, yl, overly, inin, theLen)
-        mP.plotIt()
-
-    def PltHists2D(self,cfg, thing1, thing2, bound1, bound2, xl, yl, overly, weits):
-        if len(thing1) == 2:
-            theLen, xx, yy = np.histogram2d(thing1, thing2, bins=75, range=(bound1, bound2), normed=True,                                            weights=weits)  # WEIGHTS=WEIGHTARRAY
-            inin = True
-        else:
-            inin = False
-            c = 0
-            theLen = np.zeros((np.size(thing1), 75, 75))
-            print np.size(theLen)
-            print np.size(theLen[0])
-            for i, j in zip(thing1, thing2):
-                theLen[c], x2x, y2y = np.histogram2d(i, j, bins=75, range=(bound1, bound2), normed=True,weights=weits[c])  # WEIGHTS=WEIGHTARRAY
-                c += 1
-        bnd1 = str(bound1[0]).replace(".", "").replace("-", "") + str(bound1[1]).replace(".", "").replace("-", "")
-        bnd2 = str(bound2[0]).replace(".", "").replace("-", "") + str(bound2[1]).replace(".", "").replace("-", "")
-        mP = Plot.myPlot(cfg, '2d', bnd1, bnd2, yl, xl, overly, inin, theLen)
-        mP.plotIt()
 
 
     def xyzTrimerSharedHydrogens(self,atmnm,xx):
@@ -323,10 +216,10 @@ class molecule (object):
         if atmnm == 10:
             outerW = 2
         mp = (xx[:,3-1]+xx[:,outerW-1])/ 2
-        print mp.shape
+        # print(mp.shape)
         xaxis = np.divide((xx[:,outerW-1] - mp),la.norm(xx[:,outerW-1,] - mp,axis=1).reshape(-1,1))
-        print xaxis.shape
-        print xx[:,1-1].shape
+        # print(xaxis.shape)
+        # print(xx[:,1-1].shape)
         zaxis = np.cross(xx[:,1-1]-xx[:,3-1],xx[:,2-1]-xx[:,3-1],axis=1)
         yaxis = np.cross(zaxis,xaxis,axis=1)
         xcomp = ((xx[:,atmnm-1] - mp)*xaxis).sum(axis=1)
@@ -470,7 +363,7 @@ class molecule (object):
         x = np.copy(y)
         y = np.copy(z)
         z = np.copy(exx)
-        print 'lets get weird'
+        print('lets get weird')
         exX = np.copy(X)
         X = np.copy(Z)
         Z = np.copy(Y)
@@ -518,20 +411,18 @@ class molecule (object):
         #H2 -= 1
         #H3 -= 1
 
-        # print 'calculating the xxition of D'
-        # print xx
+        # print('calculating the xxition of D')
+        # print(xx)
         O = xx[:, O]
         # Every walker's xyz coordinate for O
         H1 = xx[:, H1]
         H2 = xx[:, H2]
         H3 = xx[:, H3]
         #test = H1-O
-        # print 'norm = ',la.norm(H1-O,axis=1)
         aOH1 = np.divide((H1 - O), la.norm(H1 - O, axis=1)[:, np.newaxis])  # broadcasting silliness
         aOH2 = np.divide((H2 - O), la.norm(H2 - O, axis=1)[:, np.newaxis])
         aOH3 = np.divide((H3 - O), la.norm(H3 - O, axis=1)[:, np.newaxis])
         # point in space along OH bonds that is 1 unit away from the O
-        # print aOH1
         aH1 = O + aOH1
         aH2 = O + aOH2
         aH3 = O + aOH3
@@ -550,10 +441,6 @@ class molecule (object):
         #     line[i] = np.cross(vaH1H2[i], vaH2H3[i].T)
         # add normalized vector to O
         line = np.cross(vaH1H2, vaH2H3, axis=1)
-
-        #print 'max, min, ave of mag of line', np.average(la.norm(line, axis=1)), np.max(la.norm(line, axis=1)), np.min(
-        #    la.norm(line, axis=1))
-        #g = (line / la.norm(line, axis=1)[:, np.newaxis])
         D = O + (line / la.norm(line, axis=1)[:, np.newaxis])
         return D
 
@@ -563,17 +450,19 @@ class molecule (object):
         # calculate d, the trisector point of the umbrella
         D = self.calcD(xx,O, H1, H2, H3)
 
-        # print LindseyCoords.shape, D.shape
         addedX = np.concatenate((xx, D[:, np.newaxis, :]), axis=1)  # Change D index
 
         #Dihedrals
-        a = 11
-        b = 12
-        c = 13
-        di1 = self.fwiki_dihedral(addedX,b-1,c-1)
-        di2 = self.fwiki_dihedral(addedX,a-1,b-1)
-        di3 = self.fwiki_dihedral(addedX,c-1,a-1)
+        # a = 11
+        # b = 12
+        # c = 13
+        # di1 = self.fwiki_dihedral(addedX,b-1,c-1)
+        # di2 = self.fwiki_dihedral(addedX,a-1,b-1)
+        # di3 = self.fwiki_dihedral(addedX,c-1,a-1)
         ####/Dihedrals
+        di1 = np.zeros(len(xx))
+        di2 = np.zeros(len(xx))
+        di3 = np.zeros(len(xx))
 
         getXYZ=False
         if getXYZ:
@@ -587,7 +476,6 @@ class molecule (object):
                 wf.write("\n")
             wf.close()
         umbrell = self.ba(addedX, H2, O, -1)  # 4 11 0 now O H1 0
-        # print np.degrees(umbrell)
         return umbrell,di1,di2,di3
 
     def getfinalOOAxes(self,atmnm,xx):
@@ -650,9 +538,6 @@ class molecule (object):
 
 
         return Theta, tanPhi, tanChi
-    def eulerMatrixNotSlick(self,X,Y,Z,x,y,z):
-        """SWITCHING xyz and XYZ !!!!!!"""
-        rPhiz = np.array()
 
 
     def HDihedral(self,xx):
@@ -684,7 +569,6 @@ class molecule (object):
         term1 = (crossterm1*(b2/la.norm(b2,axis=1)[:,np.newaxis])).sum(axis=1)
         term2 = (np.cross(b1,b2,axis=1)*np.cross(b2,b3,axis=1)).sum(axis=1)
         dh = np.arctan2(term1,term2)
-        #print np.degrees(dh)
         return dh
 
     def getHydroniumAxes(self,xx, group1,group2):
@@ -730,7 +614,6 @@ class molecule (object):
         return Theta,tanPhi,tanChi
 
     def finalPlaneShareEuler(self,xx):
-        print 'get carts & eulers pre eckart'
         atmnm=11
         h1 = 8
         h2 = 7
@@ -741,7 +624,7 @@ class molecule (object):
         x = np.copy(y)
         y = np.copy(z)
         z = np.copy(exx)
-        print 'lets get weird'
+        print('lets get weird')
         exX = np.copy(X)
         X = np.copy(Z)
         Z = np.copy(Y)
@@ -759,7 +642,7 @@ class molecule (object):
         x = np.copy(y)
         y = np.copy(z)
         z = np.copy(exx)
-        print 'lets get weird'
+        # print('lets get weird')
         exX = np.copy(X)
         X = np.copy(Z)
         Z = np.copy(Y)
@@ -777,24 +660,24 @@ class molecule (object):
         x = np.copy(y)
         y = np.copy(z)
         z = np.copy(exx)
-        print 'lets get weird'
+        # print('lets get weird')
         exX = np.copy(X)
         X = np.copy(Z)
         Z = np.copy(Y)
         Y = np.copy(exX)
         th13,phi13,xi13 = self.eulerMatrix(x,y,z,X,Y,Z)
 
-        print 'eckarting...'
-        ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1],dip=True)
-        print 'got matrix'
+        print('eckarting...')
+        # ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1,4-1],dip=True)
+        ocom, eVecs,kil=self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)
+        print('got matrix')
         xx-=ocom[:,np.newaxis,:]
-        print 'done'
-        print 'b4'
-        print xx[0]
+        print('done')
+        print('b4')
+
         xx = np.einsum('knj,kij->kni', eVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
-        print 'af'
-        print xx[0]
-        print 'fully rotated'
+        print('af')
+
         #calculate center of mass of central hydronium
         lst = [4-1,11-1,12-1,13-1]
         mass = self.get_mass()
@@ -823,7 +706,7 @@ class molecule (object):
         return ocomH[:, 0], ocomH[:, 1], ocomH[:,2], roh11,roh12,roh13,thH11,thH12,thH13,phH11,phH12,phH13,th11, phi11, xi11, th12, phi12, xi12, th13, phi13, xi13
 
     def SymInternalsH9O4plus(self,x):
-        print 'Commence getting internal coordinates for tetramer'
+        print('Commence getting internal coordinates for tetramer')
         start = time.time()
         #good defs
         all = self.finalPlaneShareEuler(x)
@@ -834,8 +717,8 @@ class molecule (object):
         thphixi1=all[12:15]
         thphixi2=all[15:18]
         thphixi3=all[18:21]
-        print 'done hydronium XYZ'
-        print 'time it took to get xyzs,eulers: ',str(time.time()-start)
+        print('done hydronium XYZ')
+        print('time it took to get xyzs,eulers: ',str(time.time()-start))
         third = time.time()
         rOH5 = self.bL(x,5-1,1-1)
         rOH6 = self.bL(x,6-1,1-1)
@@ -849,8 +732,8 @@ class molecule (object):
         rO1O2 = self.bL(x,2-1,1-1)
         rO1O3 = self.bL(x,1-1,3-1)
         rO2O3 = self.bL(x,2-1,3-1)
-        print 'time for rOO/rOH', str(time.time() - third)
-        print 'Done with all internals'
+        print('time for rOO/rOH', str(time.time() - third))
+        print('Done with all internals')
         # internal= np.array(
         #     (rOHHyd[0], rOHHyd[1], rOHHyd[2], umbDi[0], umbDi[1], umbDi[2], eulHyd[0], eulHyd[1], eulHyd[2],
         #         thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
@@ -868,12 +751,51 @@ class molecule (object):
              thphixi3[2], rOH5, rOH6, HOH516, rOH7, rOH8, HOH728, rOH9, rOH10, HOH9310, rO1O2, rO1O3, rO2O3,
              xyzO4[0], xyzO4[1], xyzO4[2])).T
         self.internalName = ['rOH11', 'rOH12', 'rOH13', 'thH11','thH12','thH13','phH11','phH12','phH13',
-                             'theta651','phi651', 'Chi651','theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728',
-                             'Chi728', 'rOH5', 'rOH6','HOH516', 'rOH7', 'rOH8', 'HOH728','rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3',
+                             'theta728','phi728', 'Chi728','theta1039', 'phi1039', 'Chi1039', 'theta651', 'phi651',
+                             'Chi651', 'rOH5', 'rOH6','HOH516', 'rOH7', 'rOH8', 'HOH728','rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3',
                              'xo4', 'yo4', 'zo4']
-        print 'internal shape: ',np.shape(internal)
-        print 'internal[0] shape: ',np.shape(internal[0])
+        print('internal shape: ',np.shape(internal))
+        print('internal[0] shape: ',np.shape(internal[0]))
         return internal
+
+
+    def sphericalH3O(self,xx):
+        com, eckVecs, killList = self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)
+        xx -= com[:, np.newaxis, :]
+        xx = np.einsum('knj,kij->kni', eckVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
+
+        oh8 = xx[:,8-1]-xx[:,3-1]
+        oh9 = xx[:, 9 - 1] - xx[:, 3 - 1]
+        oh10 = xx[:, 10 - 1] - xx[:, 3 - 1]
+
+        roh8 = la.norm(oh8,axis=1)
+        roh9 = la.norm(oh9,axis=1)
+        roh10 = la.norm(oh10,axis=1)
+
+        thH8 = np.arccos(oh8[:,-1]/roh8) #z / r
+        # thH8 = np.absolute(thH8-np.pi/2.)+np.pi/2.
+        thH9 = np.arccos(oh9[:, -1] / roh9)
+        # thH9 = np.absolute(thH9-np.pi/2.)+np.pi/2.
+        thH10 = np.arccos(oh10[:, -1] / roh10)
+        # thH10 = np.absolute(thH10-np.pi/2.)+np.pi/2.
+
+        # phH8 = np.arctan2(oh8[:,1],oh8[:,0]) #y / x
+        # self.ba(x, 1 - 1, 3 - 1, 2 - 1)
+        hoh1 = self.ba(xx,8-1,3-1,9-1)
+        hoh2 = self.ba(xx,8-1,3-1,10-1)
+        phH8 = hoh1-hoh2
+        phH9 = np.arctan2(oh9[:,1],oh9[:,0])
+        phH10 = np.arctan2(oh10[:,1],oh10[:,0])
+
+        return roh8, roh9, roh10, thH8,thH9,thH10,phH8,phH9,phH10
+    def SymInternalsH3O(self,xx):
+
+        self.internalName = ['rOH1','theta1','phi1',
+                             'rOH2','theta2','phi2',
+                             'rOH3','theta3','phi3']
+        return internals
+
+
 
     def setInternalName(self):
         if self.name in DeprotonatedWaterDimer:
@@ -883,12 +805,12 @@ class molecule (object):
                                  'th_627', 'phi_627', 'xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
                                  'rOH_51', 'aHOH_451', 'rOH_26', 'rOH_27', 'aHOH_267', 'rOO_1', 'rOO_2', 'aOOO']
         elif self.name in ProtonatedWaterTetramer:
-            self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH',
-                                 'theta651',
-                                 'phi651', 'Chi651',
-                                 'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-                                 'HOH516', 'rOH7', 'rOH8', 'HOH728',
-                                 'rOH9', 'rOH10', 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3', 'xo4', 'yo4', 'zo4']
+            self.internalName = ['rOH11', 'rOH12', 'rOH13', 'thH11', 'thH12', 'thH13', 'phH11', 'phH12', 'phH13',
+                                 'theta728', 'phi728', 'Chi728', 'theta1039', 'phi1039', 'Chi1039', 'theta651',
+                                 'phi651',
+                                 'Chi651', 'rOH5', 'rOH6', 'HOH516', 'rOH7', 'rOH8', 'HOH728', 'rOH9', 'rOH10',
+                                 'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3',
+                                 'xo4', 'yo4', 'zo4']
 
     def sphericalTrimer(self,xx):
         com, eckVecs, killList = self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)
@@ -931,24 +853,15 @@ class molecule (object):
 
 
     def SymInternalsH7O3plus(self,x):
-        print 'Commence getting internal coordinates for trimer'
+        print('Commence getting internal coordinates for trimer')
         #Hydronium
-
-        # rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
-        # rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
-        # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
-        # print 'done with FH'
         rOH8,rOH9,rOH10,thH8,thH9,thH10,phH8,phH9,phH10 = self.sphericalTrimer(x)
-        print 'hydronium'
+        print('hydronium')
 
         thphixi1= self.finalTrimerEuler(x,2,7,6)
-        print 'done with Euler1'
+        print('done with Euler1')
         thphixi2 = self.finalTrimerEuler(x,1,4,5)
-        print 'done with Euler2'
-        # thphixi3= self.finalTrimerEuler(x,2,6,7)
-        # print 'done with Euler1'
-        # thphixi4 = self.finalTrimerEuler(x,1,5,4)
-        # print 'done with Euler2'
+        print('done with Euler2')
         rOH1 = self.bL(x,1-1,4-1)
         rOH2 = self.bL(x,1-1,5-1)
         aHOH1= self.ba(x,5-1,1-1,4-1)
@@ -958,8 +871,8 @@ class molecule (object):
         rOO1 = self.bL(x,1-1,3-1)
         rOO2 = self.bL(x,2-1,3-1)
         aOOO = self.ba(x,1-1,3-1,2-1)
-        print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
-        print 'first Angle: ',np.degrees(aOOO[0])
+        print('first O1H4 bond length: ', rOH1[0]*bohr2ang)
+        print('first Angle: ',np.degrees(aOOO[0]))
         internal = np.array((rOH8, thH8, phH8, rOH9, thH9, phH9, rOH10, thH10, phH10,
                 thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2],
                              rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
@@ -969,46 +882,11 @@ class molecule (object):
 
         return internal
 
-    # def SymInternalsH7O3plus_cart(self,x): garbage
-    #     print 'Commence getting internal coordinates for trimer'
-    #     #Hydronium
-    #
-    #     # rOH8, thH8, phH8 = self.spcoords_Water(x, 8, 1, 2)
-    #     # rOH9, thH9, phH9 = self.spcoords_Water_sp(x, 9)
-    #     # rOH10, thH10, phH10 = self.spcoords_Water_sp(x,10)
-    #     # print 'done with FH'
-    #     xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10 = self.cartTrimer(x)
-    #     print 'hydroniumX'
-    #
-    #     thphixi1= self.finalTrimerEuler(x,2,7,6)
-    #     print 'done with Euler1'
-    #     thphixi2 = self.finalTrimerEuler(x,1,4,5)
-    #     print 'done with Euler2'
-    #     rOH1 = self.bL(x,1-1,4-1)
-    #     rOH2 = self.bL(x,1-1,5-1)
-    #     aHOH1= self.ba(x,5-1,1-1,4-1)
-    #     rOH3 = self.bL(x,2-1,6-1)
-    #     rOH4 = self.bL(x,2-1,7-1)
-    #     aHOH2= self.ba(x,6-1,2-1,7-1)
-    #     rOO1 = self.bL(x,1-1,3-1)
-    #     rOO2 = self.bL(x,2-1,3-1)
-    #     aOOO = self.ba(x,1-1,3-1,2-1)
-    #     print 'first O1H4 bond length: ', rOH1[0]*bohr2ang
-    #     print 'first Angle: ',np.degrees(aOOO[0])
-    #     internal = np.array((xH8,xH9,xH10,yH8,yH9,yH10,zH8,zH9,zH10,
-    #             thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2],
-    #                          rOH1, rOH2, aHOH1, rOH3, rOH4, aHOH2, rOO1, rOO2, aOOO)).T
-    #     self.internalName = ['xH8','xH9','xH10','yH8','yH9','yH10','zH8','zH9','zH10',
-    #                          'th_627', 'phi_627','xi_627', 'th_514', 'phi_514', 'xi_514', 'rOH_41',
-    #                          'rOH_51', 'aHOH_451', 'rOH_26','rOH_27', 'aHOH_267','rOO_1', 'rOO_2', 'aOOO']
-    #
-    #     return internal
-
     def SymInternalsH3O2minus(self,x): #get an array of all the internal coordinates associated with H3O2 minus
-        #print 'calculating the internals...ver 1...'
+        #print('calculating the internals...ver 1...')
         #internals used in jpc a paper
-        #print 'called symInternalsVer1. Please only provide eckart rotated molecules. Thank you.'
-        #    print 'The first walker is: \n', x[0]   
+        #print('called symInternalsVer1. Please only provide eckart rotated molecules. Thank you.')
+        #    print('The first walker is: \n', x[0]   )
 
         rOH1=self.bondlength(x,atom1=1,atom2=2)
         rOH2=self.bondlength(x,atom1=3,atom2=4)
@@ -1110,14 +988,13 @@ class molecule (object):
         # fll = open("newEckart_trimer_allH.xyz","w+")
         # self.printCoordsToFile(np.array([myBetterRef,myBetterRef]),fll)
         # print(myBetterRef)
-        # print myBetterRef
         if yz:
-            print 'yz - ref structure turned'
+            # print('yz - ref structure turned')
             rotM = np.array([[0.,0.,1.],
                          [0, 1, 0],
                          [-1.,0,0.]
                          ])
-            # print 'yz - ref structure turned (rotation about x axis)'
+            # print('yz - ref structure turned (rotation about x axis)'
             # rotM = np.array([[1.,0.,0.],
             #              [0, 0., -1.],
             #              [0.,1.,0.]])
@@ -1160,7 +1037,7 @@ class molecule (object):
         else:
             myRefCOM = self.rotateBackToFrame(np.array([myRefCOM, myRefCOM]), 2, 1, 3)[0]
 
-        # print 'rachel!'
+        # print('rachel!')
         #                      [0.000000,    3.123969 ,   0.775673],
         #                      [2.205940, - 1.273600  ,  0.000010],
         #                      [2.705278,   -1.561893 ,  -0.775789],
@@ -1177,8 +1054,15 @@ class molecule (object):
                          [-1.,0,0.]
                          ])
             myRefCOM= np.dot(rotM,myRefCOM.T).T
-            print 'yz - ref structure turned'
+            # print('yz - ref structure turned')
         return myRefCOM
+
+    def pullH3ORefPos(self,yz,dip):
+        a = np.array([[0.98*ang2bohr,0,0],
+                      [],
+                      [],
+                      [0,0,0,]])
+        return a
 
     def eckartRotate(self, pos, planar=False,yz=False,All=False,lst=[],dip=False):  # pos coordinates = walkerCoords numwalkersxnumAtomsx3
         """Eckart Rotate method returns the transpose of the correct matrix, meaning that when one does the dot product,
@@ -1187,11 +1071,13 @@ class molecule (object):
         if self.name in ProtonatedWaterTrimer:
             # planar=True
             self.refPos = self.pullTrimerRefPos(yz,dip)
+        elif self.name in hydronium:
+            self.refpos = self.pullH3ORefPos(yz,dip)
         else:
             # planar=True
             self.refPos = self.pullTetramerRefPos(yz,dip)
         mass = self.get_mass()
-        # print 'got mass, here it is', mass
+        print('got mass, here it is', mass)
         if not All:
             print('Reduced Eckart')
             self.refPos = self.refPos[lst]
@@ -1201,14 +1087,14 @@ class molecule (object):
         refCOM = np.dot(mass, self.refPos) / np.sum(mass)  # same as overal COM
         self.refPos-=refCOM
         #First Translate:
-        # print 'shifting molecules'
+        print('shifting molecules')
         ShiftedMolecules=pos-com[:,np.newaxis,:]
         #Equation 3.1 in Eckart vectors, Eckart frames, and polyatomic molecules - James D. Louck and Harold W. Galbraith
-        # print 'starting mathy math'
+        print('starting mathy math')
         asdf = np.sum(ShiftedMolecules[:,:,:,np.newaxis]*self.refPos[np.newaxis,:,np.newaxis,:]*mass[np.newaxis,:,np.newaxis,np.newaxis],axis=1)
         myF = np.transpose(asdf,(0,2,1))
         if planar:
-            print 'planar'
+            print('planar')
             all3 = np.arange(3)
             # myFp=np.copy(myF[:,:2])
             indZ=np.where(np.around(myF,4).any(axis=2))[1][:2]
@@ -1218,11 +1104,11 @@ class molecule (object):
             invRootDiagF2 = 1/np.sqrt(peval)
             axaxxa = np.where(np.isnan(invRootDiagF2))
             if len(axaxxa[0]) > 0:
-                print "PLANARBADBADBAD"
-                print len(axaxxa[0])
-                print axaxxa[0]
-                print ShiftedMolecules[axaxxa[0]]
-                fileout = open("badEck_planar.xyz", "w+")
+                print("PLANARBADBADBAD")
+                print(len(axaxxa[0]))
+                print(axaxxa[0])
+                print(ShiftedMolecules[axaxxa[0]])
+                # fileout = open("badEck_planar.xyz", "w+")
                 self.printCoordsToFile(ShiftedMolecules[axaxxa[0]], fileout)
                 killList2 = axaxxa[0]
                 raise ZeroDivisionError("this is planar bad, dude")
@@ -1234,20 +1120,20 @@ class molecule (object):
                 eckVecs2[:,:,np.setdiff1d(all3,indZ)[0]] = np.cross(eckVecs2[:,:,indZ[1]],eckVecs2[:,:,indZ[0]])
             else: #others can use the same generic formula because it's a "forward" cross pdt (x x y ; y x z)
                 eckVecs2[:, :, np.setdiff1d(all3, indZ)[0]] = np.cross(eckVecs2[:, :, indZ[0]], eckVecs2[:, :,indZ[1]])
-            # print 'done with planar'
+            # print('done with planar')
             minus = 0
         else:
-            print 'not planar'
+            # print('not planar')
             myFF = np.matmul(myF, asdf)
             bigEvals,bigEvecs=la.eigh(myFF)
             bigEvecsT=np.transpose(bigEvecs,(0,2,1))
             invRootDiagF2 = 1.0 / np.sqrt(bigEvals)
             axaxxa=np.where(np.isnan(invRootDiagF2))
             if len(axaxxa[0]) > 0:
-                print "BADBADBADBADBAD"
-                print len(axaxxa[0])
-                print axaxxa[0]
-                print ShiftedMolecules[axaxxa[0]]
+                print("BADBADBADBADBAD")
+                print(len(axaxxa[0]))
+                print(axaxxa[0])
+                print(ShiftedMolecules[axaxxa[0]])
                 fileout = open("badEck.xyz","w+")
                 self.printCoordsToFile(ShiftedMolecules[axaxxa[0]], fileout)
                 raise ZeroDivisionError("this nonplanar is bad, dude")
@@ -1278,15 +1164,15 @@ class molecule (object):
                 # yz2 =np.where(np.around(np.cross(eckVecs2[mas, 1], eckVecs2[mas, 2]),2) != np.around(eckVecs2[mas, 0],2))
             else:
                 minus = 0
-        # print 'done'
+        print('done')
         plus=len(ShiftedMolecules)-minus
-        print 'Plus rotation: ',plus
-        print 'Inverted Rotation: ',minus
+        print('Plus rotation: ',plus)
+        print('Inverted Rotation: ',minus)
         return com, eckVecs2 , killList2
 
     def getInitialCoordinates(self):
         #looks up the path of the coordinates for the starting positions of the walkers and makes nWalkers copies of them and then returns that as an self.nWalkers,self.nAtoms, 3 dimensional array                      
-        print 'there are ', self.nAtoms , 'atoms in ', self.name
+        # print('there are ', self.nAtoms , 'atoms in ', self.name
         if self.name in DeprotonatedWaterDimer:
             coordsMin=np.array([ [   0.000000000000000 ,  0.000000000000000 ,  0.000000000000000],
                                  [  2.306185590098382 ,  0.000000000000000 ,  0.000000000000000],
@@ -1365,7 +1251,7 @@ class molecule (object):
                                  [-2.70115, -0.40575, -0.73811],
                                  [-2.56265, -0.75862,0.76451]])
             coords = eqCoords*ang2bohr
-            print 'perturb the equilibrium coordinates by a little'
+            # print('perturb the equilibrium coordinates by a little'
         elif self.name in Water:
             eqCoords = \
                 np.array([[-4.3018530574,3.6598148518, -0.081920343],
@@ -1373,7 +1259,7 @@ class molecule (object):
                           [-5.2421388362,3.878384798001161,0.0488112791]]) #in angstroms already
             coords = eqCoords
         else:
-            print 'This is all zeros famalama'
+            # print('This is all zeros famalama'
             eqCoords = np.array([[0, 0, 0],
                                 [0, 0, 0],
                                 [0, 0, 0],
@@ -1418,7 +1304,7 @@ class molecule (object):
                 mass[3] =massD
                 self.names = ['O', 'O', 'O', 'D', 'H', 'H', 'H', 'H', 'H', 'H']
             elif self.isotope == 'notDeuterated':
-                print ':)'
+                print(':)')
             elif self.isotope == 'fullyDeuterated':
                 mass = np.array([massO, massO, massO, massD, massD, massD, massD, massD, massD, massD])
                 self.names = ['O', 'O', 'O', 'D', 'D', 'D', 'D', 'D', 'D', 'D']
@@ -1452,6 +1338,9 @@ class molecule (object):
                 elif self.isotope == 'notDeuteratedOnce_fw':
                     self.names = ['O', 'O', 'O','O','H', 'D','D','D', 'D', 'D', 'D', 'D', 'D']
                     mass = np.array([massO, massO, massO,massO, massH, massD, massD, massD, massD, massD, massD, massD, massD])
+                elif self.isotope == 'DeuteratedOnce_fw':
+                    self.names = ['O', 'O', 'O','O','D', 'H','H','H', 'H', 'H', 'H', 'H', 'H']
+                    mass = np.array([massO, massO, massO,massO, massD, massH, massH, massH, massH, massH, massH, massH, massH])
         elif self.name in Water:
             mass = np.array([massO,massH,massH])
         return mass*massConversionFactor
@@ -1477,7 +1366,7 @@ class molecule (object):
             #corresponds to calcrncom                        
 
             mass=1.0/(2.0*((1.0/(massOamu))+((1-costheta)/(massHamu))))
-            #print 'average mass', np.average(mass)
+            #print('average mass', np.average(mass))
             #Mass of water or Mass of O??                    
         elif self.name in ProtonatedWaterDimer and self.state==1 and self.surfaceName=='StretchAntiIn':
 
@@ -1508,7 +1397,7 @@ class molecule (object):
             magV=np.sqrt(V[:,0]**2+V[:,1]**2+V[:,2]**2)
             costheta= np.diag(np.dot(U,V.T))/(magU*magV)
             mass=1.0/(2.0*((1.0/(massOamu))+((1.000000-costheta)/(massHamu))))
-            #print 'average mass', np.average(mass)
+            #print('average mass', np.average(mass)
 
         elif self.name in DeprotonatedWaterDimer and self.surfaceName=='Z-displacement' and self.state==1:
             massHamu=self.getMassSharedProton()*massConversionFactor
@@ -1522,21 +1411,22 @@ class molecule (object):
             massHamu=self.getMassOuterProton()*massConversionFactor
             g=(1.0/massHamu)+ (1.0/massOamu)
             mass=1.0/g #(massHamu*massOamu)/(massHamu+massOamu)
-            #print 'average mass', np.average(mass)
+            #print('average mass', np.average(mass)
         elif self.name in ProtonatedWaterDimer and self.state==0:
             m1=self.getMassOuterProton()*massConversionFactor
             m2=2*(massO)*conversionFactor
             #m1=massH*conversionFactor
             mass=m1*m2/(m1+m2)
-            print 'why are you calculating the reduced mass on the ground state?'  , end
+            # print('why are you calculating the reduced mass on the ground state?'  , end
         elif self.name in DeprotonatedWaterDimer and self.state==0:
             m2=2*(massO)*conversionFactor #Supposed to be massConversionFactor?
             m1=self.getMassOuterProton()*massConversionFactor
             mass=m1*m2/(m1+m2)
-            print 'why are you calculating the reduced mass on the ground state?'  , end
+            # print('why are you calculating the reduced mass on the ground state?'  , end
 
         else:
-            print 'not implemented for ', self.name , 'and', self.state, 'and', self.surfaceName,end
+            # print('not implemented for ', self.name , 'and', self.state, 'and', self.surfaceName,
+            end
 
         return mass
 
@@ -1550,9 +1440,10 @@ class molecule (object):
         #swapping that takes place CHANGES the original array.  For this reason, the sortProton function only needs to be called
         #once each time step, but there are many places where we'd need the protons to be sorted appropriately and automatically
         #so we'll just have to work on speed ups in here rather than frugal calling of this method.
-        #print 'sorting protons'
+        #print('sorting protons'
         if self.name not in DeprotonatedWaterDimer:
-            print 'failed! wrong molecule!', end
+            # print('failed! wrong molecule!', \
+            end
         H0O1=self.bondlength(x,atom1=0 ,atom2=1)
         H0O3=self.bondlength(x,atom1=0 ,atom2=3)
         H2O1=self.bondlength(x,atom1=2 ,atom2=1)
@@ -1586,10 +1477,10 @@ class molecule (object):
 
         checkSortNeed=np.logical_not(sortByDistToMP[:,0]==0)
 
-        #print 'checkSortNeed sample', sortByAveragesAll[0:10],checkSortNeed[0:10]
+        #print('checkSortNeed sample', sortByAveragesAll[0:10],checkSortNeed[0:10]
         listOfSwapped=[]
         if np.any(checkSortNeed):
-            #print np.where(checkSortNeed),
+            #print(np.where(checkSortNeed),
             #fileout=open('swappyCoordinates.xyz','a')
             for m in np.where(checkSortNeed):
                 n=m[0]
@@ -1615,22 +1506,22 @@ class molecule (object):
                 positionH2prime=np.argmin(OH1Dist)*2
                 positionH4prime=np.argmax(OH1Dist)*2
                 if not (centralProtonIndex==0 and H2primeIndex==2 and H4primeIndex==4):
-                    print 'walkN',n,
-                    print 'AverageOH: ', averages,
-                    print 'O1-H dis: ',OH1Dist,
-                    print 'O2-H dis: ',np.array([H0O3[n],H2O3[n],H4O3[n]]),
-                    print 'HH distances', H0H2[n],H0H4[n],H2H4[n],
-                    print 'Distance to midpoint:', DistanceToMidPt[n],
-                    print 'Order from sort by averages',sortByAverages,'order from sort by dist to MP',sortByDistToMP[n]
-                    #print centralProtonIndex,H2primeIndex,HprimeIndex, '=?=',            
-                    #print positionH0prime,positionH2prime, positionH4prime
-                    #print x[n]
-                    #self.printCoordsToFile([x[n]],fileout)
-                    print 'no swap!'
+                    # print('walkN',n,
+                    # print('AverageOH: ', averages,
+                    # print('O1-H dis: ',OH1Dist,
+                    # print('O2-H dis: ',np.array([H0O3[n],H2O3[n],H4O3[n]]),
+                    # print('HH distances', H0H2[n],H0H4[n],H2H4[n],
+                    # print('Distance to midpoint:', DistanceToMidPt[n],
+                    # print('Order from sort by averages',sortByAverages,'order from sort by dist to MP',sortByDistToMP[n]
+                    # #print(centralProtonIndex,H2primeIndex,HprimeIndex, '=?=',
+                    # #print(positionH0prime,positionH2prime, positionH4prime
+                    # #print(x[n]
+                    # #self.printCoordsToFile([x[n]],fileout)
+                    # print('no swap!'
                     #x[n][[0,1,2,3,4]]=x[n][[centralProtonIndex,1,H2primeIndex,3,H4primeIndex]]
-                    #print 'yes swap!'
+                    #print('yes swap!'
                     # self.printCoordsToFile([x[n]],fileout)
-                    #print 'finally \n',x[n]
+                    #print('finally \n',x[n]
                     listOfSwapped.append(n)
 
         #I might not have to sort all of them!
@@ -1665,8 +1556,8 @@ class molecule (object):
     def calcAverageInternalCoordinates(self,x,dw):
         if self.name in DeprotonatedWaterDimer:
             #listOfSwapped=self.sortProtons(x)
-            #print 'check swapped:', x[listOfSwapped]
-            #print '\n ^^^ no really check it! ^^^ \n'
+            #print('check swapped:', x[listOfSwapped]
+            #print('\n ^^^ no really check it! ^^^ \n'
             #Local Intramolecular:
             HO1=self.bondlength(x,atom1=1, atom2=2)
             HO2=self.bondlength(x,atom1=3, atom2=4)
@@ -1734,15 +1625,15 @@ class molecule (object):
             return 0.5*(r1+r2-r3-r4)
 
     def calcStretchAnti(self,x):
-        #print 'calculating StretchAnti'
+        #print('calculating StretchAnti'
         if self.name in DeprotonatedWaterDimer:
-            #print 'calculatingStretchAnti',
+            #print('calculatingStretchAnti',
             #listOfSwapped=self.sortProtons(x)
             #listOfSwapped=[]
             r1=self.bondlength(x,atom1=1,atom2=2)
             r2=self.bondlength(x,atom1=3,atom2=4)
 
-            #print '3 averages',np.average(r1), np.average(r2) , np.average(r1-r2), ' --- '
+            #print('3 averages',np.average(r1), np.average(r2) , np.average(r1-r2), ' --- '
             #return (r1-r2), listOfSwapped
             return np.sqrt(0.5)*(r1-r2)#, listOfSwapped
 
@@ -1819,7 +1710,7 @@ class molecule (object):
 
         YVector=np.cross(XVectorPrime,ZVector)
         YVector=YVector/np.linalg.norm(YVector,axis=1)[:,None]
-        #        print 'y vec normalized?',np.linalg.norm(YVector,axis=1)
+        #        print('y vec normalized?',np.linalg.norm(YVector,axis=1)
         projectionY=np.zeros(x.shape[0])
         for k,(yvec,hmp) in enumerate(zip(YVector,HMP)):
             projectionY[k]=np.dot(hmp,yvec)
@@ -1827,21 +1718,21 @@ class molecule (object):
         XVector=np.cross(ZVector,YVector)
         XVector=XVector/np.linalg.norm(XVector,axis=1)[:,None]
 
-        #        print 'normalized?' ,np.linalg.norm(XVector,axis=1)
+        #        print('normalized?' ,np.linalg.norm(XVector,axis=1)
         projectionX=np.zeros(x.shape[0])
 
         for j,(xvec,hmp) in enumerate(zip(XVector,HMP)):
             projectionX[j]=np.dot(hmp,xvec)
 
 
-        ###print 'is cart projection of shared proton even working???'
-        ###print 'Hdisp',HMP[0]
-        ###print 'Vectors \n',XVector[0],'\n', YVector[0],'\n', ZVector[0]
+        ###print('is cart projection of shared proton even working???'
+        ###print('Hdisp',HMP[0]
+        ###print('Vectors \n',XVector[0],'\n', YVector[0],'\n', ZVector[0]
         ###
-        ###print 'projections:',projectionX[0],projectionY[0],projectionZ[0]
+        ###print('projections:',projectionX[0],projectionY[0],projectionZ[0]
         ###
-        ###print 'min',np.min(projectionX),np.min(projectionY)
-        ###print 'max',np.max(projectionX),np.max(projectionY)
+        ###print('min',np.min(projectionX),np.min(projectionY)
+        ###print('max',np.max(projectionX),np.max(projectionY)
 
         return projectionX, projectionY, projectionZ
 
@@ -1853,7 +1744,7 @@ class molecule (object):
             rncoord=self.calcStretchAntiIn(x)
             return rncoord
         elif self.surfaceName=='OHStretchAnti':
-            #print 'from calcRN',
+            #print('from calcRN',
             rncoord=self.calcStretchAnti(x)
 
         elif self.surfaceName=='LocalOHStretch':
@@ -1864,7 +1755,7 @@ class molecule (object):
         elif self.surfaceName=='EckRotZ-displacement':
             rncoord=self.calcEckRotZdisplacement(x)
         else:
-            print 'surface name is not found!', end
+            end
 
         return rncoord#,listOfSwapped
 
@@ -1881,7 +1772,7 @@ class molecule (object):
             b=molecule[atom3,:]-molecule[atom2,:]
             angle.append(np.arccos(np.dot(b,a)/(self.mag(np.array([a]))*self.mag(np.array([b])))))
         angle=np.array(angle)
-        #print 'ANGLE SHAPE, ', np.shape(angle.reshape(angle.shape[0]))
+        #print('ANGLE SHAPE, ', np.shape(angle.reshape(angle.shape[0]))
         return angle.reshape(angle.shape[0])
 
     """def bondAng(three):
@@ -1905,7 +1796,7 @@ class molecule (object):
             atom1=pointList[1]
             atom2=pointList[2]
             atom3=pointList[3]
-            print 'calculating the torsion angle between ', atom0,atom1,atom2, atom3
+            # print('calculating the torsion angle between ', atom0,atom1,atom2, atom3
         torsion=np.zeros(posList.shape[0])
         for i,pos in enumerate(posList):
             a=pos[atom2]-pos[atom1]
@@ -1924,7 +1815,7 @@ class molecule (object):
                 torsion[i]=2*np.pi+torsion[i]
             if torsion[i]>np.pi:
                 torsion[i]=2*np.pi-torsion[i]
-        #print 'torsion max, min, ave', np.max(torsion*rad2deg), np.min(torsion*rad2deg), np.average(torsion*rad2deg)
+        #print('torsion max, min, ave', np.max(torsion*rad2deg), np.min(torsion*rad2deg), np.average(torsion*rad2deg)
         return torsion,[0.0, np.pi]
 
     def symmetrizeCoordinates(self,x,dw):
