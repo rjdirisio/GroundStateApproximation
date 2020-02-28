@@ -104,6 +104,23 @@ class molecule (object):
         self.side=side
         self.state=1
 
+    def getEquilibriumEnergy(self):
+        if self.name in DeprotonatedWaterDimer:
+            equilibriumCoords = np.array([[0.2981678882048853, -2.4557992072743176E-002, -5.5485232545510215E-002],
+                                          [-2.354423404994569, 0.000000000000000, 0.000000000000000],
+                                          [-2.858918674095194, 1.111268022307282, -1.352651141853729],
+                                          [2.354423404994569, 0.000000000000000, 0.000000000000000],
+                                          [2.671741580470489, 1.136107563104921, 1.382886181959795]])
+            equilibriumE = self.V([equilibriumCoords])
+            # print 'equilibrium position',equilibriumCoords*bohr2ang, 'and energy:',equilibriumE*au2wn,'1/cm'
+        elif self.name in hydronium:
+            equilibriumE = 3.404489490321794E-006
+        elif self.name in ProtonatedWaterTrimer:
+            equilibriumE = -9.129961286575450E-002
+        elif self.name in ProtonatedWaterTetramer:
+            equilibriumE = -0.12214685901476255
+        return equilibriumE
+
     def rotateBackToFrame(self,coordz,a,b,c,dips=None):        #use the rotation matrices that I always use to reshape each coordinate back to its reference frame
         print(coordz[1])
         print('RotatingWalkers')
@@ -734,17 +751,6 @@ class molecule (object):
         rO2O3 = self.bL(x,2-1,3-1)
         print('time for rOO/rOH', str(time.time() - third))
         print('Done with all internals')
-        # internal= np.array(
-        #     (rOHHyd[0], rOHHyd[1], rOHHyd[2], umbDi[0], umbDi[1], umbDi[2], eulHyd[0], eulHyd[1], eulHyd[2],
-        #         thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
-        #         thphixi3[2], rOH5, rOH6, HOH516, rOH7, rOH8, HOH728, rOH9, rOH10, HOH9310, rO1O2, rO1O3, rO2O3,
-        #         xyzO4[0], xyzO4[1], xyzO4[2])).T
-        # self.internalName = ['rOH11', 'rOH12', 'rOH13', 'umbrella', '2dihed', 'dihed-di', 'thH', 'phH', 'xiH', 'theta651',
-        #                     'phi651', 'Chi651',
-        #                     'theta1039', 'phi1039', 'Chi1039', 'theta728', 'phi728', 'Chi728', 'rOH5', 'rOH6',
-        #                     'HOH516', 'rOH7', 'rOH8', 'HOH728',
-        #                     'rOH9', 'rOH10', 'HOH9310', 'rO1O2','rO1O3','rO2O3', 'xo4', 'yo4', 'zo4']
-
         internal = np.array(
             (rOHHyd[0], rOHHyd[1], rOHHyd[2], thHyd[0], thHyd[1], thHyd[2], phHyd[0], phHyd[1], phHyd[2],
              thphixi1[0], thphixi1[1], thphixi1[2], thphixi2[0], thphixi2[1], thphixi2[2], thphixi3[0], thphixi3[1],
@@ -759,40 +765,24 @@ class molecule (object):
         return internal
 
 
-    def sphericalH3O(self,xx):
-        com, eckVecs, killList = self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)
-        xx -= com[:, np.newaxis, :]
-        xx = np.einsum('knj,kij->kni', eckVecs.transpose(0, 2, 1), xx).transpose(0, 2, 1)
-
-        oh8 = xx[:,8-1]-xx[:,3-1]
-        oh9 = xx[:, 9 - 1] - xx[:, 3 - 1]
-        oh10 = xx[:, 10 - 1] - xx[:, 3 - 1]
-
-        roh8 = la.norm(oh8,axis=1)
-        roh9 = la.norm(oh9,axis=1)
-        roh10 = la.norm(oh10,axis=1)
-
-        thH8 = np.arccos(oh8[:,-1]/roh8) #z / r
-        # thH8 = np.absolute(thH8-np.pi/2.)+np.pi/2.
-        thH9 = np.arccos(oh9[:, -1] / roh9)
-        # thH9 = np.absolute(thH9-np.pi/2.)+np.pi/2.
-        thH10 = np.arccos(oh10[:, -1] / roh10)
-        # thH10 = np.absolute(thH10-np.pi/2.)+np.pi/2.
-
-        # phH8 = np.arctan2(oh8[:,1],oh8[:,0]) #y / x
-        # self.ba(x, 1 - 1, 3 - 1, 2 - 1)
-        hoh1 = self.ba(xx,8-1,3-1,9-1)
-        hoh2 = self.ba(xx,8-1,3-1,10-1)
-        phH8 = hoh1-hoh2
-        phH9 = np.arctan2(oh9[:,1],oh9[:,0])
-        phH10 = np.arctan2(oh10[:,1],oh10[:,0])
-
-        return roh8, roh9, roh10, thH8,thH9,thH10,phH8,phH9,phH10
     def SymInternalsH3O(self,xx):
-
-        self.internalName = ['rOH1','theta1','phi1',
-                             'rOH2','theta2','phi2',
-                             'rOH3','theta3','phi3']
+        r1 = self.bL(xx,4-1,1-1)
+        r2 = self.bL(xx,4-1,2-1)
+        r3 = self.bL(xx,4-1,3-1)
+        hoh1 = self.ba(xx,1-1,4-1,2-1)
+        hoh2 = self.ba(xx,2-1,4-1,3-1)
+        hoh3 = self.ba(xx,3-1,4-1,1-1)
+        brel,c,d,e = self.umbrellaDi(xx,4-1,1-1,2-1,3-1)
+        dh1 = 2*hoh1 - hoh2 - hoh3
+        dh2 = hoh2-hoh3
+        self.internalName = ['rOH1','rOH2','rOH3','brel','dh1','dh2']
+        internals = np.array((r1,r2,r3,brel,dh1,dh2)).T
+        print(r1[0]*bohr2ang)
+        print(r2[0] * bohr2ang)
+        print(r3[0] * bohr2ang)
+        print(np.degrees(brel[0]))
+        print(np.degrees(dh1[0]))
+        print(np.degrees(dh2[0]))
         return internals
 
 
@@ -1058,10 +1048,11 @@ class molecule (object):
         return myRefCOM
 
     def pullH3ORefPos(self,yz,dip):
-        a = np.array([[0.98*ang2bohr,0,0],
-                      [],
-                      [],
-                      [0,0,0,]])
+        a = np.array([[0.00000,        0.97561,       -0.00000],
+            [0.84490 ,      -0.48780 ,       0.00000],
+            [-0.84490,       -0.48780,       -0.00000],
+            [0.00000 ,       0.00000 ,       0.00000]])*ang2bohr
+        a = self.rotateBackToFrame(np.array([a,a]),4,1,2)[0]
         return a
 
     def eckartRotate(self, pos, planar=False,yz=False,All=False,lst=[],dip=False):  # pos coordinates = walkerCoords numwalkersxnumAtomsx3
@@ -1072,7 +1063,8 @@ class molecule (object):
             # planar=True
             self.refPos = self.pullTrimerRefPos(yz,dip)
         elif self.name in hydronium:
-            self.refpos = self.pullH3ORefPos(yz,dip)
+            self.refPos = self.pullH3ORefPos(yz,dip)
+            planar=True
         else:
             # planar=True
             self.refPos = self.pullTetramerRefPos(yz,dip)
@@ -1258,6 +1250,13 @@ class molecule (object):
                           [-4.306042519,2.6986842642, -0.438125298],
                           [-5.2421388362,3.878384798001161,0.0488112791]]) #in angstroms already
             coords = eqCoords
+        elif self.name in hydronium:
+            eqCoords = \
+                np.array([[-4.3018530574, 3.6598148518, -0.081920343],
+                          [-4.306042519, 2.6986842642, -0.438125298],
+                          [-4.306042519, 2.6986842642, -0.438125298],
+                          [-5.2421388362, 3.878384798001161, 0.0488112791]])  # in angstroms already
+            coords = eqCoords
         else:
             # print('This is all zeros famalama'
             eqCoords = np.array([[0, 0, 0],
@@ -1341,6 +1340,9 @@ class molecule (object):
                 elif self.isotope == 'DeuteratedOnce_fw':
                     self.names = ['O', 'O', 'O','O','D', 'H','H','H', 'H', 'H', 'H', 'H', 'H']
                     mass = np.array([massO, massO, massO,massO, massD, massH, massH, massH, massH, massH, massH, massH, massH])
+        elif self.name in hydronium:
+            mass = np.array([massH,massH,massH,massO])
+
         elif self.name in Water:
             mass = np.array([massO,massH,massH])
         return mass*massConversionFactor

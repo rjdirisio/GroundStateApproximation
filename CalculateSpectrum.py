@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 ProtonatedWaterTrimer = {'H7O3+','O3H7+', 'H7O3plus','H7O3', 'O3H7'}
 ProtonatedWaterTetramer = {'H9O4+','O4H9+', 'H9O4plus','H9O4', 'O4H9'}
+hydronium = {'H3O+'}
 global ProtonatedWaterTrimer
 au2wn=219474.63
 au2ang=0.529177249
@@ -590,22 +591,15 @@ class HarmonicApproxSpectrum(object):
         if not ecked:
             if self.wfn.molecule.name in ProtonatedWaterTrimer:
                 com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True,lst=[0,1,2],dip=True)
+            elif self.wfn.molecule.name in hydronium:
+                com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True, All=True, dip=True)
             else:
                 com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, planar=True, lst=[0,1,2,3],dip=True)
-            #
-            # print 'getting eckarted dipole moments. . .'
-            # if setOfWalkers == 'fSymtet_allD':
-            #     com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=False,yz=True)
-            # else:
-            #     com, eckVecs, killList = self.wfn.molecule.eckartRotate(coords, justO=True)
             dips = dips - com  # added this to shift dipole to center of mass before eckart roatation - translation of dipole should NOT matter
-            #print 'killList = '+str(len(killList))+' Walkers out of ' + str(len(dw))
             dipoleMoments = np.zeros(np.shape(dips))
             print 'dips shifted to COM: ', dips[0]
             for den in range(dips.shape[0]):
                 dipoleMoments[den] = np.dot(dips[den],eckVecs[den]) #because eckVecs is .T?
-                #dipoleMoments2[b] = np.dot(eckVecs[b],dips[b]) #This definitely isn't right
-            # dipz=np.dot(dips,eckVecs)
             print 'dipole moment - after eckart rotation: ', dipoleMoments[0]
             np.save(diPath+'eng_dip_'+setOfWalkers+'_eckart.npy',np.column_stack((pe,dipoleMoments)))
             del dips

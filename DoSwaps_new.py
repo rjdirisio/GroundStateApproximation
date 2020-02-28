@@ -2,13 +2,18 @@ import os, numpy as np
 import glob
 import sys
 import DMCClusters as dmc
-trimer = True
+trimer = False
 tetramer = False
+h3o=True
 if trimer:
     Wfn=dmc.wavefunction('H7O3+', 1)
     print "../coordinates/trimer/" + sys.argv[1]
     fileList = glob.glob("../coordinates/trimer/" + sys.argv[1])
     numAtoms = 10
+elif h3o:
+    Wfn = dmc.wavefunction('H3O+', 1)
+    fileList = ["../h3oStuff/inputs_h3op.npy"]
+    numAtoms = 4
 else:
     Wfn = dmc.wavefunction('H9O4+', 1)
     print "../coordinates/tetramer/" + sys.argv[1]
@@ -113,6 +118,23 @@ def swapStuff(myWalkers,dw):
             oswCdsZ[:, :, -1] *= -1.0
             print('caw')
             return np.concatenate((oswCds,oswCdsZ)), np.tile(dw,16)
+    elif h3o:
+        newWalkers12 = SwapTwoAtoms(np.copy(myWalkers),1,2)
+        newWalkers23 = SwapTwoAtoms(np.copy(myWalkers),2,3)
+        #new
+        newWalkers13 = SwapTwoAtoms(np.copy(myWalkers),1,3)
+        newWalkers1213 = SwapTwoAtoms(np.copy(newWalkers12),1,3)
+        newWalkers1312 = SwapTwoAtoms(np.copy(newWalkers13),1,2)
+        big3 = np.concatenate(
+            (myWalkers,newWalkers12,newWalkers23),
+                              axis=0)
+        big6 = np.concatenate(
+            (myWalkers,newWalkers12,newWalkers23,newWalkers13,newWalkers1213,newWalkers1312),axis=0)
+        oswCdsZ = np.copy(big6)
+        oswCdsZ[:, :, -1] *= -1.0
+        print('caw')
+        return np.concatenate((big6,oswCdsZ)),np.tile(dw,12)
+
     else:
         if 'llH' in config or 'llD' in config or '1Hh' in config or '1Dh' in config:
             newWalkers45 = SwapTwoAtoms(np.copy(myWalkers), 4, 5)
@@ -149,6 +171,8 @@ for config in fileList:
     cds=np.load(config)
     if trimer:
         ocom, evecs, kil = Wfn.molecule.eckartRotate(cds, planar=True, lst=[0, 1, 2], dip=True)
+    elif h3o:
+        ocom, evecs, kil = Wfn.molecule.eckartRotate(cds, planar=True, All=True,dip=True)
     else:
         ocom, evecs, kil = Wfn.molecule.eckartRotate(cds, planar=True, lst=[0,1,2,3], dip=False)
     cds-=ocom[:,np.newaxis]
@@ -157,6 +181,8 @@ for config in fileList:
     newCds,newDw = swapStuff(cds,dw)
     if trimer:
         ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True, lst=[0, 1, 2], dip=True)
+    elif h3o:
+        ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True,All=True, dip=True)
     else:
         ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True, lst=[0, 1, 2, 3], dip=False)
     newCds-=ocom2[:,np.newaxis]
@@ -164,6 +190,10 @@ for config in fileList:
     if trimer:
         np.save("../coordinates/trimer/ffinal_"+config[-8:],newCds)
         np.save("../coordinates/trimer/ffinal_"+config[-8:-4]+"_dw",newDw)
+    elif h3o:
+        np.save("../h3oStuff/ffinal_h3o.npy",newCds)
+        np.save("../h3oStuff/ffinal_h3o_dw.npy", newDw)
+
     else:
         np.save("../coordinates/tetramer/tetffinal_" + config[-8:], newCds)
         np.save("../coordinates/tetramer/tetffinal_" + config[-8:-4] + "_dw", newDw)
