@@ -680,6 +680,16 @@ class HarmonicApproxSpectrum(object):
 
         # Vq= <1_q|V|1_q> bra:state with one quanta in mode q, ket: state with one quanta in mode q
         Vq=np.average(potentialEnergy[:,None]*q2,axis=0,weights=dw)
+        # #################UMBRELLA TEST
+        # qpBrel = np.copy(q[:,-1])
+        # print("<qpbrel>_b4 = ", np.average(qpBrel,weights=dw))
+        # qpBrel = np.absolute(qpBrel)
+        # print("<qpbrel>_af = ", np.average(qpBrel,weights=dw))
+        # qpBrel -= np.average(qpBrel,weights=dw)
+        # print("<qpbrel>_sb = ", np.average(qpBrel,weights=dw))
+        # Vq[-1] = np.average(potentialEnergy*(qpBrel**2),axis=0,weights=dw)
+        # print("Vq now",Vq)
+        # ###################/UMBRELLA TEST
 
         #Vq2d=<q^2Vq^2> (<> is an average of the descendant weights)
         Vq2d=np.zeros((self.nVibs,self.nVibs)) # one quanta in one mode and 1 quanta in another mode
@@ -701,22 +711,19 @@ class HarmonicApproxSpectrum(object):
         q4 = q*q*q*q
         q8 = q4*q4
         alpha=q2ave/(np.average(q4,weights=dw,axis=0)-q2ave**2) # Equation #11
-
         #alphaPrime=0.5/q2ave   #Equation in text after #8
 
         alphaPrime = np.sqrt(8. * np.average(q4,weights=dw,axis=0) / (np.average(q8,weights=dw,axis=0) - np.average(q4,weights=dw,axis=0) ** 2))
         # alphaPrime = np.copy(alpha)
 
-        #        print 'how similar are these?', zip(alpha,alphaPrime) Still a mystery to me why there were 2 dfns of alpha
-        # crazyStuff = np.load("dgz_ffinal_allH_rnspc_xfinAx.npy")
-        # mass = np.average(crazyStuff,weights=dw,axis=0)
         #kineticEnergy= hbar**2 nquanta alpha/(2 mass)
         Tq=1.0**2*1.0*alpha/(2.0*1.0) #Equation #10
 
         TqP = 1.0**2*2.0*alphaPrime/(2.0*1.0) #N=2 !!!!!!!!!!
-
+        # testTq2 =  Tq*2
         Tq2d=np.zeros((self.nVibs,self.nVibs)) #Tij=Ti+Tj
-        #Finish calculate the potential and kinetic energy for the combination and overtone bands 
+
+        #Finish calculate the potential and kinetic energy for the combination and overtone bands
         #put Equation 8 into equation 4, algebra...
         for ivibmode in range(self.nVibs): #combination band calculations + overtones (i=j)
             for jvibmode in range(ivibmode):
@@ -724,9 +731,6 @@ class HarmonicApproxSpectrum(object):
                 Vq2d[jvibmode,ivibmode]=Vq2d[jvibmode,ivibmode]/q2ave2d[jvibmode,ivibmode]
                 Tq2d[ivibmode,jvibmode]=Tq[ivibmode]+Tq[jvibmode]
                 Tq2d[jvibmode,ivibmode]=Tq2d[ivibmode,jvibmode]
-            #Vq2d[ivibmode,ivibmode]=Vq2d[ivibmode,ivibmode]*4.0*alpha[ivibmode]**2-Vq[ivibmode]*4.0*alpha[ivibmode]+V_0
-            #Vq2d[ivibmode,ivibmode]=Vq2d[ivibmode,ivibmode]/(4.0*alpha[ivibmode]**2*q2ave2d[ivibmode,ivibmode]-4.0*alpha[ivibmode]*q2ave[ivibmode]+1.0)
-            #Vq2d[ivibmode, ivibmode] = Vq2d[ivibmode, ivibmode] * 4.0 * alpha[ivibmode] ** 2 - Vq[ivibmode] * 4.0 *alpha[ivibmode] + V_0
             Tq2d[ivibmode,ivibmode]=Tq[ivibmode]*2.0
 
         T2P = np.copy(Tq2d)
@@ -746,15 +750,19 @@ class HarmonicApproxSpectrum(object):
 
         print("<V>= ", V_0*au2wn)
         print("Alpha", alpha)
-        print("<qVq>= ", au2wn*(Vq/q2ave))
+        print("<qVq>/<qq>= ", au2wn*(Vq/q2ave))
         print("v1-v0",(Vq/q2ave-V_0)*au2wn)
         print("deltaT = ", Tq*au2wn)
         print("q2ave", q2ave)
         print("q4ave",np.average(q*q*q*q,axis=0,weights=dw))
         Eq=(Vq/q2ave+Tq)-V_0
-        for i in range(self.nVibs):
-            np.savetxt("GSAData/realGSADATA_mode"+str(i),zip([q2ave[i], q2ave[i]**2, np.average(q*q*q*q,axis=0,weights=dw)[i],
-                                                      alpha[i], Tq[i] * au2wn, (Vq[i]/q2ave[i]-V_0)*au2wn,Eq[i]*au2wn]))
+        ##BRELTEST
+        # Eq[-1]=(Vq[-1]/np.average(qpBrel**2,axis=0,weights=dw)+Tq[-1])-V_0
+
+
+        #for i in range(self.nVibs):
+        #    np.savetxt("GSAData/realGSADATA_mode"+str(i),zip([q2ave[i], q2ave[i]**2, np.average(q*q*q*q,axis=0,weights=dw)[i],
+        #                                              alpha[i], Tq[i] * au2wn, (Vq[i]/q2ave[i]-V_0)*au2wn,Eq[i]*au2wn]))
         #noKE_funds = Vq/q2ave - V_0
         #noKE_combos = Vq2d-V_0
         #Lastly, the dipole moments to calculate the intensities! Ryan - Do you even have to eckart the molecule, why not just eckart rotate the dipole moment?
@@ -1143,5 +1151,17 @@ class HarmonicApproxSpectrum(object):
         assignF.close()
 
         q = np.matmul(TransformationMatrix, moments.T).T
+        ######umbrella test####
+        # if 'h3o' in setOfWalkers:
+        #     bInd = -1
+        # elif 'tet' in setOfWalkers:
+        #     bInd = 14
+        # else:
+        #     bInd = 12
+        # qpBrel = np.copy(q[:,bInd])
+        # qpBrel = np.absolute(qpBrel)
+        # qpBrel -= np.average(qpBrel,weights=dw)
+        # q[:,bInd] = qpBrel
+
         q2=q**2
         return q, q2

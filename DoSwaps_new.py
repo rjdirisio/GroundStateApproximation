@@ -13,6 +13,8 @@ if trimer:
 elif h3o:
     Wfn = dmc.wavefunction('H3O+', 1)
     fileList = ["../h3oStuff/inputs_h3op.npy"]
+    # fileList = ["../h3oStuff/refStruct.npy"]
+
     numAtoms = 4
 else:
     Wfn = dmc.wavefunction('H9O4+', 1)
@@ -125,9 +127,9 @@ def swapStuff(myWalkers,dw):
         newWalkers13 = SwapTwoAtoms(np.copy(myWalkers),1,3)
         newWalkers1213 = SwapTwoAtoms(np.copy(newWalkers12),1,3)
         newWalkers1312 = SwapTwoAtoms(np.copy(newWalkers13),1,2)
-        big3 = np.concatenate(
-            (myWalkers,newWalkers12,newWalkers23),
-                              axis=0)
+        # big3 = np.concatenate(
+        #     (myWalkers,newWalkers12,newWalkers23),
+        #                       axis=0)
         big6 = np.concatenate(
             (myWalkers,newWalkers12,newWalkers23,newWalkers13,newWalkers1213,newWalkers1312),axis=0)
         oswCdsZ = np.copy(big6)
@@ -185,14 +187,18 @@ for config in fileList:
         ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True,All=True, dip=True)
     else:
         ocom2, evecs2, kil = Wfn.molecule.eckartRotate(newCds, planar=True, lst=[0, 1, 2, 3], dip=False)
+    np.save("../h3oStuff/ocom2",ocom2)
     newCds-=ocom2[:,np.newaxis]
     newCds = np.einsum('knj,kij->kni', evecs2.transpose(0, 2, 1), newCds).transpose(0, 2, 1)
     if trimer:
         np.save("../coordinates/trimer/ffinal_"+config[-8:],newCds)
         np.save("../coordinates/trimer/ffinal_"+config[-8:-4]+"_dw",newDw)
     elif h3o:
-        np.save("../h3oStuff/ffinal_h3o.npy",newCds)
-        np.save("../h3oStuff/ffinal_h3o_dw.npy", newDw)
+        # np.save("../h3oStuff/ffinal_h3o.npy",newCds)
+        # np.save("../h3oStuff/ffinal_h3o_dw.npy", newDw)
+        np.save("../h3oStuff/symmedRef.npy",newCds)
+        np.save("../h3oStuff/rotMs.npy",evecs2)
+        # np.save("../h3oStuff/ffinal_h3o_dw.npy", newDw)
 
     else:
         np.save("../coordinates/tetramer/tetffinal_" + config[-8:], newCds)

@@ -60,6 +60,8 @@ class molecule (object):
             self.dipole=self.getDIPOLE()
         self.isotope='notDeuterated'
         self.nVibs=3*self.nAtoms-6
+        # if self.name in hydronium:
+        #     self.nVibs+=1
 
     def set_isotope(self,keyword):
         print('resetting isotope to ', keyword)
@@ -775,14 +777,18 @@ class molecule (object):
         brel,c,d,e = self.umbrellaDi(xx,4-1,1-1,2-1,3-1)
         dh1 = 2*hoh1 - hoh2 - hoh3
         dh2 = hoh2-hoh3
+
+        # self.internalName = ['rOH1','rOH2','rOH3','hoh1','hoh2','hoh3','brel']
+        # internals = np.array((r1,r2,r3,hoh1,hoh2,hoh3,brel)).T
+
         self.internalName = ['rOH1','rOH2','rOH3','brel','dh1','dh2']
         internals = np.array((r1,r2,r3,brel,dh1,dh2)).T
-        print(r1[0]*bohr2ang)
-        print(r2[0] * bohr2ang)
-        print(r3[0] * bohr2ang)
-        print(np.degrees(brel[0]))
-        print(np.degrees(dh1[0]))
-        print(np.degrees(dh2[0]))
+        # print(r1[0]*bohr2ang)
+        # print(r2[0] * bohr2ang)
+        # print(r3[0] * bohr2ang)
+        # print(np.degrees(brel[0]))
+        # print(np.degrees(dh1[0]))
+        # print(np.degrees(dh2[0]))
         return internals
 
 
@@ -801,6 +807,8 @@ class molecule (object):
                                  'Chi651', 'rOH5', 'rOH6', 'HOH516', 'rOH7', 'rOH8', 'HOH728', 'rOH9', 'rOH10',
                                  'HOH9310', 'rO1O2', 'rO1O3', 'rO2O3',
                                  'xo4', 'yo4', 'zo4']
+        else:
+            self.internalName = ['rOH1', 'rOH2', 'rOH3', 'brel', 'dh1', 'dh2']
 
     def sphericalTrimer(self,xx):
         com, eckVecs, killList = self.eckartRotate(xx,planar=True,lst=[1-1,2-1,3-1],dip=True)

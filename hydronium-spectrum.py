@@ -2,7 +2,15 @@ import numpy as np
 import DMCClusters as dmc
 import CalculateSpectrum
 import sys, os
-
+import Plot
+def PltHists1D(cfg, thing, bound, xl, yl, overly, weits):
+    theLen, xx = np.histogram(thing, bins=120, range=bound, normed=True, weights=weits)  # WEIGHTS=WEIGHTARRAY
+    inin = True
+    overlay = False
+    bnd = str(bound[0]).replace(".", "").replace("-", "") + str(bound[1]).replace(".", "").replace("-", "")
+    print bnd
+    mP = Plot.myPlot(cfg, '1d', bnd, bnd, xl, yl, overly, inin, theLen,(xx[1:]+xx[:-1])/2)
+    mP.plotIt()
 angstr = 0.529177
 
 # H E R M I T E  P O L Y N O M I A L  A P P R O X I M A T I O N
@@ -37,28 +45,11 @@ print dipF
 
 if 'nz' in kill:
     GfileName = GfileName[:-4] + 'nz.gmat'
-    # Same as regular
 
-# lukeOOs = 3
-# for f in range(1,lukeOOs+1):
-#     a = np.load("dvr_oo_geoms_shift_"+str(f)+".npy")
-#     fll = open('lukeGeomz_'+str(f)+'.xyz', 'w+')
-#     Wfn.molecule.printCoordsToFile(a,fll)
-# stop
-# fll = open('cdsWagProblem.xyz','w+')
-# a = np.load("../cdsWagProblem.npy")
-# # Wfn.molecule.printCoordsToFile(a,fll)
-# symDw = np.load("../cdsWagProblem_dw.npy")
-# plotStuff(a)
-# stop
 
 if os.path.isfile(cds + '.npy'):
     symCoords = np.load(cds + '.npy')
     symDw = np.load(cds + '_dw.npy')
-    # symCoords = Wfn.molecule.rotateBackToFrame(symCoords, 3, 2, 1)
-    # np.save('../coordinates/trimer/'+'Tfinal_allH'+'.npy', symCoords)
-    # np.save('../coordinates/trimer/' + coordinateSet + '_dw.npy', symDw)
-    # print 'asdf'
 else:
     symCoords, symDw = Wfn.loadCoords(cds)
     np.save('../h3oStuff/' + coordinateSet + '.npy', symCoords)
@@ -83,6 +74,19 @@ print 'PEDIP shape', pdip.shape
 pe = pdip[:, 0]
 dip = pdip[:, 1:]
 print 'Shape of dipole: ', np.shape(dip)
+
+# internals = Wfn.molecule.SymInternalsH3O(symEckRotCoords).T
+# internalName = Wfn.molecule.internalName
+# unit = ['r','r','r','a','a','a','a']
+# for i in range(len(internals)):
+#     if unit == 'r':
+#         hInt=internals[i]*angstr
+#         rng = (0,2)
+#     else:
+#         hInt=np.degrees(internals[i])
+#         rng = (0,160)
+#     PltHists1D('h3o',hInt,rng,internalName[i],'H3O/ProbabilityDensity',False,weits=symDw)
+# stop
 HOASpectrum = CalculateSpectrum.HarmonicApproxSpectrum(Wfn, symEckRotCoords, symDw, path, testName)
 # if 'Eck' in GfileName:
 #     coordinateSet=coordinateSet+'refGmat'
